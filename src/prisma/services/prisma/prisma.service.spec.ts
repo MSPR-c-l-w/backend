@@ -5,7 +5,6 @@ describe('PrismaService', () => {
   let service: PrismaService;
 
   beforeEach(async () => {
-    // PrismaService lit DATABASE_URL dans le constructeur : on met une valeur "dummy" pour les tests unitaires
     process.env.DATABASE_URL ??= 'mysql://user:pass@localhost:3306/test_db';
 
     const module: TestingModule = await Test.createTestingModule({

@@ -1,6 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { UsersService } from './users.service';
 import { PrismaService } from 'src/prisma/services/prisma/prisma.service';
+import { NotFoundException } from '@nestjs/common';
+
+jest.mock('src/utils/security/password', () => ({
+  hashPassword: jest.fn(async () => 'HASHED_PASSWORD'),
+}));
 
 describe('UsersService', () => {
   let service: UsersService;
@@ -48,6 +53,11 @@ describe('UsersService', () => {
       await expect(service.getUsers()).resolves.toEqual(users);
       expect(prisma.user.findMany).toHaveBeenCalledTimes(1);
     });
+
+    it('throw NotFoundException si aucun user', async () => {
+      prisma.user.findMany.mockResolvedValue([]);
+      await expect(service.getUsers()).rejects.toBeInstanceOf(NotFoundException);
+    });
   });
 
   describe('getUserById', () => {
@@ -58,7 +68,13 @@ describe('UsersService', () => {
       await expect(service.getUserById('42')).resolves.toEqual(user);
       expect(prisma.user.findUnique).toHaveBeenCalledWith({
         where: { id: 42 },
+        select: expect.any(Object),
       });
+    });
+
+    it('throw NotFoundException si user introuvable', async () => {
+      prisma.user.findUnique.mockResolvedValue(null);
+      await expect(service.getUserById('42')).rejects.toBeInstanceOf(NotFoundException);
     });
   });
 
@@ -82,7 +98,7 @@ describe('UsersService', () => {
       expect(prisma.user.create).toHaveBeenCalledWith({
         data: expect.objectContaining({
           email: dto.email,
-          password_hash: dto.password,
+          password_hash: 'HASHED_PASSWORD',
           first_name: dto.first_name,
           last_name: dto.last_name,
           date_of_birth: new Date(dto.date_of_birth),
@@ -91,6 +107,7 @@ describe('UsersService', () => {
           is_active: true,
           is_deleted: false,
         }),
+        select: expect.any(Object),
       });
 
       // Pas de connect si pas d'organization_id
@@ -118,6 +135,7 @@ describe('UsersService', () => {
         data: expect.objectContaining({
           organization: { connect: { id: 7 } },
         }),
+        select: expect.any(Object),
       });
     });
   });
@@ -125,6 +143,7 @@ describe('UsersService', () => {
   describe('updateUser', () => {
     it('met à jour sans connect si organization_id est absent', async () => {
       const updated = { id: 1 } as any;
+      prisma.user.findUnique.mockResolvedValue({ id: 1, is_deleted: false });
       prisma.user.update.mockResolvedValue(updated);
 
       const dto = { first_name: 'New' } as any;
@@ -133,11 +152,13 @@ describe('UsersService', () => {
       expect(prisma.user.update).toHaveBeenCalledWith({
         where: { id: 1 },
         data: { first_name: 'New' },
+        select: expect.any(Object),
       });
     });
 
     it('connecte une organisation si organization_id est fourni', async () => {
       const updated = { id: 1 } as any;
+      prisma.user.findUnique.mockResolvedValue({ id: 1, is_deleted: false });
       prisma.user.update.mockResolvedValue(updated);
 
       const dto = { organization_id: 99, first_name: 'New' } as any;
@@ -149,6 +170,7 @@ describe('UsersService', () => {
           first_name: 'New',
           organization: { connect: { id: 99 } },
         },
+        select: expect.any(Object),
       });
     });
   });
@@ -156,6 +178,7 @@ describe('UsersService', () => {
   describe('deleteUser', () => {
     it('fait un soft-delete', async () => {
       const deleted = { id: 1, is_deleted: true } as any;
+      prisma.user.findUnique.mockResolvedValue({ id: 1, is_deleted: false });
       prisma.user.update.mockResolvedValue(deleted);
 
       await expect(service.deleteUser('1')).resolves.toEqual(deleted);
@@ -166,6 +189,7 @@ describe('UsersService', () => {
           deleted_at: expect.any(Date),
           is_active: false,
         },
+        select: expect.any(Object),
       });
     });
   });

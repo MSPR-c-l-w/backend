@@ -18,6 +18,13 @@ model User {
   organization Organization? @relation(fields: [organization_id], references: [id])
   email String @unique
   password_hash String
+  refresh_token_hash String? @unique
+  refresh_token_expires_at DateTime?
+  email_verification_token_hash String? @unique
+  email_verification_token_expires_at DateTime?
+  email_verified_at DateTime?
+  reset_password_token_hash String? @unique
+  reset_password_token_expires_at DateTime?
   first_name String
   last_name String
   date_of_birth DateTime?
