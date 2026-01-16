@@ -39,6 +39,10 @@ if (!jwtSecret) {
     MailerService,
   ],
   controllers: [AuthController],
-  exports: [AuthService],
+  exports: [AuthService,
+    {
+      provide: SERVICES.AUTH,
+      useClass: AuthService,
+    },],
 })
 export class AuthModule {}
