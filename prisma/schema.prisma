@@ -49,3 +49,20 @@ model Organization {
   is_deleted Boolean @default(false)
   users User[]
 }
+
+model Nutrition {
+  id Int @id @default(autoincrement())
+  name String
+  category String
+  calories_kcal Float
+  protein_g Float
+  carbohydrates_g Float
+  fat_g Float
+  fiber_g Float
+  sugar_g Float
+  sodium_mg Float
+  cholesterol_mg Float
+  meal_type_name String
+  water_intake_ml Float
+  picture_url String?
+}
