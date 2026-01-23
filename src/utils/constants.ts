@@ -3,6 +3,7 @@ export enum ROUTES {
     USERS = "users",
     ORGANIZATIONS = 'organizations',
     EXERCISE = 'exercise',
+    NUTRITION = 'nutrition',
 }
 
 export enum SERVICES {
@@ -10,5 +11,5 @@ export enum SERVICES {
     USERS = 'USERS_SERVICE',
     ORGANIZATIONS = 'ORGANIZATIONS_SERVICE',
     EXERCISE = 'EXERCISE_SERVICE',
+    NUTRITION = 'NUTRITION_SERVICE',
 }
-

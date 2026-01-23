@@ -12,6 +12,10 @@ import { UsersController } from './controllers/users/users.controller';
     }
   ],
   controllers: [UsersController],
-  exports: [UsersService],
+  exports: [UsersService,
+    {
+      provide: SERVICES.USERS,
+      useClass: UsersService,
+    }],
 })
 export class UsersModule {}
