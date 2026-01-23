@@ -13,41 +13,59 @@ datasource db {
 }
 
 model User {
-  id Int @id @default(autoincrement())
-  organization_id Int?
-  organization Organization? @relation(fields: [organization_id], references: [id])
-  email String @unique
-  password_hash String
-  refresh_token_hash String? @unique
-  refresh_token_expires_at DateTime?
-  email_verification_token_hash String? @unique
+  id                                  Int           @id @default(autoincrement())
+  organization_id                     Int?
+  organization                        Organization? @relation(fields: [organization_id], references: [id])
+  email                               String        @unique
+  password_hash                       String
+  refresh_token_hash                  String?       @unique
+  refresh_token_expires_at            DateTime?
+  email_verification_token_hash       String?       @unique
   email_verification_token_expires_at DateTime?
-  email_verified_at DateTime?
-  reset_password_token_hash String? @unique
-  reset_password_token_expires_at DateTime?
-  first_name String
-  last_name String
-  date_of_birth DateTime?
-  gender String?
-  height Float?
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
-  deleted_at DateTime?
-  is_active Boolean @default(true)
-  is_deleted Boolean @default(false)
+  email_verified_at                   DateTime?
+  reset_password_token_hash           String?       @unique
+  reset_password_token_expires_at     DateTime?
+  first_name                          String
+  last_name                           String
+  date_of_birth                       DateTime?
+  gender                              String?
+  height                              Float?
+  created_at                          DateTime      @default(now())
+  updated_at                          DateTime      @updatedAt
+  deleted_at                          DateTime?
+  is_active                           Boolean       @default(true)
+  is_deleted                          Boolean       @default(false)
 }
 
 model Organization {
-  id Int @id @default(autoincrement())
-  name String @unique
-  type String
+  id              Int       @id @default(autoincrement())
+  name            String    @unique
+  type            String
   branding_config Json
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
-  deleted_at DateTime?
-  is_active Boolean @default(true)
-  is_deleted Boolean @default(false)
-  users User[]
+  created_at      DateTime  @default(now())
+  updated_at      DateTime  @updatedAt
+  deleted_at      DateTime?
+  is_active       Boolean   @default(true)
+  is_deleted      Boolean   @default(false)
+  users           User[]
+}
+
+model Exercise {
+  id                   Int     @id @default(autoincrement())
+  name                 String  @unique
+  image_url            String?
+  video_url            String?
+  gender               String?
+  workout_type         String?
+  overview             String?
+  equipments           Json?
+  body_parts           Json?
+  target_muscles       Json?
+  secondary_muscles    Json?
+  instructions         Json?
+  exercise_type        String?
+  variations           Json?
+  related_exercice_ids Json?
 }
 
 model Nutrition {
