@@ -7,9 +7,10 @@ import { PrismaModule } from './prisma/prisma.module';
 import { OrganizationModule } from './organization/organization.module';
 import { ExerciceModule } from './exercice/exercice.module';
 import { NutritionModule } from './nutrition/nutrition.module';
+import { PlanModule } from './plan/plan.module';
 
 @Module({
-  imports: [AuthModule, UsersModule, PrismaModule, OrganizationModule, NutritionModule, ExerciceModule],
+  imports: [AuthModule, UsersModule, PrismaModule, OrganizationModule, NutritionModule, ExerciceModule, PlanModule],
   controllers: [AppController],
   providers: [AppService],
 })
