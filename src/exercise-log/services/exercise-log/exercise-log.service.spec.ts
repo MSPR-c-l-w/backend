@@ -1,11 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException } from '@nestjs/common';
-import { ExerciseLogService } from './exercise-log.service';
+import { Exercise_LogService } from './exercise-log.service';
 import { PrismaService } from 'src/prisma/services/prisma/prisma.service';
 import { ExerciseLog } from '@prisma/client';
 
 describe('ExerciseLogService', () => {
-  let service: ExerciseLogService;
+  let service: Exercise_LogService;
   let prisma: PrismaService;
 
   const mockExerciseLog: ExerciseLog = {
@@ -23,7 +23,7 @@ describe('ExerciseLogService', () => {
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
-        ExerciseLogService,
+        Exercise_LogService,
         {
           provide: PrismaService,
           useValue: {
@@ -36,7 +36,7 @@ describe('ExerciseLogService', () => {
       ],
     }).compile();
 
-    service = module.get<ExerciseLogService>(ExerciseLogService);
+    service = module.get<Exercise_LogService>(Exercise_LogService);
     prisma = module.get<PrismaService>(PrismaService);
   });
 

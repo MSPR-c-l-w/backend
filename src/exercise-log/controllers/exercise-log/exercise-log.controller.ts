@@ -7,21 +7,21 @@ import {
   ApiParam,
   ApiTags,
 } from '@nestjs/swagger';
-import { ExerciseLog } from '@prisma/client';
+import { Exercise_Log } from 'src/utils/types';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
-import type { IExerciseLogController, IExerciseLogService } from 'src/exercise-log/interfaces/exercise-log/exercise-log.interface';
+import type { IExercise_LogController, IExercise_LogService } from 'src/exercise-log/interfaces/exercise-log/exercise-log.interface';
 import { ROUTES, SERVICES } from 'src/utils/constants';
 
-@Controller(ROUTES.EXERCISELOG)
+@Controller(ROUTES.EXERCISE_LOG)
 @UseGuards(JwtAuthGuard)
-@ApiTags(ROUTES.EXERCISELOG)
-export class ExerciseLogController implements IExerciseLogController {
-  constructor(@Inject(SERVICES.EXERCISELOG) private readonly exerciseLogService: IExerciseLogService) {}
+@ApiTags(ROUTES.EXERCISE_LOG)
+export class Exercise_LogController implements IExercise_LogController {
+  constructor(@Inject(SERVICES.EXERCISE_LOG) private readonly exerciseLogService: IExercise_LogService) {}
 
   @Get()
   @ApiOperation({ summary: 'Récupérer tous les exercices' })
   @ApiOkResponse({ description: 'Liste des exercices' })
-  async getExerciseLogs(): Promise<ExerciseLog[]> {
+  async getExerciseLogs(): Promise<Exercise_Log[]> {
     return this.exerciseLogService.getExerciseLogs();
   }
 
@@ -31,7 +31,7 @@ export class ExerciseLogController implements IExerciseLogController {
   @ApiParam({ name: 'id', description: 'ID de l\'exercice' })
   @ApiNotFoundResponse({ description: 'Exercice non trouvé' })
   @ApiBadRequestResponse({ description: 'ID de l\'exercice invalide' })
-  async getExerciseLogById(@Param('id') id: string): Promise<ExerciseLog> {
+  async getExerciseLogById(@Param('id') id: string): Promise<Exercise_Log> {
     return this.exerciseLogService.getExerciseLogById(id);
   }
 }

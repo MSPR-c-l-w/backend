@@ -26,7 +26,7 @@ export type Organization = {
     is_deleted: boolean;
 }
 
-export type ExerciseLog = {
+export type Exercise_Log = {
     id: number;
     user_id: number;
     exercise_id: number;

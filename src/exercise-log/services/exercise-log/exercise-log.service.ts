@@ -3,7 +3,7 @@ import { ExerciseLog } from '@prisma/client';
 import { PrismaService } from 'src/prisma/services/prisma/prisma.service';
 
 @Injectable()
-export class ExerciseLogService {
+export class Exercise_LogService {
   constructor(private readonly prisma: PrismaService) {}
 
   async getExerciseLogs(): Promise<ExerciseLog[]> {

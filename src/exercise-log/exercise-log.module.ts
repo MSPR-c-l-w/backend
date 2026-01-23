@@ -1,19 +1,23 @@
 import { Module } from '@nestjs/common';
-import { ExerciseLogService } from './services/exercise-log/exercise-log.service';
-import { ExerciseLogController } from './controllers/exercise-log/exercise-log.controller';
+import { Exercise_LogService } from './services/exercise-log/exercise-log.service';
+import { Exercise_LogController } from './controllers/exercise-log/exercise-log.controller';
 import { PrismaModule } from 'src/prisma/prisma.module';
 import { SERVICES } from 'src/utils/constants';
 
 @Module({
   imports: [PrismaModule],
   providers: [
-    ExerciseLogService,
+    Exercise_LogService,
     {
-      provide: SERVICES.EXERCISELOG,
-      useClass: ExerciseLogService,
+      provide: SERVICES.EXERCISE_LOG,
+      useClass: Exercise_LogService,
     },
   ],
-  controllers: [ExerciseLogController],
-  exports: [ExerciseLogService],
+  controllers: [Exercise_LogController],
+  exports: [Exercise_LogService,
+      {
+        provide: SERVICES.EXERCISE_LOG,
+        useClass: Exercise_LogService,
+      }]
 })
-export class ExerciseLogModule {}
+export class Exercise_LogModule {}

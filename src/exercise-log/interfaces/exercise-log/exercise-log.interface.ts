@@ -1,11 +1,11 @@
 import { ExerciseLog } from '@prisma/client';
 
-export interface IExerciseLogController {
+export interface IExercise_LogController {
   getExerciseLogs(): Promise<ExerciseLog[]>;
   getExerciseLogById(id: string): Promise<ExerciseLog>;
 }
 
-export interface IExerciseLogService {
+export interface IExercise_LogService {
   getExerciseLogs(): Promise<ExerciseLog[]>;
   getExerciseLogById(id: string): Promise<ExerciseLog>;
 }

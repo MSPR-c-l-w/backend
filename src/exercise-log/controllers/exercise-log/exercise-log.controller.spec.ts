@@ -1,12 +1,12 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { ExerciseLogController } from './exercise-log.controller';
-import { ExerciseLogService } from 'src/exercise-log/services/exercise-log/exercise-log.service';
+import { Exercise_LogController } from './exercise-log.controller';
+import { Exercise_LogService } from 'src/exercise-log/services/exercise-log/exercise-log.service';
 import { SERVICES } from 'src/utils/constants';
 import { ExerciseLog } from '@prisma/client';
 
 describe('ExerciseLogController', () => {
-  let controller: ExerciseLogController;
-  let service: ExerciseLogService;
+  let controller: Exercise_LogController;
+  let service: Exercise_LogService;
 
   const mockExerciseLog: ExerciseLog = {
     id: 1,
@@ -22,10 +22,10 @@ describe('ExerciseLogController', () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      controllers: [ExerciseLogController],
+      controllers: [Exercise_LogController],
       providers: [
         {
-          provide: SERVICES.EXERCISELOG,
+          provide: SERVICES.EXERCISE_LOG,
           useValue: {
             getExerciseLogs: jest.fn(),
             getExerciseLogById: jest.fn(),
@@ -34,8 +34,8 @@ describe('ExerciseLogController', () => {
       ],
     }).compile();
 
-    controller = module.get<ExerciseLogController>(ExerciseLogController);
-    service = module.get<ExerciseLogService>(SERVICES.EXERCISELOG);
+    controller = module.get<Exercise_LogController>(Exercise_LogController);
+    service = module.get<Exercise_LogService>(SERVICES.EXERCISE_LOG);
   });
 
   it('should be defined', () => {
