@@ -3,11 +3,11 @@ import { ApiBadGatewayResponse, ApiNotFoundResponse, ApiOkResponse, ApiOperation
 import { Exercise } from '@prisma/client';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import type { IExerciceController, IExerciceService } from 'src/exercice/interfaces/exercice/exercice.interface';
-import { SERVICES } from 'src/utils/constants';
+import { ROUTES, SERVICES } from 'src/utils/constants';
 
-@Controller('ROUTE_EXERCISE')
+@Controller(ROUTES.EXERCISE)
 @UseGuards(JwtAuthGuard)
-@ApiTags('ROUTE_EXERCISE')
+@ApiTags(ROUTES.EXERCISE)
 export class ExerciceController implements IExerciceController {
 
     constructor(
