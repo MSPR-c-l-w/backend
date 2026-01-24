@@ -5,7 +5,7 @@ describe('PrismaService', () => {
   let service: PrismaService;
 
   beforeEach(async () => {
-    process.env.DATABASE_URL ??= 'mysql://user:pass@localhost:3306/test_db';
+    process.env.DATABASE_URL ??= 'mysql://user:pass@localhost:3307/test_db';
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [PrismaService],
