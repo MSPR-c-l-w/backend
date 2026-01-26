@@ -65,21 +65,17 @@ model ExerciseLog {
 }
 
 model Exercise {
-  id                   Int     @id @default(autoincrement())
-  name                 String  @unique
-  image_url            String?
-  video_url            String?
-  gender               String?
-  workout_type         String?
-  overview             String?
-  equipments           Json?
-  body_parts           Json?
-  target_muscles       Json?
-  secondary_muscles    Json?
-  instructions         Json?
-  exercise_type        String?
-  variations           Json?
-  related_exercice_ids Json?
+  id                Int     @id @default(autoincrement())
+  name              String  @unique
+  primary_muscles   Json?
+  secondary_muscles Json?
+  level             String?
+  mechanic          String?
+  equipment         String?
+  category          String?
+  instructions      Json?
+  image_urls        Json?
+  exercise_type     String?
 }
 
 model Nutrition {
