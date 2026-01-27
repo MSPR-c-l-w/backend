@@ -17,11 +17,13 @@ jobs:
         with:
           node-version: 20
           cache: npm
-          # Repo backend: lockfile is at repository root
           cache-dependency-path: package-lock.json
 
       - name: Install dependencies (npm install)
         run: npm install
+
+      - name: Generate Prisma client
+        run: npx prisma generate --schema prisma/schema.prisma
 
       - name: Unit tests
         run: npm test
