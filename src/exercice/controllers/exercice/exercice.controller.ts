@@ -6,7 +6,7 @@ import type { IExerciceController, IExerciceService } from 'src/exercice/interfa
 import { ROUTES, SERVICES } from 'src/utils/constants';
 
 @Controller(ROUTES.EXERCISE)
-// @UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard)
 @ApiTags(ROUTES.EXERCISE)
 export class ExerciceController implements IExerciceController {
 
