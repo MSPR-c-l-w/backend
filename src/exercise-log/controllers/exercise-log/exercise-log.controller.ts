@@ -13,7 +13,7 @@ import type { IExercise_LogController, IExercise_LogService } from 'src/exercise
 import { ROUTES, SERVICES } from 'src/utils/constants';
 
 @Controller(ROUTES.EXERCISE_LOG)
-@UseGuards(JwtAuthGuard)
+// @UseGuards(JwtAuthGuard)
 @ApiTags(ROUTES.EXERCISE_LOG)
 export class Exercise_LogController implements IExercise_LogController {
   constructor(@Inject(SERVICES.EXERCISE_LOG) private readonly exerciseLogService: IExercise_LogService) {}
