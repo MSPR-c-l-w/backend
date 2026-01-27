@@ -8,9 +8,10 @@ import { OrganizationModule } from './organization/organization.module';
 import { ExerciceModule } from './exercice/exercice.module';
 import { NutritionModule } from './nutrition/nutrition.module';
 import { PlanModule } from './plan/plan.module';
+import { Exercise_LogModule } from './exercise-log/exercise-log.module';
 
 @Module({
-  imports: [AuthModule, UsersModule, PrismaModule, OrganizationModule, NutritionModule, ExerciceModule, PlanModule],
+  imports: [AuthModule, UsersModule, PrismaModule, OrganizationModule, NutritionModule, ExerciceModule, PlanModule, Exercise_LogModule],
   controllers: [AppController],
   providers: [AppService],
 })

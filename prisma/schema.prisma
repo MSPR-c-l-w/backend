@@ -30,6 +30,7 @@ model User {
   date_of_birth                       DateTime?
   gender                              String?
   height                              Float?
+  exercise_logs                       ExerciseLog[]
   created_at                          DateTime      @default(now())
   updated_at                          DateTime      @updatedAt
   deleted_at                          DateTime?
@@ -48,6 +49,19 @@ model Organization {
   is_active       Boolean   @default(true)
   is_deleted      Boolean   @default(false)
   users           User[]
+}
+
+model ExerciseLog {
+  id                 Int      @id @default(autoincrement())
+  user_id            Int
+  user               User     @relation(fields: [user_id], references: [id])
+  exercise_id        Int
+  session_duration_h Float
+  calories_burned    Float
+  max_bpm            Int
+  avg_bpm            Int
+  resting_bpm        Int
+  created_at         DateTime @default(now())
 }
 
 model Exercise {
