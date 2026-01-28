@@ -58,10 +58,10 @@ describe('ExerciseLogController', () => {
     it('should return an exercise log by id', async () => {
       jest.spyOn(service, 'getExerciseLogById').mockResolvedValue(mockExerciseLog);
 
-      const result = await controller.getExerciseLogById('1');
+      const result = await controller.getExerciseLogById(1);
 
       expect(result).toEqual(mockExerciseLog);
-      expect(service.getExerciseLogById).toHaveBeenCalledWith('1');
+      expect(service.getExerciseLogById).toHaveBeenCalledWith(1);
     });
   });
 });
