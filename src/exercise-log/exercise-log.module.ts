@@ -6,22 +6,19 @@ import { SERVICES } from 'src/utils/constants';
 import { HttpModule } from '@nestjs/axios';
 
 @Module({
-  imports: [
-    PrismaModule, 
-    HttpModule 
-  ],
+  imports: [PrismaModule, HttpModule],
   providers: [
     Exercise_LogService,
     {
-      provide: SERVICES.EXERCISE_LOG, 
+      provide: SERVICES.EXERCISE_LOG,
       useClass: Exercise_LogService,
     },
   ],
   controllers: [Exercise_LogController],
   exports: [
-    Exercise_LogService, 
+    Exercise_LogService,
     {
-      provide: SERVICES.EXERCISE_LOG, 
+      provide: SERVICES.EXERCISE_LOG,
       useClass: Exercise_LogService,
     },
   ],

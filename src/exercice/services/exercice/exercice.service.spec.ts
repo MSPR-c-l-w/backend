@@ -13,27 +13,27 @@ describe('ExerciceService', () => {
     {
       id: 1,
       name: 'Bench Press',
-      primary_muscles: ["Pectoraux"],
-      secondary_muscles: ["Triceps", "Épaules"],
+      primary_muscles: ['Pectoraux'],
+      secondary_muscles: ['Triceps', 'Épaules'],
       level: 'Intermédiaire',
       mechanic: 'Compound',
       equipment: 'Barre',
       category: 'Force',
-      instructions: ["Allongez-vous", "Poussez la barre"],
-      image_urls: ["http://example.com/bench.jpg"],
+      instructions: ['Allongez-vous', 'Poussez la barre'],
+      image_urls: ['http://example.com/bench.jpg'],
       exercise_type: 'Strength',
     },
     {
       id: 2,
       name: 'Squat',
-      primary_muscles: ["Quadriceps"],
-      secondary_muscles: ["Fessiers"],
+      primary_muscles: ['Quadriceps'],
+      secondary_muscles: ['Fessiers'],
       level: 'Débutant',
       mechanic: 'Compound',
       equipment: 'Poids du corps',
       category: 'Force',
-      instructions: ["Descendez les fesses", "Remontez"],
-      image_urls: ["http://example.com/squat.jpg"],
+      instructions: ['Descendez les fesses', 'Remontez'],
+      image_urls: ['http://example.com/squat.jpg'],
       exercise_type: 'Strength',
     },
   ];
@@ -77,7 +77,9 @@ describe('ExerciceService', () => {
 
   describe('getExercices', () => {
     it('should return an array of exercises', async () => {
-      jest.spyOn(prismaService.exercise, 'findMany').mockResolvedValueOnce(mockExercises);
+      jest
+        .spyOn(prismaService.exercise, 'findMany')
+        .mockResolvedValueOnce(mockExercises);
 
       // On passe les paramètres par défaut de ta nouvelle pagination (page 1, limit 20)
       const result = await service.getExercices(1, 20);
@@ -88,13 +90,17 @@ describe('ExerciceService', () => {
     it('should throw an error when no exercises are found', async () => {
       jest.spyOn(prismaService.exercise, 'findMany').mockResolvedValueOnce([]);
 
-      await expect(service.getExercices()).rejects.toThrow('Aucun exercice trouvé');
+      await expect(service.getExercices()).rejects.toThrow(
+        'Aucun exercice trouvé',
+      );
     });
   });
 
   describe('getExerciceById', () => {
     it('should return a single exercise by id', async () => {
-      jest.spyOn(prismaService.exercise, 'findUnique').mockResolvedValueOnce(mockExercises[0]);
+      jest
+        .spyOn(prismaService.exercise, 'findUnique')
+        .mockResolvedValueOnce(mockExercises[0]);
 
       const result = await service.getExerciceById(1);
 
@@ -102,9 +108,13 @@ describe('ExerciceService', () => {
     });
 
     it('should throw an error when exercise is not found', async () => {
-      jest.spyOn(prismaService.exercise, 'findUnique').mockResolvedValueOnce(null);
+      jest
+        .spyOn(prismaService.exercise, 'findUnique')
+        .mockResolvedValueOnce(null);
 
-      await expect(service.getExerciceById(999)).rejects.toThrow('Exercice 999 introuvable');
+      await expect(service.getExerciceById(999)).rejects.toThrow(
+        'Exercice 999 introuvable',
+      );
     });
   });
 });

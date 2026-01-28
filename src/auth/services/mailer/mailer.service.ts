@@ -26,12 +26,18 @@ export class MailerService {
   }
 
   private buildVerifyUrl(token: string) {
-    const base = process.env.APP_URL ?? process.env.FRONTEND_URL ?? 'http://localhost:3000';
+    const base =
+      process.env.APP_URL ??
+      process.env.FRONTEND_URL ??
+      'http://localhost:3000';
     return `${base.replace(/\/$/, '')}/verify-account?token=${encodeURIComponent(token)}`;
   }
 
   private buildResetUrl(token: string) {
-    const base = process.env.APP_URL ?? process.env.FRONTEND_URL ?? 'http://localhost:3000';
+    const base =
+      process.env.APP_URL ??
+      process.env.FRONTEND_URL ??
+      'http://localhost:3000';
     return `${base.replace(/\/$/, '')}/reset-password?token=${encodeURIComponent(token)}`;
   }
 
@@ -48,7 +54,8 @@ export class MailerService {
       host: cfg.host,
       port: cfg.port,
       secure: cfg.port === 465,
-      auth: cfg.user && cfg.pass ? { user: cfg.user, pass: cfg.pass } : undefined,
+      auth:
+        cfg.user && cfg.pass ? { user: cfg.user, pass: cfg.pass } : undefined,
     });
 
     await transport.sendMail({
@@ -73,4 +80,3 @@ export class MailerService {
     await this.sendMail(to, subject, text);
   }
 }
-

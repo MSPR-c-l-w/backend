@@ -14,9 +14,7 @@ describe('WorkoutSessionController', () => {
     avg_bpm: 145,
     max_bpm: 180,
     created_at: new Date(),
-    logs: [
-      { id: 1, exercise_id: 1, exercise: { name: 'Running' } }
-    ]
+    logs: [{ id: 1, exercise_id: 1, exercise: { name: 'Running' } }],
   };
 
   beforeEach(async () => {
@@ -27,18 +25,26 @@ describe('WorkoutSessionController', () => {
           // ATTENTION : On doit injecter via le Token SERVICES
           provide: SERVICES.WORKOUT_SESSION,
           useValue: {
-            getUserSummary: jest.fn().mockResolvedValue({ total_calories: 800, total_sessions: 1 }),
+            getUserSummary: jest
+              .fn()
+              .mockResolvedValue({ total_calories: 800, total_sessions: 1 }),
             getUserLevel: jest.fn().mockResolvedValue({ level: 'Actif' }),
             getIntensityStats: jest.fn().mockResolvedValue({ avg_bpm: 145 }),
             // MAJ des noms de méthodes
-            getWorkoutSessions: jest.fn().mockResolvedValue([mockWorkoutSession]),
-            getWorkoutSessionById: jest.fn().mockResolvedValue(mockWorkoutSession),
+            getWorkoutSessions: jest
+              .fn()
+              .mockResolvedValue([mockWorkoutSession]),
+            getWorkoutSessionById: jest
+              .fn()
+              .mockResolvedValue(mockWorkoutSession),
           },
         },
       ],
     }).compile();
 
-    controller = module.get<Workout_SessionController>(Workout_SessionController);
+    controller = module.get<Workout_SessionController>(
+      Workout_SessionController,
+    );
     service = module.get(SERVICES.WORKOUT_SESSION);
   });
 

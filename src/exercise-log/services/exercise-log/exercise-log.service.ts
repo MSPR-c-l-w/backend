@@ -10,7 +10,8 @@ export class Exercise_LogService implements IExercise_LogService {
   private readonly logger = new Logger(Exercise_LogService.name);
   private readonly KAGGLE_USER = process.env.KAGGLE_USER;
   private readonly KAGGLE_KEY = process.env.KAGGLE_KEY;
-  private readonly DATASET_URL = 'https://www.kaggle.com/api/v1/datasets/download/valakhorasani/gym-members-exercise-dataset/gym_members_exercise_tracking.csv';
+  private readonly DATASET_URL =
+    'https://www.kaggle.com/api/v1/datasets/download/valakhorasani/gym-members-exercise-dataset/gym_members_exercise_tracking.csv';
 
   constructor(
     private readonly prisma: PrismaService,
@@ -24,20 +25,37 @@ export class Exercise_LogService implements IExercise_LogService {
       await this.prisma.user.upsert({
         where: { id: 1 },
         update: {},
-        create: { id: 1, email: 'admin@test.fr', password_hash: 'hash', first_name: 'Antoine', last_name: 'Wacq' },
+        create: {
+          id: 1,
+          email: 'admin@test.fr',
+          password_hash: 'hash',
+          first_name: 'Antoine',
+          last_name: 'Wacq',
+        },
       });
 
-      const auth = Buffer.from(`${this.KAGGLE_USER}:${this.KAGGLE_KEY}`).toString('base64');
+      const auth = Buffer.from(
+        `${this.KAGGLE_USER}:${this.KAGGLE_KEY}`,
+      ).toString('base64');
       const response = await lastValueFrom(
         this.httpService.get(this.DATASET_URL, {
-          headers: { Authorization: `Basic ${auth}`, Accept: 'application/octet-stream' },
+          headers: {
+            Authorization: `Basic ${auth}`,
+            Accept: 'application/octet-stream',
+          },
           responseType: 'text',
         }),
       );
 
-      const parsed = Papa.parse(response.data, { header: true, skipEmptyLines: true, dynamicTyping: true });
+      const parsed = Papa.parse(response.data, {
+        header: true,
+        skipEmptyLines: true,
+        dynamicTyping: true,
+      });
       const rows = parsed.data as any[];
-      const allExos = await this.prisma.exercise.findMany({ select: { id: true } });
+      const allExos = await this.prisma.exercise.findMany({
+        select: { id: true },
+      });
 
       // Nettoyage avant import
       await this.prisma.exerciseLog.deleteMany({});
@@ -52,7 +70,7 @@ export class Exercise_LogService implements IExercise_LogService {
             calories_total: Math.round(row['Calories_Burned'] || 0),
             avg_bpm: row['Avg_BPM'] || 0,
             max_bpm: row['Max_BPM'] || 0,
-          }
+          },
         });
 
         // 2. On lie 3 exercices à cette séance
@@ -82,10 +100,14 @@ export class Exercise_LogService implements IExercise_LogService {
       orderBy: { _count: { exercise_id: 'desc' } },
       take: 5,
     });
-    return Promise.all(groups.map(async (g) => ({
-      ...g,
-      exercise: await this.prisma.exercise.findUnique({ where: { id: g.exercise_id } })
-    })));
+    return Promise.all(
+      groups.map(async (g) => ({
+        ...g,
+        exercise: await this.prisma.exercise.findUnique({
+          where: { id: g.exercise_id },
+        }),
+      })),
+    );
   }
 
   async getTopExercises(userId: number): Promise<any[]> {
@@ -96,20 +118,29 @@ export class Exercise_LogService implements IExercise_LogService {
       orderBy: { _count: { exercise_id: 'desc' } },
       take: 5,
     });
-    return Promise.all(groups.map(async (g) => ({
-      ...g,
-      exercise: await this.prisma.exercise.findUnique({ where: { id: g.exercise_id } })
-    })));
+    return Promise.all(
+      groups.map(async (g) => ({
+        ...g,
+        exercise: await this.prisma.exercise.findUnique({
+          where: { id: g.exercise_id },
+        }),
+      })),
+    );
   }
 
   // --- LECTURE ---
 
   async getExerciseLogs(): Promise<any[]> {
-    return await this.prisma.exerciseLog.findMany({ include: { exercise: true, session: true } });
+    return await this.prisma.exerciseLog.findMany({
+      include: { exercise: true, session: true },
+    });
   }
 
   async getExerciseLogById(id: number): Promise<any> {
-    const log = await this.prisma.exerciseLog.findUnique({ where: { id }, include: { exercise: true, session: true } });
+    const log = await this.prisma.exerciseLog.findUnique({
+      where: { id },
+      include: { exercise: true, session: true },
+    });
     if (!log) throw new NotFoundException(`Log ${id} introuvable`);
     return log;
   }

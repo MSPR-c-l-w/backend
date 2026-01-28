@@ -13,15 +13,15 @@ import { WorkoutSessionModule } from './workout-session/workout-session.module';
 
 @Module({
   imports: [
-    AuthModule, 
-    UsersModule, 
-    PrismaModule, 
-    OrganizationModule, 
-    NutritionModule, 
-    ExerciceModule, 
-    PlanModule, 
-    Exercise_LogModule, 
-    WorkoutSessionModule 
+    AuthModule,
+    UsersModule,
+    PrismaModule,
+    OrganizationModule,
+    NutritionModule,
+    ExerciceModule,
+    PlanModule,
+    Exercise_LogModule,
+    WorkoutSessionModule,
   ],
   controllers: [AppController],
   providers: [AppService],

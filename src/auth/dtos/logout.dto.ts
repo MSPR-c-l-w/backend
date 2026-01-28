@@ -7,4 +7,3 @@ export class LogoutDto {
   @IsNotEmpty({ message: 'TOKEN_IS_REQUIRED' })
   refresh_token: string;
 }
-

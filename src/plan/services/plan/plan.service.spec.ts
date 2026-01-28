@@ -64,7 +64,9 @@ describe('PlanService', () => {
     it('devrait lancer NotFoundException si aucun plan trouvé', async () => {
       prisma.plan.findMany.mockResolvedValue([]);
 
-      await expect(service.getPlans()).rejects.toBeInstanceOf(NotFoundException);
+      await expect(service.getPlans()).rejects.toBeInstanceOf(
+        NotFoundException,
+      );
       await expect(service.getPlans()).rejects.toThrow('NO_PLANS_FOUND');
       expect(prisma.plan.findMany).toHaveBeenCalledTimes(2);
     });
@@ -94,7 +96,7 @@ describe('PlanService', () => {
       });
     });
 
-    it('devrait parser correctement l\'id string en number', async () => {
+    it("devrait parser correctement l'id string en number", async () => {
       prisma.plan.findUnique.mockResolvedValue(mockPlan);
 
       await service.getPlanById('42');
@@ -104,11 +106,15 @@ describe('PlanService', () => {
       });
     });
 
-    it('devrait lancer NotFoundException si le plan n\'est pas trouvé', async () => {
+    it("devrait lancer NotFoundException si le plan n'est pas trouvé", async () => {
       prisma.plan.findUnique.mockResolvedValue(null);
 
-      await expect(service.getPlanById('999')).rejects.toBeInstanceOf(NotFoundException);
-      await expect(service.getPlanById('999')).rejects.toThrow('Plan with id 999 not found');
+      await expect(service.getPlanById('999')).rejects.toBeInstanceOf(
+        NotFoundException,
+      );
+      await expect(service.getPlanById('999')).rejects.toThrow(
+        'Plan with id 999 not found',
+      );
       expect(prisma.plan.findUnique).toHaveBeenCalledWith({
         where: { id: 999 },
       });
@@ -124,4 +130,3 @@ describe('PlanService', () => {
     });
   });
 });
-

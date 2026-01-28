@@ -4,20 +4,22 @@ import { ExerciceController } from './controllers/exercice/exercice.controller';
 import { SERVICES } from 'src/utils/constants';
 import { HttpModule } from '@nestjs/axios';
 
-@Module({ 
+@Module({
   imports: [HttpModule],
-  providers: [ExerciceService, 
+  providers: [
+    ExerciceService,
     {
       provide: SERVICES.EXERCISE,
       useClass: ExerciceService,
-    }
+    },
   ],
   controllers: [ExerciceController],
-  exports: [ExerciceService,
+  exports: [
+    ExerciceService,
     {
       provide: SERVICES.EXERCISE,
       useClass: ExerciceService,
-    }
+    },
   ],
 })
 export class ExerciceModule {}

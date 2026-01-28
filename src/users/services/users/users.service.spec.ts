@@ -56,7 +56,9 @@ describe('UsersService', () => {
 
     it('throw NotFoundException si aucun user', async () => {
       prisma.user.findMany.mockResolvedValue([]);
-      await expect(service.getUsers()).rejects.toBeInstanceOf(NotFoundException);
+      await expect(service.getUsers()).rejects.toBeInstanceOf(
+        NotFoundException,
+      );
     });
   });
 
@@ -74,7 +76,9 @@ describe('UsersService', () => {
 
     it('throw NotFoundException si user introuvable', async () => {
       prisma.user.findUnique.mockResolvedValue(null);
-      await expect(service.getUserById('42')).rejects.toBeInstanceOf(NotFoundException);
+      await expect(service.getUserById('42')).rejects.toBeInstanceOf(
+        NotFoundException,
+      );
     });
   });
 
@@ -90,7 +94,7 @@ describe('UsersService', () => {
         height: 178,
       } as any;
 
-      const created = { id: 1, ...dto, password_hash: dto.password } as any;
+      const created = { id: 1, ...dto, password_hash: dto.password };
       prisma.user.create.mockResolvedValue(created);
 
       await expect(service.createUser(dto)).resolves.toEqual(created);

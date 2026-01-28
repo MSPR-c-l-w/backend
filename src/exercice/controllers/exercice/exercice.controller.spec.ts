@@ -20,7 +20,7 @@ describe('ExerciceController', () => {
       providers: [
         {
           // Utilisation du token d'injection pour le service
-          provide: SERVICES.EXERCISE, 
+          provide: SERVICES.EXERCISE,
           useValue: mockExerciceService,
         },
       ],
@@ -39,7 +39,7 @@ describe('ExerciceController', () => {
       const result = await controller.triggerImport();
       expect(service.runImportPipeline).toHaveBeenCalled();
       expect(result).toEqual({
-        message: "Le pipeline ETL a été exécuté avec succès.",
+        message: 'Le pipeline ETL a été exécuté avec succès.',
         count: 873,
       });
     });
@@ -49,12 +49,12 @@ describe('ExerciceController', () => {
     it('should call findByFilters with query parameters', async () => {
       const filters = { muscle: 'biceps', level: 'débutant' };
       await controller.search(filters.muscle, filters.level);
-      
+
       expect(service.findByFilters).toHaveBeenCalledWith({
         muscle: 'biceps',
         level: 'débutant',
         equipment: undefined,
-        category: undefined
+        category: undefined,
       });
     });
   });

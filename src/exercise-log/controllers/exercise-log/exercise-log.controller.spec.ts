@@ -12,7 +12,7 @@ describe('ExerciseLogController', () => {
     exercise_id: 1,
     session_id: 1,
     exercise: { id: 1, name: 'Running' },
-    session: { id: 1, user_id: 1, calories_total: 500 } 
+    session: { id: 1, user_id: 1, calories_total: 500 },
   };
 
   beforeEach(async () => {
@@ -51,7 +51,9 @@ describe('ExerciseLogController', () => {
 
   describe('getExerciseLogById', () => {
     it('should return an exercise log by id', async () => {
-      jest.spyOn(service, 'getExerciseLogById').mockResolvedValue(mockExerciseLog);
+      jest
+        .spyOn(service, 'getExerciseLogById')
+        .mockResolvedValue(mockExerciseLog);
 
       const result = await controller.getExerciseLogById(1);
 

@@ -56,7 +56,9 @@ describe('OrganizationService', () => {
 
     it('throw NotFoundException si aucune organisation', async () => {
       prisma.organization.findMany.mockResolvedValue([]);
-      await expect(service.getOrganizations()).rejects.toBeInstanceOf(NotFoundException);
+      await expect(service.getOrganizations()).rejects.toBeInstanceOf(
+        NotFoundException,
+      );
     });
   });
 

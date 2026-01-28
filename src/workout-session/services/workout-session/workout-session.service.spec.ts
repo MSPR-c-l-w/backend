@@ -50,7 +50,9 @@ describe('Workout_SessionService', () => {
         _count: { id: 2 },
       };
 
-      jest.spyOn(prisma.workoutSession, 'aggregate').mockResolvedValue(mockAggregateResponse as any);
+      jest
+        .spyOn(prisma.workoutSession, 'aggregate')
+        .mockResolvedValue(mockAggregateResponse as any);
 
       const result = await service.getUserSummary(1);
 
@@ -68,7 +70,9 @@ describe('Workout_SessionService', () => {
   describe('getWorkoutSessions', () => {
     it('should return an array of sessions', async () => {
       const mockSessions = [mockWorkoutSession];
-      jest.spyOn(prisma.workoutSession, 'findMany').mockResolvedValue(mockSessions as any);
+      jest
+        .spyOn(prisma.workoutSession, 'findMany')
+        .mockResolvedValue(mockSessions as any);
 
       const result = await service.getWorkoutSessions(1);
 
@@ -79,7 +83,9 @@ describe('Workout_SessionService', () => {
 
   describe('getWorkoutSessionById', () => {
     it('should return a session when found', async () => {
-      jest.spyOn(prisma.workoutSession, 'findUnique').mockResolvedValue(mockWorkoutSession as any);
+      jest
+        .spyOn(prisma.workoutSession, 'findUnique')
+        .mockResolvedValue(mockWorkoutSession as any);
 
       const result = await service.getWorkoutSessionById(1);
       expect(result).toEqual(mockWorkoutSession);
@@ -88,7 +94,9 @@ describe('Workout_SessionService', () => {
     it('should throw NotFoundException when session does not exist', async () => {
       jest.spyOn(prisma.workoutSession, 'findUnique').mockResolvedValue(null);
 
-      await expect(service.getWorkoutSessionById(999)).rejects.toThrow(NotFoundException);
+      await expect(service.getWorkoutSessionById(999)).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 });

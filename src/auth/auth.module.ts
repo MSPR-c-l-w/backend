@@ -25,7 +25,9 @@ if (!jwtSecret) {
     JwtModule.register({
       secret: jwtSecret,
       signOptions: {
-        expiresIn: process.env.JWT_EXPIRES_IN ? parseInt(process.env.JWT_EXPIRES_IN) : 15 * 60,
+        expiresIn: process.env.JWT_EXPIRES_IN
+          ? parseInt(process.env.JWT_EXPIRES_IN)
+          : 15 * 60,
       },
     }),
   ],
@@ -39,10 +41,12 @@ if (!jwtSecret) {
     MailerService,
   ],
   controllers: [AuthController],
-  exports: [AuthService,
+  exports: [
+    AuthService,
     {
       provide: SERVICES.AUTH,
       useClass: AuthService,
-    },],
+    },
+  ],
 })
 export class AuthModule {}

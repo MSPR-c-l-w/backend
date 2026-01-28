@@ -8,7 +8,7 @@ import { SERVICES } from 'src/utils/constants';
   providers: [
     Workout_SessionService,
     {
-      provide: SERVICES.WORKOUT_SESSION, 
+      provide: SERVICES.WORKOUT_SESSION,
       useClass: Workout_SessionService,
     },
   ],
