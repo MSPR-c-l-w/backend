@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies (npm install)
+        run: npm install
+
+      - name: Generate Prisma client
+        run: npx prisma generate --schema prisma/schema.prisma
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Lint
+        run: |
+          npm run lint
+          git diff --exit-code
+
+      - name: Format (must not change files)
+        run: |
+          npm run format
+          git diff --exit-code
+
