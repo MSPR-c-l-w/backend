@@ -6,6 +6,7 @@ export enum ROUTES {
     NUTRITION = 'nutrition',
     PLAN = 'plan',
     EXERCISE_LOG = 'exercise_log',
+    WORKOUT_SESSION = 'WORKOUT_SESSION_SERVICE',
 }
 
 export enum SERVICES {
@@ -16,4 +17,5 @@ export enum SERVICES {
     NUTRITION = 'NUTRITION_SERVICE',
     PLAN = 'PLAN_SERVICE',
     EXERCISE_LOG = 'EXERCISELOG_SERVICE',
+    WORKOUT_SESSION = 'WORKOUT_SESSION_SERVICE',
 }

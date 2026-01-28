@@ -8,20 +8,20 @@ import { HttpModule } from '@nestjs/axios';
 @Module({
   imports: [
     PrismaModule, 
-    HttpModule // Indispensable pour l'importation du CSV Kaggle via HTTP
+    HttpModule 
   ],
   providers: [
     Exercise_LogService,
     {
-      provide: SERVICES.EXERCISE_LOG, // Utilise ton token constant pour l'injection
+      provide: SERVICES.EXERCISE_LOG, 
       useClass: Exercise_LogService,
     },
   ],
   controllers: [Exercise_LogController],
   exports: [
-    Exercise_LogService, // Export direct pour les tests internes
+    Exercise_LogService, 
     {
-      provide: SERVICES.EXERCISE_LOG, // Export du token pour les autres modules
+      provide: SERVICES.EXERCISE_LOG, 
       useClass: Exercise_LogService,
     },
   ],
