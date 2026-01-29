@@ -109,3 +109,15 @@ model Plan {
   price    Float
   features Json
 }
+
+model HealthProfile {
+  id                      Int      @id @default(autoincrement())
+  user_id                 Int
+  weight                  Float?
+  bmi                     Float?
+  disease_type            String?
+  severity                String?
+  physical_activity_level String?
+  daily_calories_target   Int?
+  updated_at              DateTime  @updatedAt
+}
