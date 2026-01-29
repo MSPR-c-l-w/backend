@@ -12,6 +12,11 @@ import { SERVICES } from 'src/utils/constants';
     }
   ],
   controllers: [SubscriptionController],
-  exports: [SubscriptionService],
+  exports: [SubscriptionService,
+    {
+      provide: SERVICES.SUBSCRIPTION,
+      useClass: SubscriptionService,
+    }
+  ],
 })
 export class SubscriptionModule {}
