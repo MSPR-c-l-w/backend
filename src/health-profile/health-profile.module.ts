@@ -9,6 +9,11 @@ import { SERVICES } from 'src/utils/constants';
     useClass: HealthProfileService,
   }],
   controllers: [HealthProfileController],
-  exports: [HealthProfileService],
+  exports: [HealthProfileService,
+    {
+      provide: SERVICES.HEALTH_PROFILE,
+      useClass: HealthProfileService,
+    }
+  ],
 })
 export class HealthProfileModule {}
