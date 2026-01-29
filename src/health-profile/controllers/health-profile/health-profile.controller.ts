@@ -19,6 +19,7 @@ export class HealthProfileController implements IHealthProfileController {
     async getHealthProfiles(): Promise<HealthProfile[]> {
         return this.healthProfileService.getHealthProfiles();
     }
+    
     @Get(':id')
     @ApiOperation({ summary: 'Récupérer un profil de santé par id' })
     @ApiOkResponse({ description: 'Profil de santé' })

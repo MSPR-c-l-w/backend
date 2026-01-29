@@ -10,6 +10,7 @@ import { NutritionModule } from './nutrition/nutrition.module';
 import { PlanModule } from './plan/plan.module';
 import { Exercise_LogModule } from './exercise-log/exercise-log.module';
 import { WorkoutSessionModule } from './workout-session/workout-session.module';
+import { HealthProfileModule } from './health-profile/health-profile.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { WorkoutSessionModule } from './workout-session/workout-session.module';
     PlanModule,
     Exercise_LogModule,
     WorkoutSessionModule,
+    HealthProfileModule,
   ],
   controllers: [AppController],
   providers: [AppService],
