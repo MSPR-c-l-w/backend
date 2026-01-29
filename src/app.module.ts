@@ -5,10 +5,26 @@ import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { OrganizationModule } from './organization/organization.module';
-import { SubscriptionModule } from './subscription/subscription.module';
+import { ExerciceModule } from './exercice/exercice.module';
+import { NutritionModule } from './nutrition/nutrition.module';
+import { PlanModule } from './plan/plan.module';
+import { Exercise_LogModule } from './exercise-log/exercise-log.module';
+import { WorkoutSessionModule } from './workout-session/workout-session.module';
+import { HealthProfileModule } from './health-profile/health-profile.module';
 
 @Module({
-  imports: [AuthModule, UsersModule, PrismaModule, OrganizationModule, SubscriptionModule],
+  imports: [
+    AuthModule,
+    UsersModule,
+    PrismaModule,
+    OrganizationModule,
+    NutritionModule,
+    ExerciceModule,
+    PlanModule,
+    Exercise_LogModule,
+    WorkoutSessionModule,
+    HealthProfileModule,
+  ],
   controllers: [AppController],
   providers: [AppService],
 })

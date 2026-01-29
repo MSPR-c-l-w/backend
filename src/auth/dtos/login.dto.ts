@@ -13,4 +13,3 @@ export class LoginDto {
   @MinLength(8, { message: 'PASSWORD_TOO_SHORT' })
   password: string;
 }
-
