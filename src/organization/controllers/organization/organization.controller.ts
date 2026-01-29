@@ -1,7 +1,22 @@
-import { Body, Controller, Delete, Get, Inject, Param, Post, Put } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Inject,
+  Param,
+  Post,
+  Put,
+} from '@nestjs/common';
 import { ApiBody, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { CreateOrganizationDto, UpdateOrganizationDto } from 'src/organization/dtos/organization.dto';
-import type { IOrganizationController, IOrganizationService } from 'src/organization/interfaces/organization.interfaces';
+import {
+  CreateOrganizationDto,
+  UpdateOrganizationDto,
+} from 'src/organization/dtos/organization.dto';
+import type {
+  IOrganizationController,
+  IOrganizationService,
+} from 'src/organization/interfaces/organization.interfaces';
 import { ROUTES, SERVICES } from 'src/utils/constants';
 import { Organization } from 'src/utils/types';
 
@@ -9,7 +24,8 @@ import { Organization } from 'src/utils/types';
 @ApiTags('organizations')
 export class OrganizationController implements IOrganizationController {
   constructor(
-    @Inject(SERVICES.ORGANIZATIONS) private readonly organizationService: IOrganizationService,
+    @Inject(SERVICES.ORGANIZATIONS)
+    private readonly organizationService: IOrganizationService,
   ) {}
 
   @Get()
@@ -30,7 +46,9 @@ export class OrganizationController implements IOrganizationController {
   @ApiOperation({ summary: 'Créer une organisation' })
   @ApiBody({ type: CreateOrganizationDto })
   @ApiOkResponse({ description: 'Organisation créée' })
-  createOrganization(@Body() organization: CreateOrganizationDto): Promise<Organization> {
+  createOrganization(
+    @Body() organization: CreateOrganizationDto,
+  ): Promise<Organization> {
     return this.organizationService.createOrganization(organization);
   }
 
