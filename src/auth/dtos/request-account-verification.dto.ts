@@ -7,4 +7,3 @@ export class RequestAccountVerificationDto {
   @IsNotEmpty({ message: 'EMAIL_IS_REQUIRED' })
   email: string;
 }
-

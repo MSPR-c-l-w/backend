@@ -10,7 +10,10 @@ import {
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class RegisterDto {
-  @ApiPropertyOptional({ example: 1, description: 'Optionnel: rattacher le user à une organisation' })
+  @ApiPropertyOptional({
+    example: 1,
+    description: 'Optionnel: rattacher le user à une organisation',
+  })
   @IsNumber({}, { message: 'ORGANIZATION_ID_MUST_BE_A_NUMBER' })
   @IsOptional()
   organization_id?: number;
@@ -51,4 +54,3 @@ export class RegisterDto {
   @IsOptional()
   height?: number;
 }
-

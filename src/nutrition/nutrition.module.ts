@@ -9,13 +9,15 @@ import { SERVICES } from 'src/utils/constants';
     {
       provide: SERVICES.NUTRITION,
       useClass: NutritionService,
-    }
+    },
   ],
   controllers: [NutritionController],
-  exports: [NutritionService,
+  exports: [
+    NutritionService,
     {
       provide: SERVICES.NUTRITION,
       useClass: NutritionService,
-    }]
+    },
+  ],
 })
-export class NutritionModule { }
+export class NutritionModule {}

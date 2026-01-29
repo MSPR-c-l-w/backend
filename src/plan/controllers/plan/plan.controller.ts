@@ -9,14 +9,19 @@ import {
 } from '@nestjs/swagger';
 import { Plan } from '@prisma/client';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
-import type { IPlanController, IPlanService } from 'src/plan/interfaces/plan.interface';
+import type {
+  IPlanController,
+  IPlanService,
+} from 'src/plan/interfaces/plan.interface';
 import { ROUTES, SERVICES } from 'src/utils/constants';
 
 @Controller(ROUTES.PLAN)
 @UseGuards(JwtAuthGuard)
 @ApiTags(ROUTES.PLAN)
 export class PlanController implements IPlanController {
-  constructor(@Inject(SERVICES.PLAN) private readonly planService: IPlanService) {}
+  constructor(
+    @Inject(SERVICES.PLAN) private readonly planService: IPlanService,
+  ) {}
 
   @Get()
   @ApiOperation({ summary: 'Récupérer tous les plans' })
@@ -35,4 +40,3 @@ export class PlanController implements IPlanController {
     return this.planService.getPlanById(id);
   }
 }
-

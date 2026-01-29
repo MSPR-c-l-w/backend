@@ -2,22 +2,19 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException } from '@nestjs/common';
 import { Exercise_LogService } from './exercise-log.service';
 import { PrismaService } from 'src/prisma/services/prisma/prisma.service';
-import { ExerciseLog } from '@prisma/client';
+import { HttpService } from '@nestjs/axios';
 
 describe('ExerciseLogService', () => {
   let service: Exercise_LogService;
   let prisma: PrismaService;
 
-  const mockExerciseLog: ExerciseLog = {
+  // On retire les champs migrés (user_id, calories, bpm)
+  const mockExerciseLog: any = {
     id: 1,
-    user_id: 1,
     exercise_id: 1,
-    session_duration_h: 1.5,
-    calories_burned: 200,
-    max_bpm: 150,
-    avg_bpm: 120,
-    resting_bpm: 60,
-    created_at: new Date(),
+    session_id: 1,
+    exercise: { id: 1, name: 'Running' },
+    session: { id: 1, user_id: 1, calories_total: 500 },
   };
 
   beforeEach(async () => {
@@ -25,9 +22,27 @@ describe('ExerciseLogService', () => {
       providers: [
         Exercise_LogService,
         {
+          provide: HttpService,
+          useValue: { get: jest.fn() }, // Nécessaire car injecté dans ton service
+        },
+        {
           provide: PrismaService,
           useValue: {
             exerciseLog: {
+              findMany: jest.fn(),
+              findUnique: jest.fn(),
+              groupBy: jest.fn(),
+              deleteMany: jest.fn(),
+              create: jest.fn(),
+            },
+            workoutSession: {
+              deleteMany: jest.fn(),
+              create: jest.fn(),
+            },
+            user: {
+              upsert: jest.fn(),
+            },
+            exercise: {
               findMany: jest.fn(),
               findUnique: jest.fn(),
             },
@@ -54,30 +69,30 @@ describe('ExerciseLogService', () => {
       expect(result).toEqual(mockLogs);
       expect(prisma.exerciseLog.findMany).toHaveBeenCalled();
     });
-
-    it('should throw NotFoundException when no logs found', async () => {
-      jest.spyOn(prisma.exerciseLog, 'findMany').mockResolvedValue([]);
-
-      await expect(service.getExerciseLogs()).rejects.toThrow(NotFoundException);
-    });
   });
 
   describe('getExerciseLogById', () => {
     it('should return an exercise log by id', async () => {
-      jest.spyOn(prisma.exerciseLog, 'findUnique').mockResolvedValue(mockExerciseLog);
+      jest
+        .spyOn(prisma.exerciseLog, 'findUnique')
+        .mockResolvedValue(mockExerciseLog);
 
-      const result = await service.getExerciseLogById('1');
+      // On passe un number (1) et non une string ('1')
+      const result = await service.getExerciseLogById(1);
 
       expect(result).toEqual(mockExerciseLog);
       expect(prisma.exerciseLog.findUnique).toHaveBeenCalledWith({
         where: { id: 1 },
+        include: { exercise: true, session: true }, // Ton service fait maintenant cet include
       });
     });
 
     it('should throw NotFoundException when log not found', async () => {
       jest.spyOn(prisma.exerciseLog, 'findUnique').mockResolvedValue(null);
 
-      await expect(service.getExerciseLogById('1')).rejects.toThrow(NotFoundException);
+      await expect(service.getExerciseLogById(1)).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 });

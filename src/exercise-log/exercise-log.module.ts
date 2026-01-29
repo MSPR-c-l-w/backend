@@ -3,9 +3,10 @@ import { Exercise_LogService } from './services/exercise-log/exercise-log.servic
 import { Exercise_LogController } from './controllers/exercise-log/exercise-log.controller';
 import { PrismaModule } from 'src/prisma/prisma.module';
 import { SERVICES } from 'src/utils/constants';
+import { HttpModule } from '@nestjs/axios';
 
 @Module({
-  imports: [PrismaModule],
+  imports: [PrismaModule, HttpModule],
   providers: [
     Exercise_LogService,
     {
@@ -14,10 +15,12 @@ import { SERVICES } from 'src/utils/constants';
     },
   ],
   controllers: [Exercise_LogController],
-  exports: [Exercise_LogService,
-      {
-        provide: SERVICES.EXERCISE_LOG,
-        useClass: Exercise_LogService,
-      }]
+  exports: [
+    Exercise_LogService,
+    {
+      provide: SERVICES.EXERCISE_LOG,
+      useClass: Exercise_LogService,
+    },
+  ],
 })
 export class Exercise_LogModule {}

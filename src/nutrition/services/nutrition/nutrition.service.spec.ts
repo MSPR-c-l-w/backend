@@ -61,7 +61,10 @@ describe('NutritionService', () => {
 
   describe('getNutritions', () => {
     it('devrait retourner la liste des nutriments', async () => {
-      const nutritions = [mockNutrition, { ...mockNutrition, id: 2, name: 'Banane' }];
+      const nutritions = [
+        mockNutrition,
+        { ...mockNutrition, id: 2, name: 'Banane' },
+      ];
       prisma.nutrition.findMany.mockResolvedValue(nutritions);
 
       const result = await service.getNutritions();
@@ -74,8 +77,12 @@ describe('NutritionService', () => {
     it('devrait lancer NotFoundException si aucun nutriment trouvé', async () => {
       prisma.nutrition.findMany.mockResolvedValue([]);
 
-      await expect(service.getNutritions()).rejects.toBeInstanceOf(NotFoundException);
-      await expect(service.getNutritions()).rejects.toThrow('NO_NUTRITIONS_FOUND');
+      await expect(service.getNutritions()).rejects.toBeInstanceOf(
+        NotFoundException,
+      );
+      await expect(service.getNutritions()).rejects.toThrow(
+        'NO_NUTRITIONS_FOUND',
+      );
       expect(prisma.nutrition.findMany).toHaveBeenCalledTimes(2);
     });
 
@@ -104,7 +111,7 @@ describe('NutritionService', () => {
       });
     });
 
-    it('devrait parser correctement l\'id string en number', async () => {
+    it("devrait parser correctement l'id string en number", async () => {
       prisma.nutrition.findUnique.mockResolvedValue(mockNutrition);
 
       await service.getNutritionById('42');
@@ -114,11 +121,13 @@ describe('NutritionService', () => {
       });
     });
 
-    it('devrait lancer une Error si le nutriment n\'est pas trouvé', async () => {
+    it("devrait lancer une Error si le nutriment n'est pas trouvé", async () => {
       prisma.nutrition.findUnique.mockResolvedValue(null);
 
       await expect(service.getNutritionById('999')).rejects.toThrow(Error);
-      await expect(service.getNutritionById('999')).rejects.toThrow('Nutrition with id 999 not found');
+      await expect(service.getNutritionById('999')).rejects.toThrow(
+        'Nutrition with id 999 not found',
+      );
       expect(prisma.nutrition.findUnique).toHaveBeenCalledWith({
         where: { id: 999 },
       });

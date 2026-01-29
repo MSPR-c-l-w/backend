@@ -65,7 +65,9 @@ describe('PlanController', () => {
         new NotFoundException('NO_PLANS_FOUND'),
       );
 
-      await expect(controller.getPlans()).rejects.toBeInstanceOf(NotFoundException);
+      await expect(controller.getPlans()).rejects.toBeInstanceOf(
+        NotFoundException,
+      );
       expect(planServiceMock.getPlans).toHaveBeenCalledTimes(1);
     });
   });
@@ -97,7 +99,7 @@ describe('PlanController', () => {
       expect(planServiceMock.getPlanById).toHaveBeenCalledWith('999');
     });
 
-    it('devrait gérer différents formats d\'id', async () => {
+    it("devrait gérer différents formats d'id", async () => {
       planServiceMock.getPlanById.mockResolvedValue(mockPlan);
 
       await controller.getPlanById('123');
