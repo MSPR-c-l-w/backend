@@ -1,10 +1,12 @@
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Test, TestingModule } from '@nestjs/testing';
 import { Workout_SessionController } from './workout-session.controller';
 import { SERVICES } from 'src/utils/constants';
 
 describe('WorkoutSessionController', () => {
   let controller: Workout_SessionController;
-  let service: any; // On utilise any pour le mock car c'est une interface injectée
+  let service: any;
 
   const mockWorkoutSession = {
     id: 1,
@@ -22,7 +24,6 @@ describe('WorkoutSessionController', () => {
       controllers: [Workout_SessionController],
       providers: [
         {
-          // ATTENTION : On doit injecter via le Token SERVICES
           provide: SERVICES.WORKOUT_SESSION,
           useValue: {
             getUserSummary: jest
@@ -64,7 +65,6 @@ describe('WorkoutSessionController', () => {
     it('should return all sessions for a user', async () => {
       const result = await controller.getHistory(1);
       expect(Array.isArray(result)).toBe(true);
-      // CORRECTION : Le contrôleur appelle maintenant getWorkoutSessions
       expect(service.getWorkoutSessions).toHaveBeenCalledWith(1);
     });
   });
@@ -73,7 +73,6 @@ describe('WorkoutSessionController', () => {
     it('should return a specific session', async () => {
       const result = await controller.getSessionById(1);
       expect(result.id).toEqual(1);
-      // CORRECTION : Le contrôleur appelle maintenant getWorkoutSessionById
       expect(service.getWorkoutSessionById).toHaveBeenCalledWith(1);
     });
   });

@@ -17,6 +17,7 @@ describe('PlanService', () => {
     id: 1,
     name: 'Freemium',
     price: 0,
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     features: JSON.parse('[]'),
   };
 

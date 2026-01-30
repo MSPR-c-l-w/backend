@@ -19,8 +19,8 @@ jobs:
           cache: npm
           cache-dependency-path: package-lock.json
 
-      - name: Install dependencies (npm install)
-        run: npm install
+      - name: Install dependencies (npm ci)
+        run: npm ci
 
       - name: Generate Prisma client
         run: npx prisma generate --schema prisma/schema.prisma

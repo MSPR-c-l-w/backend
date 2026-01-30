@@ -27,6 +27,7 @@ describe('ExerciceController', () => {
     }).compile();
 
     controller = module.get<ExerciceController>(ExerciceController);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     service = module.get(SERVICES.EXERCISE);
   });
 
@@ -37,6 +38,7 @@ describe('ExerciceController', () => {
   describe('triggerImport', () => {
     it('should call the import pipeline and return count', async () => {
       const result = await controller.triggerImport();
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       expect(service.runImportPipeline).toHaveBeenCalled();
       expect(result).toEqual({
         message: 'Le pipeline ETL a été exécuté avec succès.',
@@ -50,6 +52,7 @@ describe('ExerciceController', () => {
       const filters = { muscle: 'biceps', level: 'débutant' };
       await controller.search(filters.muscle, filters.level);
 
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       expect(service.findByFilters).toHaveBeenCalledWith({
         muscle: 'biceps',
         level: 'débutant',

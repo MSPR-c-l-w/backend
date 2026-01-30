@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/unbound-method */
 import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException } from '@nestjs/common';
 import { Exercise_LogService } from './exercise-log.service';
@@ -75,15 +76,16 @@ describe('ExerciseLogService', () => {
     it('should return an exercise log by id', async () => {
       jest
         .spyOn(prisma.exerciseLog, 'findUnique')
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         .mockResolvedValue(mockExerciseLog);
 
-      // On passe un number (1) et non une string ('1')
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       const result = await service.getExerciseLogById(1);
 
       expect(result).toEqual(mockExerciseLog);
       expect(prisma.exerciseLog.findUnique).toHaveBeenCalledWith({
         where: { id: 1 },
-        include: { exercise: true, session: true }, // Ton service fait maintenant cet include
+        include: { exercise: true, session: true },
       });
     });
 

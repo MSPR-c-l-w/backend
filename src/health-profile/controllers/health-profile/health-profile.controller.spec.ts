@@ -29,18 +29,28 @@ describe('HealthProfileController', () => {
   });
 
   it('getHealthProfiles should call service and return health profiles', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const healthProfiles = [{ id: 1 }, { id: 2 }] as any;
-    healthProfileServiceMock.getHealthProfiles.mockResolvedValue(healthProfiles);
+    healthProfileServiceMock.getHealthProfiles.mockResolvedValue(
+      healthProfiles,
+    );
 
-    await expect(controller.getHealthProfiles()).resolves.toEqual(healthProfiles);
+    await expect(controller.getHealthProfiles()).resolves.toEqual(
+      healthProfiles,
+    );
     expect(healthProfileServiceMock.getHealthProfiles).toHaveBeenCalledTimes(1);
   });
 
   it('getHealthProfile should call service with id and return health profile', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const healthProfile = { id: 123 } as any;
     healthProfileServiceMock.getHealthProfile.mockResolvedValue(healthProfile);
 
-    await expect(controller.getHealthProfile('123')).resolves.toEqual(healthProfile);
-    expect(healthProfileServiceMock.getHealthProfile).toHaveBeenCalledWith('123');
+    await expect(controller.getHealthProfile('123')).resolves.toEqual(
+      healthProfile,
+    );
+    expect(healthProfileServiceMock.getHealthProfile).toHaveBeenCalledWith(
+      '123',
+    );
   });
 });

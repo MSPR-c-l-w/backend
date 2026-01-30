@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Test, TestingModule } from '@nestjs/testing';
 import { SubscriptionController } from './subscription.controller';
 import { SERVICES } from 'src/utils/constants';
@@ -40,7 +41,11 @@ describe('SubscriptionController', () => {
     const subscription = { id: 123 } as any;
     subscriptionServiceMock.getSubscriptionById.mockResolvedValue(subscription);
 
-    await expect(controller.getSubscriptionById('123')).resolves.toEqual(subscription);
-    expect(subscriptionServiceMock.getSubscriptionById).toHaveBeenCalledWith('123');
+    await expect(controller.getSubscriptionById('123')).resolves.toEqual(
+      subscription,
+    );
+    expect(subscriptionServiceMock.getSubscriptionById).toHaveBeenCalledWith(
+      '123',
+    );
   });
 });

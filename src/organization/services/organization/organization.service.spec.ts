@@ -64,6 +64,7 @@ describe('OrganizationService', () => {
 
   describe('getOrganizationById', () => {
     it('appelle Prisma avec un id parsé en number', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       const org = { id: 42, is_deleted: false } as any;
       prisma.organization.findUnique.mockResolvedValue(org);
 

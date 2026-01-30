@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/unbound-method */
 import { Test, TestingModule } from '@nestjs/testing';
 import { Exercise_LogController } from './exercise-log.controller';
 import { Exercise_LogService } from 'src/exercise-log/services/exercise-log/exercise-log.service';
