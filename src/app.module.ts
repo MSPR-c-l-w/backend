@@ -11,6 +11,7 @@ import { PlanModule } from './plan/plan.module';
 import { Exercise_LogModule } from './exercise-log/exercise-log.module';
 import { WorkoutSessionModule } from './workout-session/workout-session.module';
 import { HealthProfileModule } from './health-profile/health-profile.module';
+import { SubscriptionModule } from './subscription/subscription.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { HealthProfileModule } from './health-profile/health-profile.module';
     Exercise_LogModule,
     WorkoutSessionModule,
     HealthProfileModule,
+    SubscriptionModule,
   ],
   controllers: [AppController],
   providers: [AppService],
