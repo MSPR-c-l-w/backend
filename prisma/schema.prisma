@@ -121,3 +121,12 @@ model HealthProfile {
   daily_calories_target   Int?
   updated_at              DateTime  @updatedAt
 }
+
+model Subscription {
+  id Int @id @default(autoincrement())
+  user_id Int
+  plan_id Int
+  start_date DateTime @default(now())
+  end_date DateTime
+  status String
+}
