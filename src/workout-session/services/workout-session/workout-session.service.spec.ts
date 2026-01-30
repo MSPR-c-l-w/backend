@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
 import { Test, TestingModule } from '@nestjs/testing';
 import { Workout_SessionService } from './workout-session.service';
 import { PrismaService } from 'src/prisma/services/prisma/prisma.service';
@@ -54,6 +55,7 @@ describe('Workout_SessionService', () => {
         .spyOn(prisma.workoutSession, 'aggregate')
         .mockResolvedValue(mockAggregateResponse as any);
 
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       const result = await service.getUserSummary(1);
 
       expect(result).toEqual({
@@ -77,6 +79,7 @@ describe('Workout_SessionService', () => {
       const result = await service.getWorkoutSessions(1);
 
       expect(result).toEqual(mockSessions);
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(prisma.workoutSession.findMany).toHaveBeenCalled();
     });
   });
@@ -85,6 +88,7 @@ describe('Workout_SessionService', () => {
     it('should return a session when found', async () => {
       jest
         .spyOn(prisma.workoutSession, 'findUnique')
+
         .mockResolvedValue(mockWorkoutSession as any);
 
       const result = await service.getWorkoutSessionById(1);

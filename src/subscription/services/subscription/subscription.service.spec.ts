@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Test, TestingModule } from '@nestjs/testing';
 import { SubscriptionService } from './subscription.service';
 import { PrismaService } from 'src/prisma/services/prisma/prisma.service';
@@ -43,7 +44,9 @@ describe('SubscriptionService', () => {
     it('throws NotFoundException when none found', async () => {
       prismaMock.subscription.findMany.mockResolvedValue([]);
 
-      await expect(service.getSubscriptions()).rejects.toBeInstanceOf(NotFoundException);
+      await expect(service.getSubscriptions()).rejects.toBeInstanceOf(
+        NotFoundException,
+      );
     });
   });
 
@@ -52,7 +55,9 @@ describe('SubscriptionService', () => {
       const subscription = { id: 42 } as any;
       prismaMock.subscription.findUnique.mockResolvedValue(subscription);
 
-      await expect(service.getSubscriptionById('42')).resolves.toEqual(subscription);
+      await expect(service.getSubscriptionById('42')).resolves.toEqual(
+        subscription,
+      );
       expect(prismaMock.subscription.findUnique).toHaveBeenCalledWith({
         where: { id: 42 },
       });
@@ -61,7 +66,9 @@ describe('SubscriptionService', () => {
     it('throws when not found', async () => {
       prismaMock.subscription.findUnique.mockResolvedValue(null);
 
-      await expect(service.getSubscriptionById('42')).rejects.toBeInstanceOf(Error);
+      await expect(service.getSubscriptionById('42')).rejects.toBeInstanceOf(
+        Error,
+      );
     });
   });
 });

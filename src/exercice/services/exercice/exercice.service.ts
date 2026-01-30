@@ -1,3 +1,9 @@
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/no-unsafe-return */
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { Exercise } from '@prisma/client';
 import { IExerciceService } from 'src/exercice/interfaces/exercice/exercice.interface';
@@ -112,7 +118,7 @@ export class ExerciceService implements IExerciceService {
           translatedBatch = Array.isArray(res)
             ? res.map((r: any) => r.text)
             : [res.text];
-        } catch (e) {
+        } catch (err) {
           translatedBatch = allInstructionsStrings;
         }
 

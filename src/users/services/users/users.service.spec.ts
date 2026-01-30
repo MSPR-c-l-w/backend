@@ -1,10 +1,13 @@
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Test, TestingModule } from '@nestjs/testing';
 import { UsersService } from './users.service';
 import { PrismaService } from 'src/prisma/services/prisma/prisma.service';
 import { NotFoundException } from '@nestjs/common';
 
 jest.mock('src/utils/security/password', () => ({
-  hashPassword: jest.fn(async () => 'HASHED_PASSWORD'),
+  hashPassword: jest.fn(() => 'HASHED_PASSWORD'),
 }));
 
 describe('UsersService', () => {

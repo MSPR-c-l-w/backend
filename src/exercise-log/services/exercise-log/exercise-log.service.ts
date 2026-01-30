@@ -1,3 +1,8 @@
+/* eslint-disable @typescript-eslint/no-unsafe-return */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/services/prisma/prisma.service';
 import { HttpService } from '@nestjs/axios';
@@ -17,8 +22,6 @@ export class Exercise_LogService implements IExercise_LogService {
     private readonly prisma: PrismaService,
     private readonly httpService: HttpService,
   ) {}
-
-  // --- PIPELINE ETL KAGGLE ---
 
   async runLogsImportPipeline(): Promise<number> {
     try {
@@ -57,12 +60,10 @@ export class Exercise_LogService implements IExercise_LogService {
         select: { id: true },
       });
 
-      // Nettoyage avant import
       await this.prisma.exerciseLog.deleteMany({});
       await this.prisma.workoutSession.deleteMany({});
 
       for (const [index, row] of rows.entries()) {
-        // 1. On crée la SÉANCE
         const session = await this.prisma.workoutSession.create({
           data: {
             user_id: 1,
@@ -127,8 +128,6 @@ export class Exercise_LogService implements IExercise_LogService {
       })),
     );
   }
-
-  // --- LECTURE ---
 
   async getExerciseLogs(): Promise<any[]> {
     return await this.prisma.exerciseLog.findMany({

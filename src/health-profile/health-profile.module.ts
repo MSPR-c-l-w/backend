@@ -4,16 +4,20 @@ import { HealthProfileController } from './controllers/health-profile/health-pro
 import { SERVICES } from 'src/utils/constants';
 
 @Module({
-  providers: [HealthProfileService, {
-    provide: SERVICES.HEALTH_PROFILE,
-    useClass: HealthProfileService,
-  }],
-  controllers: [HealthProfileController],
-  exports: [HealthProfileService,
+  providers: [
+    HealthProfileService,
     {
       provide: SERVICES.HEALTH_PROFILE,
       useClass: HealthProfileService,
-    }
+    },
+  ],
+  controllers: [HealthProfileController],
+  exports: [
+    HealthProfileService,
+    {
+      provide: SERVICES.HEALTH_PROFILE,
+      useClass: HealthProfileService,
+    },
   ],
 })
 export class HealthProfileModule {}

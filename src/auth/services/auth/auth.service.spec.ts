@@ -20,6 +20,7 @@ describe('AuthService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AuthService,
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         { provide: PrismaService, useValue: prisma },
         { provide: JwtService, useValue: { signAsync: jest.fn() } },
         {
