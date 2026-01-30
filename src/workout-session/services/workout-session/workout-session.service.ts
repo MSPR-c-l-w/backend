@@ -1,5 +1,9 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from 'src/prisma/services/prisma/prisma.service';
 import { IWorkout_SessionService } from 'src/workout-session/interfaces/workout-session/workout-session.interface';
 import { WorkoutSession } from '@prisma/client';
@@ -88,5 +92,70 @@ export class Workout_SessionService implements IWorkout_SessionService {
       throw new NotFoundException(`La séance ${id} n'existe pas.`);
     }
     return session;
+  }
+
+  private getDayRange(date?: string) {
+    if (!date) {
+      const start = new Date();
+      start.setHours(0, 0, 0, 0);
+      const end = new Date(start);
+      end.setDate(end.getDate() + 1);
+      return { start, end, dateString: start.toISOString().slice(0, 10) };
+    }
+
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      throw new BadRequestException('INVALID_DATE_FORMAT');
+    }
+    const start = new Date(`${date}T00:00:00.000`);
+    if (Number.isNaN(start.getTime())) {
+      throw new BadRequestException('INVALID_DATE');
+    }
+    const end = new Date(start);
+    end.setDate(end.getDate() + 1);
+    return { start, end, dateString: date };
+  }
+
+  async getTodaySummary(userId: number, date?: string) {
+    const { start, end, dateString } = this.getDayRange(date);
+
+    const stats = await this.prisma.workoutSession.aggregate({
+      where: {
+        user_id: userId,
+        created_at: { gte: start, lt: end },
+      },
+      _sum: { calories_total: true, duration_h: true },
+      _count: { id: true },
+    });
+
+    const sessions = await this.prisma.workoutSession.findMany({
+      where: {
+        user_id: userId,
+        created_at: { gte: start, lt: end },
+      },
+      select: { avg_bpm: true, max_bpm: true, duration_h: true },
+    });
+
+    let weightedSum = 0;
+    let weightTotal = 0;
+    for (const s of sessions) {
+      const max = s.max_bpm ?? 0;
+      const avg = s.avg_bpm ?? 0;
+      const w = s.duration_h ?? 0;
+      if (max > 0 && avg > 0 && w > 0) {
+        weightedSum += (avg / max) * 100 * w;
+        weightTotal += w;
+      }
+    }
+
+    const avgIntensity =
+      weightTotal > 0 ? Math.round(weightedSum / weightTotal) : 0;
+
+    return {
+      total_sessions_today: stats._count.id,
+      total_duration_h: parseFloat((stats._sum.duration_h || 0).toFixed(2)),
+      total_calories_burned: Math.round(stats._sum.calories_total || 0),
+      average_intensity_percent: avgIntensity,
+      date: dateString,
+    };
   }
 }

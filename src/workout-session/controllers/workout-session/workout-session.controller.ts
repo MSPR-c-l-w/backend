@@ -1,16 +1,29 @@
 /* eslint-disable @typescript-eslint/no-unsafe-return */
-import { Controller, Get, Param, ParseIntPipe, Inject } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Param,
+  ParseIntPipe,
+  Inject,
+  Query,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
   ApiOkResponse,
   ApiNotFoundResponse,
+  ApiBearerAuth,
 } from '@nestjs/swagger';
+import type { Request } from 'express';
 import type {
   IWorkout_SessionService,
   IWorkout_SessionController,
 } from 'src/workout-session/interfaces/workout-session/workout-session.interface';
 import { SERVICES } from 'src/utils/constants';
+import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
+import type { JwtPayload } from 'src/auth/strategies/jwt.strategy';
 
 @Controller('workout-session')
 @ApiTags('Workout Sessions & Dashboard')
@@ -63,8 +76,23 @@ export class Workout_SessionController implements IWorkout_SessionController {
     description: 'Liste des sessions incluant les détails des exercices',
   })
   async getHistory(@Param('userId', ParseIntPipe) userId: number) {
-    // CORRECTION : On appelle le nouveau nom de méthode du service
     return await this.workoutSessionService.getWorkoutSessions(userId);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('today/summary')
+  @ApiBearerAuth('access-token')
+  @ApiOperation({
+    summary:
+      "Récap de la journée d'entraînement (temps total, calories, intensité moyenne)",
+  })
+  @ApiOkResponse({
+    description:
+      "Retourne le nombre de séances du jour, la durée totale, les calories et l'intensité moyenne (%)",
+  })
+  async getTodaySummary(@Req() req: Request, @Query('date') date?: string) {
+    const payload = req.user as JwtPayload;
+    return await this.workoutSessionService.getTodaySummary(payload.sub, date);
   }
 
   @Get(':id')
@@ -74,7 +102,6 @@ export class Workout_SessionController implements IWorkout_SessionController {
   })
   @ApiNotFoundResponse({ description: 'Séance introuvable' })
   async getSessionById(@Param('id', ParseIntPipe) id: number) {
-    // CORRECTION : On appelle le nouveau nom de méthode du service
     return await this.workoutSessionService.getWorkoutSessionById(id);
   }
 }

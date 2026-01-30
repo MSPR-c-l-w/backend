@@ -3,6 +3,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { Workout_SessionController } from './workout-session.controller';
 import { SERVICES } from 'src/utils/constants';
+import type { Request } from 'express';
 
 describe('WorkoutSessionController', () => {
   let controller: Workout_SessionController;
@@ -31,13 +32,19 @@ describe('WorkoutSessionController', () => {
               .mockResolvedValue({ total_calories: 800, total_sessions: 1 }),
             getUserLevel: jest.fn().mockResolvedValue({ level: 'Actif' }),
             getIntensityStats: jest.fn().mockResolvedValue({ avg_bpm: 145 }),
-            // MAJ des noms de méthodes
             getWorkoutSessions: jest
               .fn()
               .mockResolvedValue([mockWorkoutSession]),
             getWorkoutSessionById: jest
               .fn()
               .mockResolvedValue(mockWorkoutSession),
+            getTodaySummary: jest.fn().mockResolvedValue({
+              total_sessions_today: 1,
+              total_duration_h: 1.5,
+              total_calories_burned: 800,
+              average_intensity_percent: 80,
+              date: '2026-01-31',
+            }),
           },
         },
       ],
@@ -74,6 +81,15 @@ describe('WorkoutSessionController', () => {
       const result = await controller.getSessionById(1);
       expect(result.id).toEqual(1);
       expect(service.getWorkoutSessionById).toHaveBeenCalledWith(1);
+    });
+  });
+
+  describe('getTodaySummary', () => {
+    it('should call service with current user id', async () => {
+      const req = { user: { sub: 1, email: 'a@b.com' } } as unknown as Request;
+      const result = await controller.getTodaySummary(req, undefined);
+      expect(result).toHaveProperty('total_sessions_today');
+      expect(service.getTodaySummary).toHaveBeenCalledWith(1, undefined);
     });
   });
 });

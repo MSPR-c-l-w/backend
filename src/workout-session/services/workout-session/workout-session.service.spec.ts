@@ -103,4 +103,25 @@ describe('Workout_SessionService', () => {
       );
     });
   });
+
+  describe('getTodaySummary', () => {
+    it('should return today summary with computed intensity', async () => {
+      jest.spyOn(prisma.workoutSession, 'aggregate').mockResolvedValue({
+        _sum: { calories_total: 1000, duration_h: 2 },
+        _count: { id: 2 },
+      } as any);
+
+      jest.spyOn(prisma.workoutSession, 'findMany').mockResolvedValue([
+        { avg_bpm: 120, max_bpm: 150, duration_h: 1 }, // 80%
+        { avg_bpm: 90, max_bpm: 150, duration_h: 1 }, // 60%
+      ] as any);
+
+      const res = await service.getTodaySummary(1, '2026-01-31');
+      expect(res.total_sessions_today).toBe(2);
+      expect(res.total_duration_h).toBe(2);
+      expect(res.total_calories_burned).toBe(1000);
+      expect(res.average_intensity_percent).toBe(70);
+      expect(res.date).toBe('2026-01-31');
+    });
+  });
 });
