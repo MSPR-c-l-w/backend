@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/unbound-method */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Test, TestingModule } from '@nestjs/testing';
 import { Workout_SessionController } from './workout-session.controller';
 import { SERVICES } from 'src/utils/constants';
@@ -5,7 +7,7 @@ import { IWorkout_SessionService } from 'src/workout-session/interfaces/workout-
 
 describe('WorkoutSessionController', () => {
   let controller: Workout_SessionController;
-  
+
   let service: IWorkout_SessionService;
 
   const mockWorkoutSession = {
@@ -26,17 +28,25 @@ describe('WorkoutSessionController', () => {
         {
           provide: SERVICES.WORKOUT_SESSION,
           useValue: {
-            getUserSummary: jest.fn().mockResolvedValue({ total_calories: 800, total_sessions: 1 }),
+            getUserSummary: jest
+              .fn()
+              .mockResolvedValue({ total_calories: 800, total_sessions: 1 }),
             getUserLevel: jest.fn().mockResolvedValue({ level: 'Actif' }),
             getIntensityStats: jest.fn().mockResolvedValue({ avg_bpm: 145 }),
-            getWorkoutSessions: jest.fn().mockResolvedValue([mockWorkoutSession]),
-            getWorkoutSessionById: jest.fn().mockResolvedValue(mockWorkoutSession),
+            getWorkoutSessions: jest
+              .fn()
+              .mockResolvedValue([mockWorkoutSession]),
+            getWorkoutSessionById: jest
+              .fn()
+              .mockResolvedValue(mockWorkoutSession),
           },
         },
       ],
     }).compile();
 
-    controller = module.get<Workout_SessionController>(Workout_SessionController);
+    controller = module.get<Workout_SessionController>(
+      Workout_SessionController,
+    );
     // On cast l'objet récupéré pour satisfaire TypeScript
     service = module.get<IWorkout_SessionService>(SERVICES.WORKOUT_SESSION);
   });

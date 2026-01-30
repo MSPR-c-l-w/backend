@@ -1,4 +1,12 @@
-import { Controller, Get, Param, ParseIntPipe, Inject, Query } from '@nestjs/common';
+/* eslint-disable @typescript-eslint/no-unsafe-return */
+import {
+  Controller,
+  Get,
+  Param,
+  ParseIntPipe,
+  Inject,
+  Query,
+} from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
@@ -56,11 +64,19 @@ export class Workout_SessionController implements IWorkout_SessionController {
   }
 
   @Get('history/:userId')
-  @ApiOperation({ summary: 'Récupérer l\'historique avec filtre optionnel par date (journalier ou mensuel)' })
-  @ApiQuery({ name: 'date', required: false, example: '2026-01-30', description: 'Format YYYY-MM-DD ou YYYY-MM' })
+  @ApiOperation({
+    summary:
+      "Récupérer l'historique avec filtre optionnel par date (journalier ou mensuel)",
+  })
+  @ApiQuery({
+    name: 'date',
+    required: false,
+    example: '2026-01-30',
+    description: 'Format YYYY-MM-DD ou YYYY-MM',
+  })
   async getHistory(
     @Param('userId', ParseIntPipe) userId: number,
-    @Query('date') date?: string 
+    @Query('date') date?: string,
   ) {
     return await this.workoutSessionService.getWorkoutSessions(userId, date);
   }
