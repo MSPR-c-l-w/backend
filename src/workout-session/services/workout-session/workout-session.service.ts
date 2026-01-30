@@ -16,8 +16,6 @@ export class Workout_SessionService implements IWorkout_SessionService {
     throw new Error('Method not implemented.');
   }
 
-  // --- Dashboard & Gamification ---
-
   async getUserSummary(userId: number): Promise<any> {
     const stats = await this.prisma.workoutSession.aggregate({
       where: { user_id: userId },
@@ -50,8 +48,6 @@ export class Workout_SessionService implements IWorkout_SessionService {
     return { level, total_calories: Math.round(total) };
   }
 
-  // --- Statistiques (KPIs) ---
-
   async getIntensityStats(userId: number): Promise<any> {
     return await this.prisma.workoutSession.aggregate({
       where: { user_id: userId },
@@ -60,9 +56,6 @@ export class Workout_SessionService implements IWorkout_SessionService {
     });
   }
 
-  // --- Lecture de base ---
-
-  /** Récupère toutes les séances */
   async getWorkoutSessions(
     userId: number,
     date?: string,
@@ -96,7 +89,6 @@ export class Workout_SessionService implements IWorkout_SessionService {
     });
   }
 
-  /** Récupère une séance par son ID */
   async getWorkoutSessionById(id: number): Promise<WorkoutSession> {
     const session = await this.prisma.workoutSession.findUnique({
       where: { id },

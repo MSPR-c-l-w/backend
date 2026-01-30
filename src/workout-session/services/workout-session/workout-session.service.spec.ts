@@ -51,7 +51,6 @@ describe('Workout_SessionService', () => {
         _count: { id: 2 },
       };
 
-      // Utilisation d'une assertion plus propre que "as any"
       jest
         .spyOn(prisma.workoutSession, 'aggregate')
         .mockResolvedValue(mockAggregateResponse as never);

@@ -47,7 +47,6 @@ describe('WorkoutSessionController', () => {
     controller = module.get<Workout_SessionController>(
       Workout_SessionController,
     );
-    // On cast l'objet récupéré pour satisfaire TypeScript
     service = module.get<IWorkout_SessionService>(SERVICES.WORKOUT_SESSION);
   });
 
