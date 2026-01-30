@@ -9,8 +9,8 @@ export interface IWorkout_SessionService {
   getIntensityStats(userId: number): Promise<any>;
 
   // --- Lecture de base (Noms mis à jour) ---
-  getWorkoutSessions(userId: number): Promise<WorkoutSession[]>; // Ancien: findAllByUser
-  getWorkoutSessionById(id: number): Promise<WorkoutSession>; // Ancien: findOne
+  getWorkoutSessions(userId: number, date?: string): Promise<WorkoutSession[]>;
+  getWorkoutSessionById(id: number): Promise<WorkoutSession>; 
 }
 
 export interface IWorkout_SessionController {

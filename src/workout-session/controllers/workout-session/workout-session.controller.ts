@@ -1,10 +1,10 @@
-/* eslint-disable @typescript-eslint/no-unsafe-return */
-import { Controller, Get, Param, ParseIntPipe, Inject } from '@nestjs/common';
+import { Controller, Get, Param, ParseIntPipe, Inject, Query } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
   ApiOkResponse,
   ApiNotFoundResponse,
+  ApiQuery,
 } from '@nestjs/swagger';
 import type {
   IWorkout_SessionService,
@@ -56,15 +56,13 @@ export class Workout_SessionController implements IWorkout_SessionController {
   }
 
   @Get('history/:userId')
-  @ApiOperation({
-    summary: "Récupérer l'historique complet des séances d'un utilisateur",
-  })
-  @ApiOkResponse({
-    description: 'Liste des sessions incluant les détails des exercices',
-  })
-  async getHistory(@Param('userId', ParseIntPipe) userId: number) {
-    // CORRECTION : On appelle le nouveau nom de méthode du service
-    return await this.workoutSessionService.getWorkoutSessions(userId);
+  @ApiOperation({ summary: 'Récupérer l\'historique avec filtre optionnel par date (journalier ou mensuel)' })
+  @ApiQuery({ name: 'date', required: false, example: '2026-01-30', description: 'Format YYYY-MM-DD ou YYYY-MM' })
+  async getHistory(
+    @Param('userId', ParseIntPipe) userId: number,
+    @Query('date') date?: string 
+  ) {
+    return await this.workoutSessionService.getWorkoutSessions(userId, date);
   }
 
   @Get(':id')
@@ -74,7 +72,6 @@ export class Workout_SessionController implements IWorkout_SessionController {
   })
   @ApiNotFoundResponse({ description: 'Séance introuvable' })
   async getSessionById(@Param('id', ParseIntPipe) id: number) {
-    // CORRECTION : On appelle le nouveau nom de méthode du service
     return await this.workoutSessionService.getWorkoutSessionById(id);
   }
 }

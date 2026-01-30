@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-argument */
 import { Test, TestingModule } from '@nestjs/testing';
 import { Workout_SessionService } from './workout-session.service';
 import { PrismaService } from 'src/prisma/services/prisma/prisma.service';
@@ -55,7 +54,6 @@ describe('Workout_SessionService', () => {
         .spyOn(prisma.workoutSession, 'aggregate')
         .mockResolvedValue(mockAggregateResponse as any);
 
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       const result = await service.getUserSummary(1);
 
       expect(result).toEqual({
@@ -67,7 +65,6 @@ describe('Workout_SessionService', () => {
     });
   });
 
-  // --- Tests mis à jour avec tes nouveaux noms de méthodes ---
 
   describe('getWorkoutSessions', () => {
     it('should return an array of sessions', async () => {
@@ -101,6 +98,24 @@ describe('Workout_SessionService', () => {
       await expect(service.getWorkoutSessionById(999)).rejects.toThrow(
         NotFoundException,
       );
+    });
+  });
+
+  describe('getWorkoutSessions with Date Filter', () => {
+    it('should call prisma with date range when date is provided', async () => {
+      const findManySpy = jest.spyOn(prisma.workoutSession, 'findMany').mockResolvedValue([]);
+      const testDate = '2026-01-30';
+
+      await service.getWorkoutSessions(1, testDate);
+
+      expect(findManySpy).toHaveBeenCalledWith(expect.objectContaining({
+        where: expect.objectContaining({
+          created_at: {
+            gte: expect.any(Date),
+            lt: expect.any(Date),
+          }
+        })
+      }));
     });
   });
 });

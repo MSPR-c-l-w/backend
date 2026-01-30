@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/services/prisma/prisma.service';
 import { IWorkout_SessionService } from 'src/workout-session/interfaces/workout-session/workout-session.interface';
@@ -58,20 +57,38 @@ export class Workout_SessionService implements IWorkout_SessionService {
     });
   }
 
-  // --- Lecture de base (Renommées) ---
+  // --- Lecture de base ---
 
   /** Récupère toutes les séances */
-  async getWorkoutSessions(userId: number): Promise<WorkoutSession[]> {
-    return await this.prisma.workoutSession.findMany({
-      where: { user_id: userId },
-      include: {
-        logs: {
-          include: { exercise: true },
-        },
-      },
-      orderBy: { created_at: 'desc' },
-    });
+  async getWorkoutSessions(userId: number, date?: string): Promise<WorkoutSession[]> {
+  const where: any = { user_id: userId };
+
+  if (date) {
+    const isMonthOnly = date.length === 7;
+    const start = new Date(isMonthOnly ? `${date}-01` : date);
+    const end = new Date(start);
+
+    if (isMonthOnly) {
+      end.setMonth(end.getMonth() + 1);
+    } else {
+      end.setHours(23, 59, 59, 999);
+    }
+
+    where.created_at = {
+      gte: start,
+      lt: end,
+    };
   }
+
+  return await this.prisma.workoutSession.findMany({
+    where,
+    include: { 
+      logs: { include: { exercise: true } } 
+    },
+    orderBy: { created_at: 'desc' },
+    take: 10,
+  });
+}
 
   /** Récupère une séance par son ID */
   async getWorkoutSessionById(id: number): Promise<WorkoutSession> {
