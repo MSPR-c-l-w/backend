@@ -1,3 +1,8 @@
+/* eslint-disable @typescript-eslint/no-unsafe-return */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { HealthProfile } from '@prisma/client';
 import { IHealthProfileService } from 'src/health-profile/interface/health-profile/health-profile.interface';
@@ -11,13 +16,14 @@ export class HealthProfileService implements IHealthProfileService {
   private readonly logger = new Logger(HealthProfileService.name);
   private readonly KAGGLE_USER = process.env.KAGGLE_USER;
   private readonly KAGGLE_KEY = process.env.KAGGLE_KEY;
-  private readonly DATASET_URL = 'https://www.kaggle.com/api/v1/datasets/download/ziya07/diet-recommendations-dataset/diet_recommendations_dataset.csv';
+  private readonly DATASET_URL = 
+  'https://www.kaggle.com/api/v1/datasets/download/ziya07/diet-recommendations-dataset/diet_recommendations_dataset.csv';
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly httpService: HttpService,
   ) {}
-  async runHealthProfilePipeline(): Promise<number>{
+  async runHealthProfilePipeline(): Promise<number> {
     try {
       await this.prisma.user.upsert({
         where: { id:1 },
@@ -39,7 +45,7 @@ export class HealthProfileService implements IHealthProfileService {
         this.httpService.get(this.DATASET_URL, {
           headers: {
             Authorization: `Basic ${auth}`,
-            Accept: 'application/octet-stream'
+            Accept: 'application/octet-stream',
           },
           responseType: 'text',
         }),

@@ -10,5 +10,4 @@ export interface IHealthProfileService {
 export interface IHealthProfileController {
   getHealthProfiles(): Promise<HealthProfile[]>;
   getHealthProfile(id: string): Promise<HealthProfile>;
-
 }
