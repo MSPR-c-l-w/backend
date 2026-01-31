@@ -41,7 +41,7 @@ describe('HealthProfileService', () => {
 
     service = module.get<HealthProfileService>(HealthProfileService);
     jest.clearAllMocks();
-    
+
     // Mock des variables d'environnement
     process.env.KAGGLE_USER = 'test_user';
     process.env.KAGGLE_KEY = 'test_key';

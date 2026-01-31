@@ -1,4 +1,11 @@
-import { Controller, Get, Inject, Param, UseGuards, Post } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Inject,
+  Param,
+  UseGuards,
+  Post,
+} from '@nestjs/common';
 import {
   ApiOperation,
   ApiOkResponse,
@@ -43,7 +50,10 @@ export class HealthProfileController implements IHealthProfileController {
   }
 
   @Post('import')
-  @ApiOperation({ summary: 'Déclencher la pipeline ETL pour importer les profils de santé depuis Kaggle' })
+  @ApiOperation({
+    summary:
+      'Déclencher la pipeline ETL pour importer les profils de santé depuis Kaggle',
+  })
   @ApiOkResponse({ description: 'Importation réussie' })
   @ApiInternalServerErrorResponse({
     description: 'Erreur lors du traitement du fichier CSV',

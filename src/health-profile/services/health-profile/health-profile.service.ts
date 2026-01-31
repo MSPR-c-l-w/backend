@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-return */
-/* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
@@ -16,8 +14,8 @@ export class HealthProfileService implements IHealthProfileService {
   private readonly logger = new Logger(HealthProfileService.name);
   private readonly KAGGLE_USER = process.env.KAGGLE_USER;
   private readonly KAGGLE_KEY = process.env.KAGGLE_KEY;
-  private readonly DATASET_URL = 
-  'https://www.kaggle.com/api/v1/datasets/download/ziya07/diet-recommendations-dataset/diet_recommendations_dataset.csv';
+  private readonly DATASET_URL =
+    'https://www.kaggle.com/api/v1/datasets/download/ziya07/diet-recommendations-dataset/diet_recommendations_dataset.csv';
 
   constructor(
     private readonly prisma: PrismaService,
@@ -26,7 +24,7 @@ export class HealthProfileService implements IHealthProfileService {
   async runHealthProfilePipeline(): Promise<number> {
     try {
       await this.prisma.user.upsert({
-        where: { id:1 },
+        where: { id: 1 },
         update: {},
         create: {
           id: 1,
@@ -59,20 +57,33 @@ export class HealthProfileService implements IHealthProfileService {
       const rows = parsed.data as any[];
 
       await this.prisma.healthProfile.deleteMany({});
-      await this.prisma.$executeRaw`ALTER TABLE HealthProfile AUTO_INCREMENT = 1`;
+      await this.prisma.$executeRaw`ALTER TABLE HealthProfile AUTO_INCREMENT =
+        1`;
 
       let importedCount = 0;
 
       for (const row of rows) {
-
         const healthProfile = {
           user_id: row['user_id'] || 1,
-          weight: row ['Weight_kg'] || row['weight_kg'] || null,
-          bmi: row ['BMI'] || row['bmi'] || null,
-          disease_type: row['Disease'] || row ['Disease_Type'] || row['disease_type'] || null,
+          weight: row['Weight_kg'] || row['weight_kg'] || null,
+          bmi: row['BMI'] || row['bmi'] || null,
+          disease_type:
+            row['Disease'] ||
+            row['Disease_Type'] ||
+            row['disease_type'] ||
+            null,
           severity: row['Severity'] || row['severity'] || null,
-          physical_activity_level: row['Physical_Activity_Level'] || row['Physical_Activity'] || row['physical_activity_level'] || null,
-          daily_calories_target: row['Daily_Caloric_Intake'] || row['Daily_Calories'] || row['Calories_Target'] || row['daily_calories_target'] || null,
+          physical_activity_level:
+            row['Physical_Activity_Level'] ||
+            row['Physical_Activity'] ||
+            row['physical_activity_level'] ||
+            null,
+          daily_calories_target:
+            row['Daily_Caloric_Intake'] ||
+            row['Daily_Calories'] ||
+            row['Calories_Target'] ||
+            row['daily_calories_target'] ||
+            null,
         };
 
         await this.prisma.healthProfile.create({
