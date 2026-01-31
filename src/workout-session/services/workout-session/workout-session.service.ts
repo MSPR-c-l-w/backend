@@ -1,4 +1,6 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/services/prisma/prisma.service';
 import { IWorkout_SessionService } from 'src/workout-session/interfaces/workout-session/workout-session.interface';
@@ -13,8 +15,6 @@ export class Workout_SessionService implements IWorkout_SessionService {
   findOne(id: number): Promise<WorkoutSession> {
     throw new Error('Method not implemented.');
   }
-
-  // --- Dashboard & Gamification ---
 
   async getUserSummary(userId: number): Promise<any> {
     const stats = await this.prisma.workoutSession.aggregate({
@@ -48,8 +48,6 @@ export class Workout_SessionService implements IWorkout_SessionService {
     return { level, total_calories: Math.round(total) };
   }
 
-  // --- Statistiques (KPIs) ---
-
   async getIntensityStats(userId: number): Promise<any> {
     return await this.prisma.workoutSession.aggregate({
       where: { user_id: userId },
@@ -58,22 +56,39 @@ export class Workout_SessionService implements IWorkout_SessionService {
     });
   }
 
-  // --- Lecture de base (Renommées) ---
+  async getWorkoutSessions(
+    userId: number,
+    date?: string,
+  ): Promise<WorkoutSession[]> {
+    const where: any = { user_id: userId };
 
-  /** Récupère toutes les séances */
-  async getWorkoutSessions(userId: number): Promise<WorkoutSession[]> {
+    if (date) {
+      const isMonthOnly = date.length === 7;
+      const start = new Date(isMonthOnly ? `${date}-01` : date);
+      const end = new Date(start);
+
+      if (isMonthOnly) {
+        end.setMonth(end.getMonth() + 1);
+      } else {
+        end.setHours(23, 59, 59, 999);
+      }
+
+      where.created_at = {
+        gte: start,
+        lt: end,
+      };
+    }
+
     return await this.prisma.workoutSession.findMany({
-      where: { user_id: userId },
+      where,
       include: {
-        logs: {
-          include: { exercise: true },
-        },
+        logs: { include: { exercise: true } },
       },
       orderBy: { created_at: 'desc' },
+      take: 10,
     });
   }
 
-  /** Récupère une séance par son ID */
   async getWorkoutSessionById(id: number): Promise<WorkoutSession> {
     const session = await this.prisma.workoutSession.findUnique({
       where: { id },
