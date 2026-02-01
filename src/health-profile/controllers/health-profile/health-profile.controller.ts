@@ -1,4 +1,11 @@
-import { Controller, Get, Inject, Param, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Inject,
+  Param,
+  UseGuards,
+  Post,
+} from '@nestjs/common';
 import {
   ApiOperation,
   ApiOkResponse,
@@ -6,6 +13,7 @@ import {
   ApiParam,
   ApiNotFoundResponse,
   ApiBadRequestResponse,
+  ApiInternalServerErrorResponse,
 } from '@nestjs/swagger';
 import { HealthProfile } from '@prisma/client';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
@@ -39,5 +47,22 @@ export class HealthProfileController implements IHealthProfileController {
   @ApiBadRequestResponse({ description: 'ID invalide' })
   async getHealthProfile(@Param('id') id: string): Promise<HealthProfile> {
     return this.healthProfileService.getHealthProfile(id);
+  }
+
+  @Post('import')
+  @ApiOperation({
+    summary:
+      'Déclencher la pipeline ETL pour importer les profils de santé depuis Kaggle',
+  })
+  @ApiOkResponse({ description: 'Importation réussie' })
+  @ApiInternalServerErrorResponse({
+    description: 'Erreur lors du traitement du fichier CSV',
+  })
+  async triggerImport(): Promise<{ message: string; count: number }> {
+    const count = await this.healthProfileService.runHealthProfilePipeline();
+    return {
+      message: 'Le pipeline ETL HealthProfile a été exécuté avec succès.',
+      count: count,
+    };
   }
 }

@@ -2,8 +2,11 @@ import { Module } from '@nestjs/common';
 import { HealthProfileService } from './services/health-profile/health-profile.service';
 import { HealthProfileController } from './controllers/health-profile/health-profile.controller';
 import { SERVICES } from 'src/utils/constants';
+import { HttpModule } from '@nestjs/axios';
+import { PrismaModule } from 'src/prisma/prisma.module';
 
 @Module({
+  imports: [PrismaModule, HttpModule],
   providers: [
     HealthProfileService,
     {
