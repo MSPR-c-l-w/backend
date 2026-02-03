@@ -55,10 +55,13 @@ export class ExerciceController implements IExerciceController {
   }
 
   @Get()
-  @ApiOperation({ summary: 'Récupérer tous les exercices' })
-  @ApiOkResponse({ description: 'Liste des exercices' })
-  async getExercices(): Promise<Exercise[]> {
-    return this.exerciceService.getExercices();
+  @ApiOperation({ summary: 'Récupérer tous les exercices avec pagination' })
+  @ApiOkResponse({ description: 'Liste des exercices paginée' })
+  async getExercices(
+    @Query('page', new ParseIntPipe({ optional: true })) page: number = 1,
+    @Query('limit', new ParseIntPipe({ optional: true })) limit: number = 20,
+  ): Promise<Exercise[]> {
+    return this.exerciceService.getExercices(page, limit);
   }
 
   // Route de recherche : GET /exercises/search?muscle=pectoraux&level=débutant

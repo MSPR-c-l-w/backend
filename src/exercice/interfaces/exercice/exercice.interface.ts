@@ -7,13 +7,13 @@ export interface IExerciceService {
     equipment: string | undefined;
     category: string | undefined;
   }): unknown;
-  getExercices(): Promise<Exercise[]>;
+  getExercices(page?: number, limit?: number): Promise<Exercise[]>;
   getExerciceById(id: number): Promise<Exercise>;
   runImportPipeline(): Promise<number>;
 }
 
 export interface IExerciceController {
-  getExercices(): Promise<Exercise[]>;
+  getExercices(page?: number, limit?: number): Promise<Exercise[]>;
   getExerciceById(id: number): Promise<Exercise>;
   triggerImport(): Promise<{ message: string; count: number }>;
 }
