@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
+
 import { Test, TestingModule } from '@nestjs/testing';
 import { Workout_SessionService } from './workout-session.service';
 import { PrismaService } from 'src/prisma/services/prisma/prisma.service';
@@ -106,12 +107,12 @@ describe('Workout_SessionService', () => {
       jest.spyOn(prisma.workoutSession, 'aggregate').mockResolvedValue({
         _sum: { calories_total: 1000, duration_h: 2 },
         _count: { id: 2 },
-      } as any);
+      } as never);
 
       jest.spyOn(prisma.workoutSession, 'findMany').mockResolvedValue([
         { avg_bpm: 120, max_bpm: 150, duration_h: 1 }, // 80%
         { avg_bpm: 90, max_bpm: 150, duration_h: 1 }, // 60%
-      ] as any);
+      ] as never);
 
       const res = await service.getTodaySummary(1, '2026-01-31');
       expect(res.total_sessions_today).toBe(2);
