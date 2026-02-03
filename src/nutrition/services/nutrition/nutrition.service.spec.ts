@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException } from '@nestjs/common';
 import { NutritionService } from './nutrition.service';
 import { PrismaService } from 'src/prisma/services/prisma/prisma.service';
+import { HttpService } from '@nestjs/axios';
 import { Nutrition } from '@prisma/client';
 
 describe('NutritionService', () => {
@@ -11,6 +12,9 @@ describe('NutritionService', () => {
       findMany: jest.Mock;
       findUnique: jest.Mock;
     };
+  };
+  const mockHttpService = {
+    get: jest.fn(),
   };
 
   const mockNutrition: Nutrition = {
@@ -44,6 +48,10 @@ describe('NutritionService', () => {
         {
           provide: PrismaService,
           useValue: prisma,
+        },
+        {
+          provide: HttpService,
+          useValue: mockHttpService,
         },
       ],
     }).compile();

@@ -1,6 +1,14 @@
-import { Controller, Get, Inject, Param, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Inject,
+  Param,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
 import {
   ApiBadRequestResponse,
+  ApiInternalServerErrorResponse,
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
@@ -39,5 +47,23 @@ export class NutritionController implements INutritionController {
   @ApiBadRequestResponse({ description: 'ID du nutriment invalide' })
   async getNutritionById(@Param('id') id: string): Promise<Nutrition> {
     return this.nutritionService.getNutritionById(id);
+  }
+
+  @Post('import')
+  @ApiOperation({
+    summary:
+      'Lancer manuellement la collecte et transformation des données (ETL)',
+  })
+  @ApiOkResponse({ description: 'Collecte et synchronisation réussies' })
+  @ApiInternalServerErrorResponse({
+    description: 'Erreur lors du pipeline ETL',
+  })
+  async triggerImport(): Promise<{ message: string; count: number }> {
+    const count = await this.nutritionService.runImportPipeline();
+
+    return {
+      message: 'Le pipeline ETL a été exécuté avec succès.',
+      count,
+    };
   }
 }
