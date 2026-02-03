@@ -5,6 +5,7 @@ export interface IHealthProfileService {
   getHealthProfile(id: string): Promise<HealthProfile>;
 
   runHealthProfilePipeline(): Promise<number>;
+  redistributeUserIds(): Promise<{ updated: number; usersCreated: number }>;
 }
 
 export interface IHealthProfileController {

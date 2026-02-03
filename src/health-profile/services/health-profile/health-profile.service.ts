@@ -67,12 +67,6 @@ export class HealthProfileService implements IHealthProfileService {
           user_id: row['user_id'] || 1,
           weight: row['Weight_kg'] || row['weight_kg'] || null,
           bmi: row['BMI'] || row['bmi'] || null,
-          disease_type:
-            row['Disease'] ||
-            row['Disease_Type'] ||
-            row['disease_type'] ||
-            null,
-          severity: row['Severity'] || row['severity'] || null,
           physical_activity_level:
             row['Physical_Activity_Level'] ||
             row['Physical_Activity'] ||
@@ -118,5 +112,61 @@ export class HealthProfileService implements IHealthProfileService {
     }
 
     return healthProfile;
+  }
+  async redistributeUserIds(): Promise<{ updated: number; usersCreated: number }> {
+    try {
+      const profiles = await this.prisma.healthProfile.findMany({
+        where: { user_id: 1 },
+      });
+
+      if (profiles.length === 0) {
+        this.logger.warn('Aucun profil avec user_id 1 trouvé');
+        return { updated: 0, usersCreated: 0 };
+      }
+
+      const profilesPerUser = 500;
+      const numberOfUsers = Math.ceil(profiles.length / profilesPerUser);
+
+      let usersCreated = 0;
+      for (let i = 2; i <= numberOfUsers; i++) {
+        const userExists = await this.prisma.user.findUnique({
+          where: { id: i }
+        });
+
+        if (!userExists) {
+          await this.prisma.user.create({
+            data: {
+              id: i,
+              email: `user${i}@test.fr`,
+              password_hash: 'hash',
+              first_name: `User ${i}`,
+              last_name: 'Test',
+            },
+          });
+          usersCreated++;
+        }
+      }
+
+      let updated = 0;
+      for (let i = 0; i < profiles.length; i++) {
+        const targetUserid = Math.floor(i / profilesPerUser) + 1;
+
+        await this.prisma.healthProfile.update({
+          where: { id: profiles[i].id },
+          data: { user_id: targetUserid },
+        });
+
+        updated++;
+      }
+
+      this.logger.log(
+      `Redistribution terminée : ${updated} profils mis à jour, ${usersCreated} utilisateurs créés`	
+      );
+
+      return { updated, usersCreated };
+    } catch (e) {
+      this.logger.error(`Erreur redistribution des user_ids: ${e.message}`);
+      throw e;
+    }
   }
 }
