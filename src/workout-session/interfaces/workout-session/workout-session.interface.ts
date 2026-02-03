@@ -6,7 +6,7 @@ export interface IWorkout_SessionService {
 
   getIntensityStats(userId: number): Promise<any>;
 
-  getWorkoutSessions(userId: number): Promise<WorkoutSession[]>;
+  getWorkoutSessions(userId: number, date?: string): Promise<WorkoutSession[]>;
   getWorkoutSessionById(id: number): Promise<WorkoutSession>;
 
   getTodaySummary(

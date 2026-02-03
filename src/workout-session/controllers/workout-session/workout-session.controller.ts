@@ -15,6 +15,7 @@ import {
   ApiOkResponse,
   ApiNotFoundResponse,
   ApiBearerAuth,
+  ApiQuery,
 } from '@nestjs/swagger';
 import type { Request } from 'express';
 import type {
@@ -70,13 +71,20 @@ export class Workout_SessionController implements IWorkout_SessionController {
 
   @Get('history/:userId')
   @ApiOperation({
-    summary: "Récupérer l'historique complet des séances d'un utilisateur",
+    summary:
+      "Récupérer l'historique avec filtre optionnel par date (journalier ou mensuel)",
   })
-  @ApiOkResponse({
-    description: 'Liste des sessions incluant les détails des exercices',
+  @ApiQuery({
+    name: 'date',
+    required: false,
+    example: '2026-01-30',
+    description: 'Format YYYY-MM-DD ou YYYY-MM',
   })
-  async getHistory(@Param('userId', ParseIntPipe) userId: number) {
-    return await this.workoutSessionService.getWorkoutSessions(userId);
+  async getHistory(
+    @Param('userId', ParseIntPipe) userId: number,
+    @Query('date') date?: string,
+  ) {
+    return await this.workoutSessionService.getWorkoutSessions(userId, date);
   }
 
   @UseGuards(JwtAuthGuard)

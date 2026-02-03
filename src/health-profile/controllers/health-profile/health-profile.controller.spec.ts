@@ -7,6 +7,7 @@ describe('HealthProfileController', () => {
   const healthProfileServiceMock = {
     getHealthProfiles: jest.fn(),
     getHealthProfile: jest.fn(),
+    runHealthProfilePipeline: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -52,5 +53,19 @@ describe('HealthProfileController', () => {
     expect(healthProfileServiceMock.getHealthProfile).toHaveBeenCalledWith(
       '123',
     );
+  });
+
+  it('triggerImport should call service and return success message', async () => {
+    healthProfileServiceMock.runHealthProfilePipeline.mockResolvedValue(150);
+
+    const result = await controller.triggerImport();
+
+    expect(result).toEqual({
+      message: 'Le pipeline ETL HealthProfile a été exécuté avec succès.',
+      count: 150,
+    });
+    expect(
+      healthProfileServiceMock.runHealthProfilePipeline,
+    ).toHaveBeenCalledTimes(1);
   });
 });
