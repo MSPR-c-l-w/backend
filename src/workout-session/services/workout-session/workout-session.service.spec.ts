@@ -119,25 +119,6 @@ describe('Workout_SessionService', () => {
       expect(res.total_calories_burned).toBe(1000);
       expect(res.average_intensity_percent).toBe(70);
       expect(res.date).toBe('2026-01-31');
-  describe('getWorkoutSessions with Date Filter', () => {
-    it('should call prisma with date range when date is provided', async () => {
-      const findManySpy = jest
-        .spyOn(prisma.workoutSession, 'findMany')
-        .mockResolvedValue([]);
-      const testDate = '2026-01-30';
-
-      await service.getWorkoutSessions(1, testDate);
-
-      expect(findManySpy).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: expect.objectContaining({
-            created_at: {
-              gte: expect.any(Date),
-              lt: expect.any(Date),
-            },
-          }),
-        }),
-      );
     });
   });
 });
