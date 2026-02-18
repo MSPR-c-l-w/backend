@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 
 import { Test, TestingModule } from '@nestjs/testing';
@@ -78,7 +80,7 @@ describe('Workout_SessionService', () => {
       const result = await service.getWorkoutSessions(1);
 
       expect(result).toEqual(mockSessions);
-      // eslint-disable-next-line @typescript-eslint/unbound-method
+
       expect(prisma.workoutSession.findMany).toHaveBeenCalled();
     });
   });

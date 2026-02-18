@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/unbound-method */
 import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException } from '@nestjs/common';
 import { Exercise_LogService } from './exercise-log.service';
@@ -7,10 +6,37 @@ import { HttpService } from '@nestjs/axios';
 
 describe('ExerciseLogService', () => {
   let service: Exercise_LogService;
-  let prisma: PrismaService;
+  type ExerciseLogRecord = {
+    id: number;
+    exercise_id: number;
+    session_id: number;
+    exercise: { id: number; name: string };
+    session: { id: number; user_id: number; calories_total: number };
+  };
+  type PrismaMock = {
+    exerciseLog: {
+      findMany: jest.Mock;
+      findUnique: jest.Mock;
+      groupBy: jest.Mock;
+      deleteMany: jest.Mock;
+      create: jest.Mock;
+    };
+    workoutSession: {
+      deleteMany: jest.Mock;
+      create: jest.Mock;
+    };
+    user: {
+      upsert: jest.Mock;
+    };
+    exercise: {
+      findMany: jest.Mock;
+      findUnique: jest.Mock;
+    };
+  };
+  let prisma: PrismaMock;
 
   // On retire les champs migrés (user_id, calories, bpm)
-  const mockExerciseLog: any = {
+  const mockExerciseLog: ExerciseLogRecord = {
     id: 1,
     exercise_id: 1,
     session_id: 1,
@@ -47,13 +73,13 @@ describe('ExerciseLogService', () => {
               findMany: jest.fn(),
               findUnique: jest.fn(),
             },
-          },
+          } as PrismaMock,
         },
       ],
     }).compile();
 
     service = module.get<Exercise_LogService>(Exercise_LogService);
-    prisma = module.get<PrismaService>(PrismaService);
+    prisma = module.get<PrismaMock>(PrismaService);
   });
 
   it('should be defined', () => {
@@ -63,26 +89,19 @@ describe('ExerciseLogService', () => {
   describe('getExerciseLogs', () => {
     it('should return an array of exercise logs', async () => {
       const mockLogs = [mockExerciseLog];
-      jest.spyOn(prisma.exerciseLog, 'findMany').mockResolvedValue(mockLogs);
+      prisma.exerciseLog.findMany.mockResolvedValue(mockLogs);
 
-      const result = await service.getExerciseLogs();
-
-      expect(result).toEqual(mockLogs);
+      await expect(service.getExerciseLogs()).resolves.toEqual(mockLogs);
       expect(prisma.exerciseLog.findMany).toHaveBeenCalled();
     });
   });
 
   describe('getExerciseLogById', () => {
     it('should return an exercise log by id', async () => {
-      jest
-        .spyOn(prisma.exerciseLog, 'findUnique')
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-        .mockResolvedValue(mockExerciseLog);
-
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      const result = await service.getExerciseLogById(1);
-
-      expect(result).toEqual(mockExerciseLog);
+      prisma.exerciseLog.findUnique.mockResolvedValue(mockExerciseLog);
+      await expect(service.getExerciseLogById(1)).resolves.toEqual(
+        mockExerciseLog,
+      );
       expect(prisma.exerciseLog.findUnique).toHaveBeenCalledWith({
         where: { id: 1 },
         include: { exercise: true, session: true },
@@ -90,7 +109,7 @@ describe('ExerciseLogService', () => {
     });
 
     it('should throw NotFoundException when log not found', async () => {
-      jest.spyOn(prisma.exerciseLog, 'findUnique').mockResolvedValue(null);
+      prisma.exerciseLog.findUnique.mockResolvedValue(null);
 
       await expect(service.getExerciseLogById(1)).rejects.toThrow(
         NotFoundException,

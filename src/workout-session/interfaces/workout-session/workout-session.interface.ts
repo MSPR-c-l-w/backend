@@ -1,4 +1,4 @@
-import { WorkoutSession } from '@prisma/client';
+import { Session } from '@prisma/client';
 
 export interface IWorkout_SessionService {
   getUserSummary(userId: number): Promise<any>;
@@ -6,8 +6,8 @@ export interface IWorkout_SessionService {
 
   getIntensityStats(userId: number): Promise<any>;
 
-  getWorkoutSessions(userId: number, date?: string): Promise<WorkoutSession[]>;
-  getWorkoutSessionById(id: number): Promise<WorkoutSession>;
+  getWorkoutSessions(userId: number, date?: string): Promise<Session[]>;
+  getWorkoutSessionById(id: number): Promise<Session>;
 
   getTodaySummary(
     userId: number,
@@ -26,8 +26,8 @@ export interface IWorkout_SessionController {
   getLevel(userId: number): Promise<any>;
   getIntensity(userId: number): Promise<any>;
 
-  getHistory(userId: number): Promise<WorkoutSession[]>;
-  getSessionById(id: number): Promise<WorkoutSession>;
+  getHistory(userId: number): Promise<Session[]>;
+  getSessionById(id: number): Promise<Session>;
 
   getTodaySummary(req: any, date?: string): Promise<any>;
 }

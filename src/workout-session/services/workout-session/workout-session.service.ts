@@ -8,20 +8,20 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/services/prisma/prisma.service';
 import { IWorkout_SessionService } from 'src/workout-session/interfaces/workout-session/workout-session.interface';
-import { WorkoutSession } from '@prisma/client';
+import { Session } from '@prisma/client';
 
 @Injectable()
 export class Workout_SessionService implements IWorkout_SessionService {
   constructor(private readonly prisma: PrismaService) {}
-  findAllByUser(userId: number): Promise<WorkoutSession[]> {
+  findAllByUser(userId: number): Promise<Session[]> {
     throw new Error('Method not implemented.');
   }
-  findOne(id: number): Promise<WorkoutSession> {
+  findOne(id: number): Promise<Session> {
     throw new Error('Method not implemented.');
   }
 
   async getUserSummary(userId: number): Promise<any> {
-    const stats = await this.prisma.workoutSession.aggregate({
+    const stats = await this.prisma.session.aggregate({
       where: { user_id: userId },
       _sum: { calories_total: true, duration_h: true },
       _avg: { avg_bpm: true },
@@ -37,7 +37,7 @@ export class Workout_SessionService implements IWorkout_SessionService {
   }
 
   async getUserLevel(userId: number): Promise<any> {
-    const stats = await this.prisma.workoutSession.aggregate({
+    const stats = await this.prisma.session.aggregate({
       where: { user_id: userId },
       _sum: { calories_total: true },
     });
@@ -53,17 +53,14 @@ export class Workout_SessionService implements IWorkout_SessionService {
   }
 
   async getIntensityStats(userId: number): Promise<any> {
-    return await this.prisma.workoutSession.aggregate({
+    return await this.prisma.session.aggregate({
       where: { user_id: userId },
       _avg: { avg_bpm: true, max_bpm: true, calories_total: true },
       _max: { max_bpm: true },
     });
   }
 
-  async getWorkoutSessions(
-    userId: number,
-    date?: string,
-  ): Promise<WorkoutSession[]> {
+  async getWorkoutSessions(userId: number, date?: string): Promise<Session[]> {
     const where: any = { user_id: userId };
 
     if (date) {
@@ -83,21 +80,21 @@ export class Workout_SessionService implements IWorkout_SessionService {
       };
     }
 
-    return await this.prisma.workoutSession.findMany({
+    return await this.prisma.session.findMany({
       where,
       include: {
-        logs: { include: { exercise: true } },
+        sessionExercises: { include: { exercise: true } },
       },
       orderBy: { created_at: 'desc' },
       take: 10,
     });
   }
 
-  async getWorkoutSessionById(id: number): Promise<WorkoutSession> {
-    const session = await this.prisma.workoutSession.findUnique({
+  async getWorkoutSessionById(id: number): Promise<Session> {
+    const session = await this.prisma.session.findUnique({
       where: { id },
       include: {
-        logs: {
+        sessionExercises: {
           include: { exercise: true },
         },
       },
@@ -133,7 +130,7 @@ export class Workout_SessionService implements IWorkout_SessionService {
   async getTodaySummary(userId: number, date?: string) {
     const { start, end, dateString } = this.getDayRange(date);
 
-    const stats = await this.prisma.workoutSession.aggregate({
+    const stats = await this.prisma.session.aggregate({
       where: {
         user_id: userId,
         created_at: { gte: start, lt: end },
@@ -142,7 +139,7 @@ export class Workout_SessionService implements IWorkout_SessionService {
       _count: { id: true },
     });
 
-    const sessions = await this.prisma.workoutSession.findMany({
+    const sessions = await this.prisma.session.findMany({
       where: {
         user_id: userId,
         created_at: { gte: start, lt: end },
