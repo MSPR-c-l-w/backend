@@ -64,7 +64,7 @@ model Session {
   max_bpm          Int
   resting_bpm      Int?
   created_at       DateTime          @default(now())
-  user             User              @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  user             User              @relation(fields: [user_id], references: [id])
   sessionExercises SessionExercise[]
 }
 
