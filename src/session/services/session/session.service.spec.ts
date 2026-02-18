@@ -1,14 +1,13 @@
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/unbound-method */
 
 import { Test, TestingModule } from '@nestjs/testing';
-import { Workout_SessionService } from './workout-session.service';
+import { SessionService } from './session.service';
 import { PrismaService } from 'src/prisma/services/prisma/prisma.service';
 import { NotFoundException } from '@nestjs/common';
 
-describe('Workout_SessionService', () => {
-  let service: Workout_SessionService;
+describe('SessionService', () => {
+  let service: SessionService;
   let prisma: PrismaService;
 
   const mockWorkoutSession = {
@@ -24,11 +23,11 @@ describe('Workout_SessionService', () => {
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
-        Workout_SessionService,
+        SessionService,
         {
           provide: PrismaService,
           useValue: {
-            workoutSession: {
+            session: {
               aggregate: jest.fn(),
               findMany: jest.fn(),
               findUnique: jest.fn(),
@@ -38,7 +37,7 @@ describe('Workout_SessionService', () => {
       ],
     }).compile();
 
-    service = module.get<Workout_SessionService>(Workout_SessionService);
+    service = module.get<SessionService>(SessionService);
     prisma = module.get<PrismaService>(PrismaService);
   });
 
@@ -55,7 +54,7 @@ describe('Workout_SessionService', () => {
       };
 
       jest
-        .spyOn(prisma.workoutSession, 'aggregate')
+        .spyOn(prisma.session, 'aggregate')
         .mockResolvedValue(mockAggregateResponse as never);
 
       const result = await service.getUserSummary(1);
@@ -69,36 +68,36 @@ describe('Workout_SessionService', () => {
     });
   });
 
-  describe('getWorkoutSessions', () => {
+  describe('getSessions', () => {
     it('should return an array of sessions', async () => {
       const mockSessions = [mockWorkoutSession];
 
       jest
-        .spyOn(prisma.workoutSession, 'findMany')
+        .spyOn(prisma.session, 'findMany')
         .mockResolvedValue(mockSessions as never);
 
-      const result = await service.getWorkoutSessions(1);
+      const result = await service.getSessions(1);
 
       expect(result).toEqual(mockSessions);
 
-      expect(prisma.workoutSession.findMany).toHaveBeenCalled();
+      expect(prisma.session.findMany).toHaveBeenCalled();
     });
   });
 
-  describe('getWorkoutSessionById', () => {
+  describe('getSessionById', () => {
     it('should return a session when found', async () => {
       jest
-        .spyOn(prisma.workoutSession, 'findUnique')
+        .spyOn(prisma.session, 'findUnique')
         .mockResolvedValue(mockWorkoutSession as never);
 
-      const result = await service.getWorkoutSessionById(1);
+      const result = await service.getSessionById(1);
       expect(result).toEqual(mockWorkoutSession);
     });
 
     it('should throw NotFoundException when session does not exist', async () => {
-      jest.spyOn(prisma.workoutSession, 'findUnique').mockResolvedValue(null);
+      jest.spyOn(prisma.session, 'findUnique').mockResolvedValue(null);
 
-      await expect(service.getWorkoutSessionById(999)).rejects.toThrow(
+      await expect(service.getSessionById(999)).rejects.toThrow(
         NotFoundException,
       );
     });
@@ -106,12 +105,12 @@ describe('Workout_SessionService', () => {
 
   describe('getTodaySummary', () => {
     it('should return today summary with computed intensity', async () => {
-      jest.spyOn(prisma.workoutSession, 'aggregate').mockResolvedValue({
+      jest.spyOn(prisma.session, 'aggregate').mockResolvedValue({
         _sum: { calories_total: 1000, duration_h: 2 },
         _count: { id: 2 },
       } as never);
 
-      jest.spyOn(prisma.workoutSession, 'findMany').mockResolvedValue([
+      jest.spyOn(prisma.session, 'findMany').mockResolvedValue([
         { avg_bpm: 120, max_bpm: 150, duration_h: 1 }, // 80%
         { avg_bpm: 90, max_bpm: 150, duration_h: 1 }, // 60%
       ] as never);

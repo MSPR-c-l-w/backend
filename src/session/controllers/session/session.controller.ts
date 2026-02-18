@@ -19,19 +19,19 @@ import {
 } from '@nestjs/swagger';
 import type { Request } from 'express';
 import type {
-  IWorkout_SessionService,
-  IWorkout_SessionController,
-} from 'src/workout-session/interfaces/workout-session/workout-session.interface';
-import { SERVICES } from 'src/utils/constants';
+  ISessionService,
+  ISessionController,
+} from 'src/session/interfaces/session/session.interface';
+import { ROUTES, SERVICES } from 'src/utils/constants';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import type { JwtPayload } from 'src/auth/strategies/jwt.strategy';
 
-@Controller('workout-session')
-@ApiTags('Workout Sessions & Dashboard')
-export class Workout_SessionController implements IWorkout_SessionController {
+@Controller(ROUTES.SESSION)
+@ApiTags('Sessions & Dashboard')
+export class SessionController implements ISessionController {
   constructor(
-    @Inject(SERVICES.WORKOUT_SESSION)
-    private readonly workoutSessionService: IWorkout_SessionService,
+    @Inject(SERVICES.SESSION)
+    private readonly sessionService: ISessionService,
   ) {}
 
   @Get('dashboard/:userId')
@@ -43,7 +43,7 @@ export class Workout_SessionController implements IWorkout_SessionController {
     description: 'Retourne le total des calories, heures et sessions',
   })
   async getDashboard(@Param('userId', ParseIntPipe) userId: number) {
-    return await this.workoutSessionService.getUserSummary(userId);
+    return await this.sessionService.getUserSummary(userId);
   }
 
   @Get('level/:userId')
@@ -55,7 +55,7 @@ export class Workout_SessionController implements IWorkout_SessionController {
       'Retourne le niveau (Légende, Athlète, etc.) basé sur les calories',
   })
   async getLevel(@Param('userId', ParseIntPipe) userId: number) {
-    return await this.workoutSessionService.getUserLevel(userId);
+    return await this.sessionService.getUserLevel(userId);
   }
 
   @Get('stats/intensity/:userId')
@@ -66,7 +66,7 @@ export class Workout_SessionController implements IWorkout_SessionController {
     description: 'Retourne les moyennes de BPM et calories par session',
   })
   async getIntensity(@Param('userId', ParseIntPipe) userId: number) {
-    return await this.workoutSessionService.getIntensityStats(userId);
+    return await this.sessionService.getIntensityStats(userId);
   }
 
   @Get('history/:userId')
@@ -84,7 +84,7 @@ export class Workout_SessionController implements IWorkout_SessionController {
     @Param('userId', ParseIntPipe) userId: number,
     @Query('date') date?: string,
   ) {
-    return await this.workoutSessionService.getWorkoutSessions(userId, date);
+    return await this.sessionService.getSessions(userId, date);
   }
 
   @UseGuards(JwtAuthGuard)
@@ -100,7 +100,7 @@ export class Workout_SessionController implements IWorkout_SessionController {
   })
   async getTodaySummary(@Req() req: Request, @Query('date') date?: string) {
     const payload = req.user as JwtPayload;
-    return await this.workoutSessionService.getTodaySummary(payload.sub, date);
+    return await this.sessionService.getTodaySummary(payload.sub, date);
   }
 
   @Get(':id')
@@ -110,6 +110,6 @@ export class Workout_SessionController implements IWorkout_SessionController {
   })
   @ApiNotFoundResponse({ description: 'Séance introuvable' })
   async getSessionById(@Param('id', ParseIntPipe) id: number) {
-    return await this.workoutSessionService.getWorkoutSessionById(id);
+    return await this.sessionService.getSessionById(id);
   }
 }

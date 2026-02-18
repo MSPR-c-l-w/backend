@@ -1,13 +1,13 @@
 import { Session } from '@prisma/client';
 
-export interface IWorkout_SessionService {
+export interface ISessionService {
   getUserSummary(userId: number): Promise<any>;
   getUserLevel(userId: number): Promise<any>;
 
   getIntensityStats(userId: number): Promise<any>;
 
-  getWorkoutSessions(userId: number, date?: string): Promise<Session[]>;
-  getWorkoutSessionById(id: number): Promise<Session>;
+  getSessions(userId: number, date?: string): Promise<Session[]>;
+  getSessionById(id: number): Promise<Session>;
 
   getTodaySummary(
     userId: number,
@@ -21,7 +21,7 @@ export interface IWorkout_SessionService {
   }>;
 }
 
-export interface IWorkout_SessionController {
+export interface ISessionController {
   getDashboard(userId: number): Promise<any>;
   getLevel(userId: number): Promise<any>;
   getIntensity(userId: number): Promise<any>;

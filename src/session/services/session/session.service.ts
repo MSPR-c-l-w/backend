@@ -7,11 +7,11 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/services/prisma/prisma.service';
-import { IWorkout_SessionService } from 'src/workout-session/interfaces/workout-session/workout-session.interface';
+import { ISessionService } from 'src/session/interfaces/session/session.interface';
 import { Session } from '@prisma/client';
 
 @Injectable()
-export class Workout_SessionService implements IWorkout_SessionService {
+export class SessionService implements ISessionService {
   constructor(private readonly prisma: PrismaService) {}
   findAllByUser(userId: number): Promise<Session[]> {
     throw new Error('Method not implemented.');
@@ -60,7 +60,7 @@ export class Workout_SessionService implements IWorkout_SessionService {
     });
   }
 
-  async getWorkoutSessions(userId: number, date?: string): Promise<Session[]> {
+  async getSessions(userId: number, date?: string): Promise<Session[]> {
     const where: any = { user_id: userId };
 
     if (date) {
@@ -90,7 +90,7 @@ export class Workout_SessionService implements IWorkout_SessionService {
     });
   }
 
-  async getWorkoutSessionById(id: number): Promise<Session> {
+  async getSessionById(id: number): Promise<Session> {
     const session = await this.prisma.session.findUnique({
       where: { id },
       include: {

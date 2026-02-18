@@ -1,15 +1,15 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Test, TestingModule } from '@nestjs/testing';
-import { Workout_SessionController } from './workout-session.controller';
+import { SessionController } from './session.controller';
 import { SERVICES } from 'src/utils/constants';
 import type { Request } from 'express';
-import { IWorkout_SessionService } from 'src/workout-session/interfaces/workout-session/workout-session.interface';
+import { ISessionService } from 'src/session/interfaces/session/session.interface';
 
 describe('WorkoutSessionController', () => {
-  let controller: Workout_SessionController;
+  let controller: SessionController;
 
-  let service: IWorkout_SessionService;
+  let service: ISessionService;
 
   const mockWorkoutSession = {
     id: 1,
@@ -24,22 +24,18 @@ describe('WorkoutSessionController', () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      controllers: [Workout_SessionController],
+      controllers: [SessionController],
       providers: [
         {
-          provide: SERVICES.WORKOUT_SESSION,
+          provide: SERVICES.SESSION,
           useValue: {
             getUserSummary: jest
               .fn()
               .mockResolvedValue({ total_calories: 800, total_sessions: 1 }),
             getUserLevel: jest.fn().mockResolvedValue({ level: 'Actif' }),
             getIntensityStats: jest.fn().mockResolvedValue({ avg_bpm: 145 }),
-            getWorkoutSessions: jest
-              .fn()
-              .mockResolvedValue([mockWorkoutSession]),
-            getWorkoutSessionById: jest
-              .fn()
-              .mockResolvedValue(mockWorkoutSession),
+            getSessions: jest.fn().mockResolvedValue([mockWorkoutSession]),
+            getSessionById: jest.fn().mockResolvedValue(mockWorkoutSession),
             getTodaySummary: jest.fn().mockResolvedValue({
               total_sessions_today: 1,
               total_duration_h: 1.5,
@@ -52,10 +48,8 @@ describe('WorkoutSessionController', () => {
       ],
     }).compile();
 
-    controller = module.get<Workout_SessionController>(
-      Workout_SessionController,
-    );
-    service = module.get<IWorkout_SessionService>(SERVICES.WORKOUT_SESSION);
+    controller = module.get<SessionController>(SessionController);
+    service = module.get<ISessionService>(SERVICES.SESSION);
   });
 
   it('should be defined', () => {
@@ -74,7 +68,7 @@ describe('WorkoutSessionController', () => {
     it('should return all sessions for a user', async () => {
       const result = await controller.getHistory(1, undefined);
       expect(Array.isArray(result)).toBe(true);
-      expect(service.getWorkoutSessions).toHaveBeenCalledWith(1, undefined);
+      expect(service.getSessions).toHaveBeenCalledWith(1, undefined);
     });
   });
 
@@ -82,7 +76,7 @@ describe('WorkoutSessionController', () => {
     it('should return a specific session', async () => {
       const result = await controller.getSessionById(1);
       expect(result.id).toEqual(1);
-      expect(service.getWorkoutSessionById).toHaveBeenCalledWith(1);
+      expect(service.getSessionById).toHaveBeenCalledWith(1);
     });
   });
 

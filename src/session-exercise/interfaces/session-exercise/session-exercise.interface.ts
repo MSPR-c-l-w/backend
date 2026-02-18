@@ -1,17 +1,17 @@
-export interface IExercise_LogService {
+export interface ISessionExerciseService {
   getGlobalTopExercises(): Promise<any[]>;
   getTopExercises(userId: number): Promise<any[]>;
 
   runLogsImportPipeline(): Promise<number>;
 
-  getExerciseLogs(): Promise<any[]>;
-  getExerciseLogById(id: number): Promise<any>;
+  getSessionExercises(): Promise<any[]>;
+  getSessionExerciseById(id: number): Promise<any>;
 }
 
-export interface IExercise_LogController {
+export interface ISessionExerciseController {
   triggerImport(): Promise<{ message: string; count: number }>;
   getGlobalTopExercises(): Promise<any[]>;
   getTopExercises(userId: number): Promise<any[]>;
-  getExerciseLogs(): Promise<any[]>;
-  getExerciseLogById(id: number): Promise<any>;
+  getSessionExercises(): Promise<any[]>;
+  getSessionExerciseById(id: number): Promise<any>;
 }

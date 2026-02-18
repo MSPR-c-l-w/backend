@@ -8,11 +8,11 @@ import { PrismaService } from 'src/prisma/services/prisma/prisma.service';
 import { HttpService } from '@nestjs/axios';
 import { lastValueFrom } from 'rxjs';
 import * as Papa from 'papaparse';
-import { IExercise_LogService } from 'src/exercise-log/interfaces/exercise-log/exercise-log.interface';
+import { ISessionExerciseService } from 'src/session-exercise/interfaces/session-exercise/session-exercise.interface';
 
 @Injectable()
-export class Exercise_LogService implements IExercise_LogService {
-  private readonly logger = new Logger(Exercise_LogService.name);
+export class SessionExerciseService implements ISessionExerciseService {
+  private readonly logger = new Logger(SessionExerciseService.name);
   private readonly KAGGLE_USER = process.env.KAGGLE_USER;
   private readonly KAGGLE_KEY = process.env.KAGGLE_KEY;
   private readonly DATASET_URL =
@@ -60,11 +60,11 @@ export class Exercise_LogService implements IExercise_LogService {
         select: { id: true },
       });
 
-      await this.prisma.exerciseLog.deleteMany({});
-      await this.prisma.workoutSession.deleteMany({});
+      await this.prisma.sessionExercise.deleteMany({});
+      await this.prisma.session.deleteMany({});
 
       for (const [index, row] of rows.entries()) {
-        const session = await this.prisma.workoutSession.create({
+        const session = await this.prisma.session.create({
           data: {
             user_id: 1,
             duration_h: row['Session_Duration (hours)'] || 0,
@@ -77,7 +77,7 @@ export class Exercise_LogService implements IExercise_LogService {
         // 2. On lie 3 exercices à cette séance
         for (let i = 0; i < 3; i++) {
           const exId = allExos[(index + i) % allExos.length].id;
-          await this.prisma.exerciseLog.create({
+          await this.prisma.sessionExercise.create({
             data: {
               exercise_id: exId,
               session_id: session.id,
@@ -95,7 +95,7 @@ export class Exercise_LogService implements IExercise_LogService {
   // --- STATS TECHNIQUES ---
 
   async getGlobalTopExercises(): Promise<any[]> {
-    const groups = await (this.prisma.exerciseLog as any).groupBy({
+    const groups = await (this.prisma.sessionExercise as any).groupBy({
       by: ['exercise_id'],
       _count: { exercise_id: true },
       orderBy: { _count: { exercise_id: 'desc' } },
@@ -112,7 +112,7 @@ export class Exercise_LogService implements IExercise_LogService {
   }
 
   async getTopExercises(userId: number): Promise<any[]> {
-    const groups = await (this.prisma.exerciseLog as any).groupBy({
+    const groups = await (this.prisma.sessionExercise as any).groupBy({
       by: ['exercise_id'],
       where: { session: { user_id: userId } },
       _count: { exercise_id: true },
@@ -129,15 +129,15 @@ export class Exercise_LogService implements IExercise_LogService {
     );
   }
 
-  async getExerciseLogs(): Promise<any[]> {
-    return await this.prisma.exerciseLog.findMany({
+  async getSessionExercises(): Promise<any[]> {
+    return await this.prisma.sessionExercise.findMany({
       include: { exercise: true, session: true },
     });
   }
 
-  async getExerciseLogById(id: number): Promise<any> {
-    const log = await this.prisma.exerciseLog.findUnique({
-      where: { id },
+  async getSessionExerciseById(id: number): Promise<any> {
+    const log = await this.prisma.sessionExercise.findFirst({
+      where: { session_id: id },
       include: { exercise: true, session: true },
     });
     if (!log) throw new NotFoundException(`Log ${id} introuvable`);

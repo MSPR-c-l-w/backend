@@ -14,17 +14,17 @@ import {
   ApiInternalServerErrorResponse,
 } from '@nestjs/swagger';
 import type {
-  IExercise_LogController,
-  IExercise_LogService,
-} from 'src/exercise-log/interfaces/exercise-log/exercise-log.interface';
+  ISessionExerciseController,
+  ISessionExerciseService,
+} from 'src/session-exercise/interfaces/session-exercise/session-exercise.interface';
 import { ROUTES, SERVICES } from 'src/utils/constants';
 
-@Controller(ROUTES.EXERCISE_LOG)
-@ApiTags('Exercise Logs (Technical & ETL)')
-export class Exercise_LogController implements IExercise_LogController {
+@Controller(ROUTES.SESSION_EXERCISE)
+@ApiTags('Session Exercises (Technical & ETL)')
+export class SessionExerciseController implements ISessionExerciseController {
   constructor(
-    @Inject(SERVICES.EXERCISE_LOG)
-    private readonly exerciseLogService: IExercise_LogService,
+    @Inject(SERVICES.SESSION_EXERCISE)
+    private readonly sessionExerciseService: ISessionExerciseService,
   ) {}
 
   // --- ACTIONS (PIPELINE) ---
@@ -32,14 +32,14 @@ export class Exercise_LogController implements IExercise_LogController {
   @Post('import')
   @ApiOperation({
     summary:
-      'Déclencher la pipeline ETL pour importer les données Kaggle (Sessions + Logs)',
+      'Déclencher la pipeline ETL pour importer les données Kaggle (Sessions + Session Exercises)',
   })
   @ApiOkResponse({ description: 'Importation réussie' })
   @ApiInternalServerErrorResponse({
     description: 'Erreur lors du traitement du fichier CSV',
   })
   async triggerImport(): Promise<{ message: string; count: number }> {
-    const count = await this.exerciseLogService.runLogsImportPipeline();
+    const count = await this.sessionExerciseService.runLogsImportPipeline();
     return {
       message: 'Le pipeline ETL Kaggle a été exécuté avec succès.',
       count: count,
@@ -54,7 +54,7 @@ export class Exercise_LogController implements IExercise_LogController {
       'Obtenir les 5 exercices les plus populaires (tous utilisateurs confondus)',
   })
   async getGlobalTopExercises(): Promise<any[]> {
-    return await this.exerciseLogService.getGlobalTopExercises();
+    return await this.sessionExerciseService.getGlobalTopExercises();
   }
 
   @Get('stats/top-exercises/:userId')
@@ -65,7 +65,7 @@ export class Exercise_LogController implements IExercise_LogController {
   async getTopExercises(
     @Param('userId', ParseIntPipe) userId: number,
   ): Promise<any[]> {
-    return await this.exerciseLogService.getTopExercises(userId);
+    return await this.sessionExerciseService.getTopExercises(userId);
   }
 
   // --- LECTURE TECHNIQUE ---
@@ -73,20 +73,20 @@ export class Exercise_LogController implements IExercise_LogController {
   @Get()
   @ApiOperation({
     summary:
-      "Récupérer l'intégralité des logs d'exercices (détails techniques)",
+      "Récupérer l'intégralité des session exercises (détails techniques)",
   })
-  async getExerciseLogs(): Promise<any[]> {
-    return await this.exerciseLogService.getExerciseLogs();
+  async getSessionExercises(): Promise<any[]> {
+    return await this.sessionExerciseService.getSessionExercises();
   }
 
   @Get(':id')
   @ApiOperation({
-    summary: "Récupérer un log d'exercice spécifique par son ID",
+    summary: 'Récupérer un session exercise spécifique (filtré par session_id)',
   })
-  @ApiNotFoundResponse({ description: 'Log introuvable' })
-  async getExerciseLogById(
+  @ApiNotFoundResponse({ description: 'Session exercise introuvable' })
+  async getSessionExerciseById(
     @Param('id', ParseIntPipe) id: number,
   ): Promise<any> {
-    return await this.exerciseLogService.getExerciseLogById(id);
+    return await this.sessionExerciseService.getSessionExerciseById(id);
   }
 }

@@ -1,11 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException } from '@nestjs/common';
-import { Exercise_LogService } from './exercise-log.service';
+import { SessionExerciseService } from './session-exercise.service';
 import { PrismaService } from 'src/prisma/services/prisma/prisma.service';
 import { HttpService } from '@nestjs/axios';
 
 describe('ExerciseLogService', () => {
-  let service: Exercise_LogService;
+  let service: SessionExerciseService;
   type ExerciseLogRecord = {
     id: number;
     exercise_id: number;
@@ -14,14 +14,14 @@ describe('ExerciseLogService', () => {
     session: { id: number; user_id: number; calories_total: number };
   };
   type PrismaMock = {
-    exerciseLog: {
+    sessionExercise: {
       findMany: jest.Mock;
-      findUnique: jest.Mock;
+      findFirst: jest.Mock;
       groupBy: jest.Mock;
       deleteMany: jest.Mock;
       create: jest.Mock;
     };
-    workoutSession: {
+    session: {
       deleteMany: jest.Mock;
       create: jest.Mock;
     };
@@ -47,7 +47,7 @@ describe('ExerciseLogService', () => {
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
-        Exercise_LogService,
+        SessionExerciseService,
         {
           provide: HttpService,
           useValue: { get: jest.fn() }, // Nécessaire car injecté dans ton service
@@ -55,14 +55,14 @@ describe('ExerciseLogService', () => {
         {
           provide: PrismaService,
           useValue: {
-            exerciseLog: {
+            sessionExercise: {
               findMany: jest.fn(),
-              findUnique: jest.fn(),
+              findFirst: jest.fn(),
               groupBy: jest.fn(),
               deleteMany: jest.fn(),
               create: jest.fn(),
             },
-            workoutSession: {
+            session: {
               deleteMany: jest.fn(),
               create: jest.fn(),
             },
@@ -78,7 +78,7 @@ describe('ExerciseLogService', () => {
       ],
     }).compile();
 
-    service = module.get<Exercise_LogService>(Exercise_LogService);
+    service = module.get<SessionExerciseService>(SessionExerciseService);
     prisma = module.get<PrismaMock>(PrismaService);
   });
 
@@ -86,32 +86,32 @@ describe('ExerciseLogService', () => {
     expect(service).toBeDefined();
   });
 
-  describe('getExerciseLogs', () => {
+  describe('getSessionExercises', () => {
     it('should return an array of exercise logs', async () => {
       const mockLogs = [mockExerciseLog];
-      prisma.exerciseLog.findMany.mockResolvedValue(mockLogs);
+      prisma.sessionExercise.findMany.mockResolvedValue(mockLogs);
 
-      await expect(service.getExerciseLogs()).resolves.toEqual(mockLogs);
-      expect(prisma.exerciseLog.findMany).toHaveBeenCalled();
+      await expect(service.getSessionExercises()).resolves.toEqual(mockLogs);
+      expect(prisma.sessionExercise.findMany).toHaveBeenCalled();
     });
   });
 
-  describe('getExerciseLogById', () => {
+  describe('getSessionExerciseById', () => {
     it('should return an exercise log by id', async () => {
-      prisma.exerciseLog.findUnique.mockResolvedValue(mockExerciseLog);
-      await expect(service.getExerciseLogById(1)).resolves.toEqual(
+      prisma.sessionExercise.findFirst.mockResolvedValue(mockExerciseLog);
+      await expect(service.getSessionExerciseById(1)).resolves.toEqual(
         mockExerciseLog,
       );
-      expect(prisma.exerciseLog.findUnique).toHaveBeenCalledWith({
-        where: { id: 1 },
+      expect(prisma.sessionExercise.findFirst).toHaveBeenCalledWith({
+        where: { session_id: 1 },
         include: { exercise: true, session: true },
       });
     });
 
     it('should throw NotFoundException when log not found', async () => {
-      prisma.exerciseLog.findUnique.mockResolvedValue(null);
+      prisma.sessionExercise.findFirst.mockResolvedValue(null);
 
-      await expect(service.getExerciseLogById(1)).rejects.toThrow(
+      await expect(service.getSessionExerciseById(1)).rejects.toThrow(
         NotFoundException,
       );
     });

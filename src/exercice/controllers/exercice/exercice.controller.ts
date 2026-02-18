@@ -9,6 +9,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import {
+  ApiBearerAuth,
   ApiBadGatewayResponse,
   ApiInternalServerErrorResponse,
   ApiNotFoundResponse,
@@ -28,6 +29,7 @@ import { ROUTES, SERVICES } from 'src/utils/constants';
 
 @Controller(ROUTES.EXERCISE)
 @UseGuards(JwtAuthGuard)
+@ApiBearerAuth('access-token')
 @ApiTags(ROUTES.EXERCISE)
 export class ExerciceController implements IExerciceController {
   constructor(
