@@ -1,4 +1,3 @@
-/* eslint-disable prettier/prettier */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 import {
   Controller,
@@ -52,8 +51,7 @@ export class SessionController implements ISessionController {
     summary: "Récupérer le rang et la progression de l'utilisateur",
   })
   @ApiOkResponse({
-    description:
-      "Retourne le niveau de l'utilisateur",
+    description: "Retourne le niveau de l'utilisateur",
   })
   async getLevel(@Param('userId', ParseIntPipe) userId: number) {
     return await this.sessionService.getUserLevel(userId);
