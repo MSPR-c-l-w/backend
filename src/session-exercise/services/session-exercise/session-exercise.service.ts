@@ -74,7 +74,6 @@ export class SessionExerciseService implements ISessionExerciseService {
           },
         });
 
-        // 2. On lie 3 exercices à cette séance
         for (let i = 0; i < 3; i++) {
           const exId = allExos[(index + i) % allExos.length].id;
           await this.prisma.sessionExercise.create({
@@ -91,8 +90,6 @@ export class SessionExerciseService implements ISessionExerciseService {
       throw e;
     }
   }
-
-  // --- STATS TECHNIQUES ---
 
   async getGlobalTopExercises(): Promise<any[]> {
     const groups = await (this.prisma.sessionExercise as any).groupBy({
@@ -135,12 +132,24 @@ export class SessionExerciseService implements ISessionExerciseService {
     });
   }
 
-  async getSessionExerciseById(id: number): Promise<any> {
-    const log = await this.prisma.sessionExercise.findFirst({
-      where: { session_id: id },
+  async getSessionExerciseById(
+    sessionId: number,
+    exerciseId: number,
+  ): Promise<any> {
+    const log = await this.prisma.sessionExercise.findUnique({
+      where: {
+        session_id_exercise_id: {
+          session_id: sessionId,
+          exercise_id: exerciseId,
+        },
+      },
       include: { exercise: true, session: true },
     });
-    if (!log) throw new NotFoundException(`Log ${id} introuvable`);
+    if (!log) {
+      throw new NotFoundException(
+        `SessionExercise (${sessionId}, ${exerciseId}) introuvable`,
+      );
+    }
     return log;
   }
 }

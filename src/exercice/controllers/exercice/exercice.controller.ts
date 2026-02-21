@@ -47,7 +47,6 @@ export class ExerciceController implements IExerciceController {
     description: 'Erreur lors du pipeline ETL',
   })
   async triggerImport(): Promise<{ message: string; count: number }> {
-    // Appelle le service que tu viens de coder
     const count = await this.exerciceService.runImportPipeline();
 
     return {
@@ -63,7 +62,6 @@ export class ExerciceController implements IExerciceController {
     return this.exerciceService.getExercices();
   }
 
-  // Route de recherche : GET /exercises/search?muscle=pectoraux&level=débutant
   @Get('search')
   @ApiOperation({ summary: 'Rechercher des exercices par filtres' })
   @ApiOkResponse({ description: 'Résultats de la recherche' })

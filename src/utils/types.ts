@@ -27,13 +27,6 @@ export type Organization = {
 };
 
 export type SessionExercise = {
-  id: number;
-  user_id: number;
+  session_id: number;
   exercise_id: number;
-  session_duration_h: number;
-  calories_burned: number;
-  max_bpm: number;
-  avg_bpm: number;
-  resting_bpm: number;
-  created_at: Date;
 };

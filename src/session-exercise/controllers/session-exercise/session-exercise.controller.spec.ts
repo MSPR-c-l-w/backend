@@ -59,10 +59,10 @@ describe('ExerciseLogController', () => {
         .spyOn(service, 'getSessionExerciseById')
         .mockResolvedValue(mockExerciseLog);
 
-      const result = await controller.getSessionExerciseById(1);
+      const result = await controller.getSessionExerciseById(1, 1);
 
       expect(result).toEqual(mockExerciseLog);
-      expect(service.getSessionExerciseById).toHaveBeenCalledWith(1);
+      expect(service.getSessionExerciseById).toHaveBeenCalledWith(1, 1);
     });
   });
 });

@@ -5,7 +5,7 @@ export interface ISessionExerciseService {
   runLogsImportPipeline(): Promise<number>;
 
   getSessionExercises(): Promise<any[]>;
-  getSessionExerciseById(id: number): Promise<any>;
+  getSessionExerciseById(sessionId: number, exerciseId: number): Promise<any>;
 }
 
 export interface ISessionExerciseController {
@@ -13,5 +13,5 @@ export interface ISessionExerciseController {
   getGlobalTopExercises(): Promise<any[]>;
   getTopExercises(userId: number): Promise<any[]>;
   getSessionExercises(): Promise<any[]>;
-  getSessionExerciseById(id: number): Promise<any>;
+  getSessionExerciseById(sessionId: number, exerciseId: number): Promise<any>;
 }

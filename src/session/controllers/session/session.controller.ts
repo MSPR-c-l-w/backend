@@ -1,3 +1,4 @@
+/* eslint-disable prettier/prettier */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 import {
   Controller,
@@ -52,7 +53,7 @@ export class SessionController implements ISessionController {
   })
   @ApiOkResponse({
     description:
-      'Retourne le niveau (Légende, Athlète, etc.) basé sur les calories',
+      "Retourne le niveau de l'utilisateur",
   })
   async getLevel(@Param('userId', ParseIntPipe) userId: number) {
     return await this.sessionService.getUserLevel(userId);

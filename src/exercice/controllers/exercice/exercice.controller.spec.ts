@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Test, TestingModule } from '@nestjs/testing';
 import { ExerciceController } from './exercice.controller';
 import { SERVICES } from 'src/utils/constants';
@@ -6,7 +8,6 @@ describe('ExerciceController', () => {
   let controller: ExerciceController;
   let service: any;
 
-  // On définit un mock du service avec toutes les méthodes utilisées par le contrôleur
   const mockExerciceService = {
     runImportPipeline: jest.fn().mockResolvedValue(873),
     getExercices: jest.fn().mockResolvedValue([]),
@@ -19,7 +20,6 @@ describe('ExerciceController', () => {
       controllers: [ExerciceController],
       providers: [
         {
-          // Utilisation du token d'injection pour le service
           provide: SERVICES.EXERCISE,
           useValue: mockExerciceService,
         },
@@ -27,7 +27,6 @@ describe('ExerciceController', () => {
     }).compile();
 
     controller = module.get<ExerciceController>(ExerciceController);
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     service = module.get(SERVICES.EXERCISE);
   });
 
@@ -38,7 +37,6 @@ describe('ExerciceController', () => {
   describe('triggerImport', () => {
     it('should call the import pipeline and return count', async () => {
       const result = await controller.triggerImport();
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       expect(service.runImportPipeline).toHaveBeenCalled();
       expect(result).toEqual({
         message: 'Le pipeline ETL a été exécuté avec succès.',
@@ -52,7 +50,6 @@ describe('ExerciceController', () => {
       const filters = { muscle: 'biceps', level: 'débutant' };
       await controller.search(filters.muscle, filters.level);
 
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       expect(service.findByFilters).toHaveBeenCalledWith({
         muscle: 'biceps',
         level: 'débutant',

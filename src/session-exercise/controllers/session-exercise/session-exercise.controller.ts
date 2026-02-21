@@ -27,8 +27,6 @@ export class SessionExerciseController implements ISessionExerciseController {
     private readonly sessionExerciseService: ISessionExerciseService,
   ) {}
 
-  // --- ACTIONS (PIPELINE) ---
-
   @Post('import')
   @ApiOperation({
     summary:
@@ -45,8 +43,6 @@ export class SessionExerciseController implements ISessionExerciseController {
       count: count,
     };
   }
-
-  // --- STATISTIQUES DES EXERCICES ---
 
   @Get('stats/top-exercises-global')
   @ApiOperation({
@@ -68,25 +64,27 @@ export class SessionExerciseController implements ISessionExerciseController {
     return await this.sessionExerciseService.getTopExercises(userId);
   }
 
-  // --- LECTURE TECHNIQUE ---
-
   @Get()
   @ApiOperation({
     summary:
-      "Récupérer l'intégralité des session exercises (détails techniques)",
+      "Récupérer l'intégralité des sessions exercises (détails techniques)",
   })
   async getSessionExercises(): Promise<any[]> {
     return await this.sessionExerciseService.getSessionExercises();
   }
 
-  @Get(':id')
+  @Get(':sessionId/:exerciseId')
   @ApiOperation({
-    summary: 'Récupérer un session exercise spécifique (filtré par session_id)',
+    summary: 'Récupérer une session exercise via (session_id, exercise_id)',
   })
   @ApiNotFoundResponse({ description: 'Session exercise introuvable' })
   async getSessionExerciseById(
-    @Param('id', ParseIntPipe) id: number,
+    @Param('sessionId', ParseIntPipe) sessionId: number,
+    @Param('exerciseId', ParseIntPipe) exerciseId: number,
   ): Promise<any> {
-    return await this.sessionExerciseService.getSessionExerciseById(id);
+    return await this.sessionExerciseService.getSessionExerciseById(
+      sessionId,
+      exerciseId,
+    );
   }
 }
