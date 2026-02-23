@@ -81,6 +81,7 @@ export class SessionExerciseService implements ISessionExerciseService {
             calories_total: Math.round(row['Calories_Burned'] || 0),
             avg_bpm: row['Avg_BPM'] || 0,
             max_bpm: row['Max_BPM'] || 0,
+            resting_bpm: row['Resting_BPM'] || 0,
           },
         });
 
