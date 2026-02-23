@@ -3,7 +3,12 @@
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from 'src/prisma/services/prisma/prisma.service';
 import { HttpService } from '@nestjs/axios';
 import { lastValueFrom } from 'rxjs';
@@ -59,6 +64,11 @@ export class SessionExerciseService implements ISessionExerciseService {
       const allExos = await this.prisma.exercise.findMany({
         select: { id: true },
       });
+      if (allExos.length === 0) {
+        throw new BadRequestException(
+          'NO_EXERCISES_FOUND_IMPORT_EXERCISES_FIRST',
+        );
+      }
 
       await this.prisma.sessionExercise.deleteMany({});
       await this.prisma.session.deleteMany({});
@@ -74,7 +84,8 @@ export class SessionExerciseService implements ISessionExerciseService {
           },
         });
 
-        for (let i = 0; i < 3; i++) {
+        const linkedExercisesCount = Math.min(3, allExos.length);
+        for (let i = 0; i < linkedExercisesCount; i++) {
           const exId = allExos[(index + i) % allExos.length].id;
           await this.prisma.sessionExercise.create({
             data: {

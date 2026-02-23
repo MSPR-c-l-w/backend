@@ -74,7 +74,7 @@ CREATE TABLE `RoleUser` (
 CREATE UNIQUE INDEX `HealthProfile_user_id_key` ON `HealthProfile`(`user_id`);
 
 -- AddForeignKey
-ALTER TABLE `Session` ADD CONSTRAINT `Session_user_id_fkey` FOREIGN KEY (`user_id`) REFERENCES `User`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE `Session` ADD CONSTRAINT `Session_user_id_fkey` FOREIGN KEY (`user_id`) REFERENCES `User`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE `SessionExercise` ADD CONSTRAINT `SessionExercise_session_id_fkey` FOREIGN KEY (`session_id`) REFERENCES `Session`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
