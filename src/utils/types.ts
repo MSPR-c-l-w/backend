@@ -1,6 +1,8 @@
+/* eslint-disable prettier/prettier */
 export type User = {
   id: number;
   organization_id: number | null;
+  role_id: number | null;
   email: string;
   first_name: string;
   last_name: string;

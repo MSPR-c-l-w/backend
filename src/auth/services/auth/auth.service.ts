@@ -18,6 +18,7 @@ function publicUserSelect() {
   return {
     id: true,
     organization_id: true,
+    role_id: true,
     email: true,
     first_name: true,
     last_name: true,

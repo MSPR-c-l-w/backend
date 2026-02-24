@@ -62,13 +62,8 @@ CREATE TABLE `Role` (
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
--- CreateTable
-CREATE TABLE `RoleUser` (
-    `user_id` INTEGER NOT NULL,
-    `role_id` INTEGER NOT NULL,
-
-    PRIMARY KEY (`user_id`, `role_id`)
-) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+-- AlterTable
+ALTER TABLE `User` ADD COLUMN `role_id` INTEGER NULL;
 
 -- CreateIndex
 CREATE UNIQUE INDEX `HealthProfile_user_id_key` ON `HealthProfile`(`user_id`);
@@ -92,10 +87,7 @@ ALTER TABLE `Meal` ADD CONSTRAINT `Meal_nutrition_id_fkey` FOREIGN KEY (`nutriti
 ALTER TABLE `HealthProfile` ADD CONSTRAINT `HealthProfile_user_id_fkey` FOREIGN KEY (`user_id`) REFERENCES `User`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `RoleUser` ADD CONSTRAINT `RoleUser_user_id_fkey` FOREIGN KEY (`user_id`) REFERENCES `User`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE `RoleUser` ADD CONSTRAINT `RoleUser_role_id_fkey` FOREIGN KEY (`role_id`) REFERENCES `Role`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE `User` ADD CONSTRAINT `User_role_id_fkey` FOREIGN KEY (`role_id`) REFERENCES `Role`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE `Subscription` ADD CONSTRAINT `Subscription_user_id_fkey` FOREIGN KEY (`user_id`) REFERENCES `User`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;

@@ -1,14 +1,17 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { UsersController } from './users.controller';
 import { SERVICES } from 'src/utils/constants';
+import { RolesGuard } from 'src/auth/guards/roles.guard';
 
 describe('UsersController', () => {
   let controller: UsersController;
   const usersServiceMock = {
     getUsers: jest.fn(),
+    getRoles: jest.fn(),
     getUserById: jest.fn(),
     createUser: jest.fn(),
     updateUser: jest.fn(),
+    updateUserRole: jest.fn(),
     deleteUser: jest.fn(),
   };
 
@@ -21,7 +24,10 @@ describe('UsersController', () => {
           useValue: usersServiceMock,
         },
       ],
-    }).compile();
+    })
+      .overrideGuard(RolesGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
 
     controller = module.get<UsersController>(UsersController);
   });

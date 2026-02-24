@@ -1,3 +1,4 @@
+/* eslint-disable prettier/prettier */
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
@@ -19,6 +20,10 @@ describe('UsersService', () => {
       create: jest.Mock;
       update: jest.Mock;
     };
+    role: {
+      findMany: jest.Mock;
+      findUnique: jest.Mock;
+    };
   };
 
   beforeEach(async () => {
@@ -28,6 +33,10 @@ describe('UsersService', () => {
         findUnique: jest.fn(),
         create: jest.fn(),
         update: jest.fn(),
+      },
+      role: {
+        findMany: jest.fn(),
+        findUnique: jest.fn(),
       },
     };
 
@@ -62,6 +71,22 @@ describe('UsersService', () => {
       await expect(service.getUsers()).rejects.toBeInstanceOf(
         NotFoundException,
       );
+    });
+  });
+
+  describe('getRoles', () => {
+    it('retourne tous les roles triés par nom', async () => {
+      const roles = [
+        { id: 1, name: 'ADMIN' },
+        { id: 2, name: 'USER' },
+      ] as any[];
+      prisma.role.findMany.mockResolvedValue(roles);
+
+      await expect(service.getRoles()).resolves.toEqual(roles);
+      expect(prisma.role.findMany).toHaveBeenCalledWith({
+        select: { id: true, name: true },
+        orderBy: { name: 'asc' },
+      });
     });
   });
 
@@ -117,9 +142,9 @@ describe('UsersService', () => {
         select: expect.any(Object),
       });
 
-      // Pas de connect si pas d'organization_id
+      // Pas d'organization_id si pas fourni
       const callArg = prisma.user.create.mock.calls[0][0];
-      expect(callArg.data.organization).toBeUndefined();
+      expect(callArg.data.organization_id).toBeUndefined();
     });
 
     it('connecte une organisation si organization_id est fourni', async () => {
@@ -140,7 +165,7 @@ describe('UsersService', () => {
       await expect(service.createUser(dto)).resolves.toEqual(created);
       expect(prisma.user.create).toHaveBeenCalledWith({
         data: expect.objectContaining({
-          organization: { connect: { id: 7 } },
+          organization_id: 7,
         }),
         select: expect.any(Object),
       });
@@ -175,8 +200,59 @@ describe('UsersService', () => {
         where: { id: 1 },
         data: {
           first_name: 'New',
-          organization: { connect: { id: 99 } },
+          organization_id: 99,
         },
+        select: expect.any(Object),
+      });
+    });
+
+    it('connecte un role si role_id est fourni', async () => {
+      const updated = { id: 1 } as any;
+      prisma.user.findUnique.mockResolvedValue({ id: 1, is_deleted: false });
+      prisma.user.update.mockResolvedValue(updated);
+
+      const dto = { role_id: 2, first_name: 'New' } as any;
+      await expect(service.updateUser('1', dto)).resolves.toEqual(updated);
+
+      expect(prisma.user.update).toHaveBeenCalledWith({
+        where: { id: 1 },
+        data: {
+          first_name: 'New',
+          role_id: 2,
+        },
+        select: expect.any(Object),
+      });
+    });
+  });
+
+  describe('updateUserRole', () => {
+    it('connecte un role existant', async () => {
+      const updated = { id: 1, role_id: 2 } as any;
+      prisma.user.findUnique.mockResolvedValue({ id: 1, is_deleted: false });
+      prisma.role.findUnique.mockResolvedValue({ id: 2 });
+      prisma.user.update.mockResolvedValue(updated);
+
+      await expect(service.updateUserRole('1', { role_id: 2 })).resolves.toEqual(
+        updated,
+      );
+      expect(prisma.user.update).toHaveBeenCalledWith({
+        where: { id: 1 },
+        data: { role_id: 2 },
+        select: expect.any(Object),
+      });
+    });
+
+    it('retire le role si role_id est null', async () => {
+      const updated = { id: 1, role_id: null } as any;
+      prisma.user.findUnique.mockResolvedValue({ id: 1, is_deleted: false });
+      prisma.user.update.mockResolvedValue(updated);
+
+      await expect(
+        service.updateUserRole('1', { role_id: null }),
+      ).resolves.toEqual(updated);
+      expect(prisma.user.update).toHaveBeenCalledWith({
+        where: { id: 1 },
+        data: { role_id: null },
         select: expect.any(Object),
       });
     });

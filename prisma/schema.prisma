@@ -15,7 +15,9 @@ datasource db {
 model User {
   id                                  Int            @id @default(autoincrement())
   organization_id                     Int?
+  role_id                             Int?
   organization                        Organization?  @relation(fields: [organization_id], references: [id])
+  role                                Role?          @relation(fields: [role_id], references: [id], onDelete: SetNull)
   email                               String         @unique
   password_hash                       String
   refresh_token_hash                  String?        @unique
@@ -39,7 +41,6 @@ model User {
   sessions                            Session[]
   meals                               Meal[]
   subscriptions                       Subscription[]
-  userRoles                           RoleUser[]
 }
 
 model Organization {
@@ -143,18 +144,9 @@ model HealthProfile {
 }
 
 model Role {
-  id        Int        @id @default(autoincrement())
-  name      String     @unique
-  userRoles RoleUser[]
-}
-
-model RoleUser {
-  user_id Int
-  role_id Int
-  user    User @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  role    Role @relation(fields: [role_id], references: [id], onDelete: Cascade)
-
-  @@id([user_id, role_id])
+  id    Int    @id @default(autoincrement())
+  name  String @unique
+  users User[]
 }
 
 model Subscription {
