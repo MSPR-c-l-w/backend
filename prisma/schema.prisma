@@ -108,6 +108,8 @@ model Nutrition {
   water_intake_ml Float
   picture_url     String?
   meals           Meal[]
+
+  @@unique([name, category], map: "Nutrition_name_category_key")
 }
 
 model Meal {
