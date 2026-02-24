@@ -1,4 +1,3 @@
-/* eslint-disable prettier/prettier */
 export type User = {
   id: number;
   organization_id: number | null;

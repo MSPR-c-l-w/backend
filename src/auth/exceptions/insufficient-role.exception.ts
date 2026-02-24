@@ -1,4 +1,3 @@
-/* eslint-disable prettier/prettier */
 import { ForbiddenException } from '@nestjs/common';
 
 export class InsufficientRoleException extends ForbiddenException {

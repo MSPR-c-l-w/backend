@@ -1,4 +1,3 @@
-/* eslint-disable prettier/prettier */
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
@@ -232,9 +231,9 @@ describe('UsersService', () => {
       prisma.role.findUnique.mockResolvedValue({ id: 2 });
       prisma.user.update.mockResolvedValue(updated);
 
-      await expect(service.updateUserRole('1', { role_id: 2 })).resolves.toEqual(
-        updated,
-      );
+      await expect(
+        service.updateUserRole('1', { role_id: 2 }),
+      ).resolves.toEqual(updated);
       expect(prisma.user.update).toHaveBeenCalledWith({
         where: { id: 1 },
         data: { role_id: 2 },
