@@ -175,7 +175,7 @@ export class NutritionService implements INutritionService {
             e.entryName === KAGGLE_FILE_NAME ||
             e.entryName.endsWith('/' + KAGGLE_FILE_NAME),
         ) ?? entries.find((e) => e.entryName.endsWith('.csv'));
-      if (!csvEntry?.isDirectory) {
+      if (csvEntry && !csvEntry?.isDirectory) {
         return zip.readAsText(csvEntry);
       }
       throw new Error(
@@ -265,16 +265,15 @@ export class NutritionService implements INutritionService {
         translatedBatch = stringsToTranslate;
       }
 
-      for (let j = 0; j < batch.length; j++) {
+      const upsertPromises = batch.map((data, j) => {
         const parts = (translatedBatch[j] ?? stringsToTranslate[j]).split(
           TRANSLATION_SEP,
         );
-        const data = batch[j];
         const name = (parts[0] ?? data.name).trim();
         const category = (parts[1] ?? data.category).trim();
         const meal_type_name = (parts[2] ?? data.meal_type_name).trim();
 
-        await this.prisma.nutrition.upsert({
+        return this.prisma.nutrition.upsert({
           where: {
             name_category: {
               name,
@@ -310,8 +309,10 @@ export class NutritionService implements INutritionService {
             picture_url: data.picture_url,
           },
         });
-        successCount += 1;
-      }
+      });
+
+      await Promise.all(upsertPromises);
+      successCount += batch.length;
 
       this.logger.log(
         `Import : ${Math.min(i + BATCH_SIZE, toUpsertAll.length)}/${toUpsertAll.length} enregistrements traités.`,

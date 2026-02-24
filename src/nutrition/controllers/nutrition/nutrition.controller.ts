@@ -8,6 +8,7 @@ import {
 } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
+  ApiBearerAuth,
   ApiInternalServerErrorResponse,
   ApiNotFoundResponse,
   ApiOkResponse,
@@ -26,6 +27,7 @@ import { ROUTES, SERVICES } from 'src/utils/constants';
 @Controller(ROUTES.NUTRITION)
 @UseGuards(JwtAuthGuard)
 @ApiTags(ROUTES.NUTRITION)
+@ApiBearerAuth('access-token')
 export class NutritionController implements INutritionController {
   constructor(
     @Inject(SERVICES.NUTRITION)

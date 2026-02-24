@@ -1,9 +1,23 @@
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
 import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException } from '@nestjs/common';
 import { NutritionService } from './nutrition.service';
 import { PrismaService } from 'src/prisma/services/prisma/prisma.service';
 import { HttpService } from '@nestjs/axios';
 import { Nutrition } from '@prisma/client';
+import { of } from 'rxjs';
+import AdmZip from 'adm-zip';
+
+jest.mock('google-translate-api-x', () => ({
+  translate: jest.fn((texts: string[] | string) => {
+    if (Array.isArray(texts)) {
+      return Promise.resolve(texts.map((t) => ({ text: t })));
+    }
+    return Promise.resolve({ text: texts });
+  }),
+}));
 
 describe('NutritionService', () => {
   let service: NutritionService;
@@ -11,6 +25,7 @@ describe('NutritionService', () => {
     nutrition: {
       findMany: jest.Mock;
       findUnique: jest.Mock;
+      upsert: jest.Mock;
     };
   };
   const mockHttpService = {
@@ -39,6 +54,7 @@ describe('NutritionService', () => {
       nutrition: {
         findMany: jest.fn(),
         findUnique: jest.fn(),
+        upsert: jest.fn(),
       },
     };
 
@@ -148,6 +164,121 @@ describe('NutritionService', () => {
       expect(prisma.nutrition.findUnique).toHaveBeenCalledWith({
         where: { id: NaN },
       });
+    });
+  });
+
+  describe('runImportPipeline', () => {
+    it('devrait lever une erreur si les variables KAGGLE_USER et KAGGLE_KEY sont absentes', async () => {
+      const originalUser = process.env.KAGGLE_USER;
+      const originalKey = process.env.KAGGLE_KEY;
+      delete process.env.KAGGLE_USER;
+      delete process.env.KAGGLE_KEY;
+
+      const module: TestingModule = await Test.createTestingModule({
+        providers: [
+          NutritionService,
+          {
+            provide: PrismaService,
+            useValue: prisma,
+          },
+          {
+            provide: HttpService,
+            useValue: mockHttpService,
+          },
+        ],
+      }).compile();
+
+      const localService = module.get<NutritionService>(NutritionService);
+
+      await expect(localService.runImportPipeline()).rejects.toThrow(
+        "Variables d'environnement KAGGLE_USER et KAGGLE_KEY requises.",
+      );
+
+      process.env.KAGGLE_USER = originalUser;
+      process.env.KAGGLE_KEY = originalKey;
+    });
+
+    it('devrait lever une erreur si le ZIP Kaggle ne contient pas de CSV', async () => {
+      const originalUser = process.env.KAGGLE_USER;
+      const originalKey = process.env.KAGGLE_KEY;
+      process.env.KAGGLE_USER = 'dummy-user';
+      process.env.KAGGLE_KEY = 'dummy-key';
+
+      const zip = new AdmZip();
+      zip.addFile('no_csv_here.txt', Buffer.from('test', 'utf-8'));
+      const buffer = zip.toBuffer();
+
+      mockHttpService.get.mockReturnValue(of({ data: buffer } as any));
+
+      const module: TestingModule = await Test.createTestingModule({
+        providers: [
+          NutritionService,
+          {
+            provide: PrismaService,
+            useValue: prisma,
+          },
+          {
+            provide: HttpService,
+            useValue: mockHttpService,
+          },
+        ],
+      }).compile();
+
+      const localService = module.get<NutritionService>(NutritionService);
+
+      await expect(localService.runImportPipeline()).rejects.toThrow(
+        /Aucun fichier \.csv trouvé dans le ZIP Kaggle/,
+      );
+      expect(prisma.nutrition.upsert).not.toHaveBeenCalled();
+
+      process.env.KAGGLE_USER = originalUser;
+      process.env.KAGGLE_KEY = originalKey;
+    });
+
+    it('devrait parser correctement un ZIP Kaggle contenant un CSV valide', async () => {
+      const originalUser = process.env.KAGGLE_USER;
+      const originalKey = process.env.KAGGLE_KEY;
+      process.env.KAGGLE_USER = 'dummy-user';
+      process.env.KAGGLE_KEY = 'dummy-key';
+
+      const csvContent = 'Food_Item,Category,Calories (kcal)\nPomme,Fruit,52\n';
+      const zip = new AdmZip();
+      zip.addFile(
+        'daily_food_nutrition_dataset.csv',
+        Buffer.from(csvContent, 'utf-8'),
+      );
+      const buffer = zip.toBuffer();
+
+      mockHttpService.get.mockReturnValue(of({ data: buffer } as any));
+
+      const module: TestingModule = await Test.createTestingModule({
+        providers: [
+          NutritionService,
+          {
+            provide: PrismaService,
+            useValue: prisma,
+          },
+          {
+            provide: HttpService,
+            useValue: mockHttpService,
+          },
+        ],
+      }).compile();
+
+      const localService = module.get<NutritionService>(NutritionService);
+
+      const result = await localService.runImportPipeline();
+
+      expect(result).toBe(1);
+      expect(prisma.nutrition.upsert).toHaveBeenCalledTimes(1);
+      const upsertArgs = prisma.nutrition.upsert.mock.calls[0][0];
+      expect(upsertArgs.where.name_category).toEqual({
+        name: 'Pomme',
+        category: 'Fruit',
+      });
+
+      process.env.KAGGLE_USER = originalUser;
+      process.env.KAGGLE_KEY = originalKey;
     });
   });
 });
