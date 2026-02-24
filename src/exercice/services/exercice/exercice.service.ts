@@ -57,6 +57,7 @@ export class ExerciceService implements IExerciceService {
     strength: 'force',
     stretching: 'étirement',
     cardio: 'cardio',
+    other: 'autres',
   };
 
   constructor(
