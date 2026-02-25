@@ -5,6 +5,8 @@ import {
   Param,
   ParseIntPipe,
   Inject,
+  UseGuards,
+  Req,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -13,6 +15,11 @@ import {
   ApiNotFoundResponse,
   ApiInternalServerErrorResponse,
 } from '@nestjs/swagger';
+import type { Request } from 'express';
+import { Roles } from 'src/auth/decorators/roles.decorator';
+import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
+import { RolesGuard } from 'src/auth/guards/roles.guard';
+import { JwtPayload } from 'src/auth/strategies/jwt.strategy';
 import type {
   ISessionExerciseController,
   ISessionExerciseService,
@@ -20,7 +27,8 @@ import type {
 import { ROUTES, SERVICES } from 'src/utils/constants';
 
 @Controller(ROUTES.SESSION_EXERCISE)
-@ApiTags('Session Exercises (Technical & ETL)')
+@ApiTags(ROUTES.SESSION_EXERCISE)
+@UseGuards(JwtAuthGuard)
 export class SessionExerciseController implements ISessionExerciseController {
   constructor(
     @Inject(SERVICES.SESSION_EXERCISE)
@@ -36,6 +44,8 @@ export class SessionExerciseController implements ISessionExerciseController {
   @ApiInternalServerErrorResponse({
     description: 'Erreur lors du traitement du fichier CSV',
   })
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN')
   async triggerImport(): Promise<{ message: string; count: number }> {
     const count = await this.sessionExerciseService.runLogsImportPipeline();
     return {
@@ -58,10 +68,21 @@ export class SessionExerciseController implements ISessionExerciseController {
     summary:
       'Obtenir les 5 exercices les plus pratiqués par un utilisateur spécifique',
   })
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN', 'COACH')
   async getTopExercises(
     @Param('userId', ParseIntPipe) userId: number,
   ): Promise<any[]> {
     return await this.sessionExerciseService.getTopExercises(userId);
+  }
+
+  @Get('stats/top-exercises')
+  @ApiOperation({
+    summary: 'Obtenir mes 5 exercices les plus pratiqués',
+  })
+  async getMyTopExercises(@Req() req: Request): Promise<any[]> {
+    const payload = req.user as JwtPayload;
+    return await this.sessionExerciseService.getTopExercises(payload.sub);
   }
 
   @Get()
@@ -69,22 +90,34 @@ export class SessionExerciseController implements ISessionExerciseController {
     summary:
       "Récupérer l'intégralité des sessions exercises (détails techniques)",
   })
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN', 'COACH')
   async getSessionExercises(): Promise<any[]> {
     return await this.sessionExerciseService.getSessionExercises();
   }
 
   @Get(':sessionId/:exerciseId')
   @ApiOperation({
-    summary: 'Récupérer une session exercise via (session_id, exercise_id)',
+    summary:
+      'Récupérer une de mes session exercise via (session_id, exercise_id)',
   })
-  @ApiNotFoundResponse({ description: 'Session exercise introuvable' })
+  @ApiOkResponse({
+    description:
+      "Détails de la session exercise (si elle appartient à l'utilisateur connecté)",
+  })
+  @ApiNotFoundResponse({
+    description: 'Session exercise introuvable ou ne vous appartient pas',
+  })
   async getSessionExerciseById(
+    @Req() req: Request,
     @Param('sessionId', ParseIntPipe) sessionId: number,
     @Param('exerciseId', ParseIntPipe) exerciseId: number,
   ): Promise<any> {
+    const payload = req.user as JwtPayload;
     return await this.sessionExerciseService.getSessionExerciseById(
       sessionId,
       exerciseId,
+      payload.sub,
     );
   }
 }

@@ -19,7 +19,6 @@ import { UpdateUserRoleDto } from 'src/users/dtos/update-user-role.dto';
 import type {
   IUsersController,
   IUsersService,
-  UserRole,
 } from 'src/users/interfaces/users.interface';
 import { ROUTES, SERVICES } from 'src/utils/constants';
 import { User } from 'src/utils/types';
@@ -33,16 +32,15 @@ export class UsersController implements IUsersController {
   ) {}
 
   @Get()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('COACH', 'ADMIN')
   getUsers(): Promise<User[]> {
     return this.usersService.getUsers();
   }
 
-  @Get('roles')
-  getRoles(): Promise<UserRole[]> {
-    return this.usersService.getRoles();
-  }
-
   @Get(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('COACH')
   getUserById(@Param('id') id: string): Promise<User> {
     return this.usersService.getUserById(id);
   }
@@ -53,6 +51,8 @@ export class UsersController implements IUsersController {
   }
 
   @Put(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN')
   updateUser(
     @Param('id') id: string,
     @Body() user: UpdateUserDto,
@@ -71,6 +71,8 @@ export class UsersController implements IUsersController {
   }
 
   @Delete(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN')
   deleteUser(@Param('id') id: string): Promise<User> {
     return this.usersService.deleteUser(id);
   }

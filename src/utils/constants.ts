@@ -1,6 +1,7 @@
 export enum ROUTES {
   AUTH = 'auth',
   USERS = 'users',
+  ROLES = 'roles',
   ORGANIZATIONS = 'organizations',
   EXERCISE = 'exercise',
   NUTRITION = 'nutrition',
@@ -14,6 +15,7 @@ export enum ROUTES {
 export enum SERVICES {
   AUTH = 'AUTH_SERVICE',
   USERS = 'USERS_SERVICE',
+  ROLES = 'ROLES_SERVICE',
   ORGANIZATIONS = 'ORGANIZATIONS_SERVICE',
   EXERCISE = 'EXERCISE_SERVICE',
   NUTRITION = 'NUTRITION_SERVICE',

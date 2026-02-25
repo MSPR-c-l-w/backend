@@ -147,19 +147,19 @@ export class SessionExerciseService implements ISessionExerciseService {
   async getSessionExerciseById(
     sessionId: number,
     exerciseId: number,
+    userId: number,
   ): Promise<any> {
-    const log = await this.prisma.sessionExercise.findUnique({
+    const log = await this.prisma.sessionExercise.findFirst({
       where: {
-        session_id_exercise_id: {
-          session_id: sessionId,
-          exercise_id: exerciseId,
-        },
+        session_id: sessionId,
+        exercise_id: exerciseId,
+        session: { user_id: userId },
       },
       include: { exercise: true, session: true },
     });
     if (!log) {
       throw new NotFoundException(
-        `SessionExercise (${sessionId}, ${exerciseId}) introuvable`,
+        `SessionExercise (${sessionId}, ${exerciseId}) introuvable ou ne vous appartient pas`,
       );
     }
     return log;

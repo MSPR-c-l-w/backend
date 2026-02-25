@@ -8,6 +8,7 @@ export interface ISessionService {
 
   getSessions(userId: number, date?: string): Promise<Session[]>;
   getSessionById(id: number): Promise<Session>;
+  getSessionByUserIdAndId(userId: number, id: number): Promise<Session>;
 
   getTodaySummary(
     userId: number,
@@ -28,6 +29,7 @@ export interface ISessionController {
 
   getHistory(userId: number): Promise<Session[]>;
   getSessionById(id: number): Promise<Session>;
+  getSessionByUserIdAndId(req: any, id: number): Promise<Session>;
 
   getTodaySummary(req: any, date?: string): Promise<any>;
 }

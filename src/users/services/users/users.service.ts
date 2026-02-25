@@ -1,22 +1,25 @@
 import {
   BadRequestException,
+  Inject,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/services/prisma/prisma.service';
+import type { IRoleService } from 'src/roles/interfaces/role.interface';
 import { CreateUserDto } from 'src/users/dtos/create.user.dto';
 import { UpdateUserDto } from 'src/users/dtos/update.user.dto';
 import { UpdateUserRoleDto } from 'src/users/dtos/update-user-role.dto';
-import type {
-  IUsersService,
-  UserRole,
-} from 'src/users/interfaces/users.interface.js';
+import { IUsersService } from 'src/users/interfaces/users.interface.js';
 import { User } from 'src/utils/types';
+import { SERVICES } from 'src/utils/constants';
 import { hashPassword } from 'src/utils/security/password';
 
 @Injectable()
 export class UsersService implements IUsersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Inject(SERVICES.ROLES) private readonly rolesService: IRoleService,
+  ) {}
 
   private userSelect() {
     return {
@@ -47,18 +50,6 @@ export class UsersService implements IUsersService {
     }
 
     return users;
-  }
-
-  async getRoles(): Promise<UserRole[]> {
-    return (await this.prisma.role.findMany({
-      select: {
-        id: true,
-        name: true,
-      },
-      orderBy: {
-        name: 'asc',
-      },
-    })) as UserRole[];
   }
 
   async getUserById(id: string): Promise<User> {
@@ -126,7 +117,6 @@ export class UsersService implements IUsersService {
       last_name?: string;
       height?: number;
       organization_id?: number;
-      role_id?: number | null;
     } = {};
 
     if (user.email !== undefined) {
@@ -143,17 +133,6 @@ export class UsersService implements IUsersService {
     }
     if (user.organization_id != null) {
       data.organization_id = user.organization_id;
-    }
-    if (user.role_id !== undefined) {
-      if (user.role_id === null) {
-        data.role_id = null;
-      } else {
-        const coercedRoleId = Number(user.role_id);
-        if (!Number.isInteger(coercedRoleId)) {
-          throw new BadRequestException('ROLE_ID_MUST_BE_A_NUMBER');
-        }
-        data.role_id = coercedRoleId;
-      }
     }
 
     return await this.prisma.user.update({

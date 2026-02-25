@@ -20,7 +20,9 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { Exercise } from '@prisma/client';
+import { Roles } from 'src/auth/decorators/roles.decorator';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
+import { RolesGuard } from 'src/auth/guards/roles.guard';
 import type {
   IExerciceController,
   IExerciceService,
@@ -46,6 +48,8 @@ export class ExerciceController implements IExerciceController {
   @ApiInternalServerErrorResponse({
     description: 'Erreur lors du pipeline ETL',
   })
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN')
   async triggerImport(): Promise<{ message: string; count: number }> {
     const count = await this.exerciceService.runImportPipeline();
 

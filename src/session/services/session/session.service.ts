@@ -106,6 +106,24 @@ export class SessionService implements ISessionService {
     return session;
   }
 
+  async getSessionByUserIdAndId(userId: number, id: number): Promise<Session> {
+    const session = await this.prisma.session.findFirst({
+      where: { id, user_id: userId },
+      include: {
+        sessionExercises: {
+          include: { exercise: true },
+        },
+      },
+    });
+
+    if (!session) {
+      throw new NotFoundException(
+        `La séance ${id} n'existe pas ou ne vous appartient pas.`,
+      );
+    }
+    return session;
+  }
+
   private getDayRange(date?: string) {
     if (!date) {
       const start = new Date();

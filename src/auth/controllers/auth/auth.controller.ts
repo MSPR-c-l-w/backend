@@ -102,6 +102,7 @@ export class AuthController {
       },
     },
   })
+  @ApiBearerAuth('access-token')
   logout(@Body() dto: LogoutDto) {
     return this.authService.logout(dto.refresh_token);
   }

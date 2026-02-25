@@ -7,11 +7,6 @@ export class UpdateUserDto {
   @IsNumber({}, { message: 'ORGANIZATION_ID_MUST_BE_A_NUMBER' })
   organization_id?: number;
 
-  @ApiPropertyOptional({ example: 1, nullable: true })
-  @IsOptional()
-  @IsNumber({}, { message: 'ROLE_ID_MUST_BE_A_NUMBER' })
-  role_id?: number | null;
-
   @ApiPropertyOptional({ example: 'john.doe@example.com' })
   @IsEmail({}, { message: 'EMAIL_MUST_BE_VALID' })
   @IsOptional()
