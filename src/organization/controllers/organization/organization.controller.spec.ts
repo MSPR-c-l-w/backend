@@ -1,6 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { OrganizationController } from './organization.controller';
 import { SERVICES } from 'src/utils/constants';
+import { RolesGuard } from 'src/auth/guards/roles.guard';
+import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 
 describe('OrganizationController', () => {
   let controller: OrganizationController;
@@ -21,7 +23,12 @@ describe('OrganizationController', () => {
           useValue: organizationServiceMock,
         },
       ],
-    }).compile();
+    })
+      .overrideGuard(RolesGuard)
+      .useValue({ canActivate: () => true })
+      .overrideGuard(JwtAuthGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
 
     controller = module.get<OrganizationController>(OrganizationController);
   });

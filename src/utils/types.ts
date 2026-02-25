@@ -1,6 +1,7 @@
 export type User = {
   id: number;
   organization_id: number | null;
+  role_id: number | null;
   email: string;
   first_name: string;
   last_name: string;
@@ -26,14 +27,7 @@ export type Organization = {
   is_deleted: boolean;
 };
 
-export type Exercise_Log = {
-  id: number;
-  user_id: number;
+export type SessionExercise = {
+  session_id: number;
   exercise_id: number;
-  session_duration_h: number;
-  calories_burned: number;
-  max_bpm: number;
-  avg_bpm: number;
-  resting_bpm: number;
-  created_at: Date;
 };

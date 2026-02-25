@@ -54,7 +54,6 @@ describe('ExerciceService', () => {
           },
         },
         {
-          // AJOUT DU MOCK HTTP SERVICE
           provide: HttpService,
           useValue: {
             get: jest.fn().mockReturnValue(of({ data: [] })),
@@ -81,7 +80,6 @@ describe('ExerciceService', () => {
         .spyOn(prismaService.exercise, 'findMany')
         .mockResolvedValueOnce(mockExercises);
 
-      // On passe les paramètres par défaut de ta nouvelle pagination (page 1, limit 20)
       const result = await service.getExercices(1, 20);
 
       expect(result).toEqual(mockExercises);

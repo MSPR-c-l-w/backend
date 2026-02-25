@@ -3,6 +3,8 @@ import { NotFoundException } from '@nestjs/common';
 import { NutritionController } from './nutrition.controller';
 import { SERVICES } from 'src/utils/constants';
 import { Nutrition } from '@prisma/client';
+import { RolesGuard } from 'src/auth/guards/roles.guard';
+import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 
 describe('NutritionController', () => {
   let controller: NutritionController;
@@ -37,7 +39,12 @@ describe('NutritionController', () => {
           useValue: nutritionServiceMock,
         },
       ],
-    }).compile();
+    })
+      .overrideGuard(RolesGuard)
+      .useValue({ canActivate: () => true })
+      .overrideGuard(JwtAuthGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
 
     controller = module.get<NutritionController>(NutritionController);
   });

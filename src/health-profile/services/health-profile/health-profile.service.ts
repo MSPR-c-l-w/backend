@@ -119,4 +119,16 @@ export class HealthProfileService implements IHealthProfileService {
 
     return healthProfile;
   }
+
+  async getMyHealthProfile(userId: number): Promise<HealthProfile> {
+    const healthProfile = await this.prisma.healthProfile.findUnique({
+      where: { user_id: userId },
+    });
+
+    if (!healthProfile) {
+      throw new NotFoundException('HEALTH_PROFILE_NOT_FOUND');
+    }
+
+    return healthProfile;
+  }
 }

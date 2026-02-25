@@ -5,6 +5,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { UsersService } from './users.service';
 import { PrismaService } from 'src/prisma/services/prisma/prisma.service';
 import { NotFoundException } from '@nestjs/common';
+import { SERVICES } from 'src/utils/constants';
 
 jest.mock('src/utils/security/password', () => ({
   hashPassword: jest.fn(() => 'HASHED_PASSWORD'),
@@ -19,6 +20,10 @@ describe('UsersService', () => {
       create: jest.Mock;
       update: jest.Mock;
     };
+    role: {
+      findMany: jest.Mock;
+      findUnique: jest.Mock;
+    };
   };
 
   beforeEach(async () => {
@@ -29,6 +34,10 @@ describe('UsersService', () => {
         create: jest.fn(),
         update: jest.fn(),
       },
+      role: {
+        findMany: jest.fn(),
+        findUnique: jest.fn(),
+      },
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -37,6 +46,10 @@ describe('UsersService', () => {
         {
           provide: PrismaService,
           useValue: prisma,
+        },
+        {
+          provide: SERVICES.ROLES,
+          useValue: { getRoles: jest.fn(), seedDefaultRoles: jest.fn() },
         },
       ],
     }).compile();
@@ -117,9 +130,9 @@ describe('UsersService', () => {
         select: expect.any(Object),
       });
 
-      // Pas de connect si pas d'organization_id
+      // Pas d'organization_id si pas fourni
       const callArg = prisma.user.create.mock.calls[0][0];
-      expect(callArg.data.organization).toBeUndefined();
+      expect(callArg.data.organization_id).toBeUndefined();
     });
 
     it('connecte une organisation si organization_id est fourni', async () => {
@@ -140,7 +153,7 @@ describe('UsersService', () => {
       await expect(service.createUser(dto)).resolves.toEqual(created);
       expect(prisma.user.create).toHaveBeenCalledWith({
         data: expect.objectContaining({
-          organization: { connect: { id: 7 } },
+          organization_id: 7,
         }),
         select: expect.any(Object),
       });
@@ -175,8 +188,41 @@ describe('UsersService', () => {
         where: { id: 1 },
         data: {
           first_name: 'New',
-          organization: { connect: { id: 99 } },
+          organization_id: 99,
         },
+        select: expect.any(Object),
+      });
+    });
+  });
+
+  describe('updateUserRole', () => {
+    it('connecte un role existant', async () => {
+      const updated = { id: 1, role_id: 2 } as any;
+      prisma.user.findUnique.mockResolvedValue({ id: 1, is_deleted: false });
+      prisma.role.findUnique.mockResolvedValue({ id: 2 });
+      prisma.user.update.mockResolvedValue(updated);
+
+      await expect(
+        service.updateUserRole('1', { role_id: 2 }),
+      ).resolves.toEqual(updated);
+      expect(prisma.user.update).toHaveBeenCalledWith({
+        where: { id: 1 },
+        data: { role_id: 2 },
+        select: expect.any(Object),
+      });
+    });
+
+    it('retire le role si role_id est null', async () => {
+      const updated = { id: 1, role_id: null } as any;
+      prisma.user.findUnique.mockResolvedValue({ id: 1, is_deleted: false });
+      prisma.user.update.mockResolvedValue(updated);
+
+      await expect(
+        service.updateUserRole('1', { role_id: null }),
+      ).resolves.toEqual(updated);
+      expect(prisma.user.update).toHaveBeenCalledWith({
+        where: { id: 1 },
+        data: { role_id: null },
         select: expect.any(Object),
       });
     });

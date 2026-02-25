@@ -17,7 +17,9 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { Nutrition } from '@prisma/client';
+import { Roles } from 'src/auth/decorators/roles.decorator';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
+import { RolesGuard } from 'src/auth/guards/roles.guard';
 import type {
   INutritionController,
   INutritionService,
@@ -35,7 +37,7 @@ export class NutritionController implements INutritionController {
   ) {}
 
   @Get()
-  @ApiOperation({ summary: 'Récupérer toutes les nutriments' })
+  @ApiOperation({ summary: 'Récupérer tout les nutriments' })
   @ApiOkResponse({ description: 'Liste des nutriments' })
   async getNutritions(): Promise<Nutrition[]> {
     return this.nutritionService.getNutritions();
@@ -52,6 +54,8 @@ export class NutritionController implements INutritionController {
   }
 
   @Post('import')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN')
   @ApiOperation({
     summary:
       'Lancer manuellement la collecte et transformation des données (ETL)',
