@@ -4,6 +4,8 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { SessionExerciseController } from './session-exercise.controller';
 import { SessionExerciseService } from 'src/session-exercise/services/session-exercise/session-exercise.service';
 import { SERVICES } from 'src/utils/constants';
+import { RolesGuard } from 'src/auth/guards/roles.guard';
+import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 
 describe('ExerciseLogController', () => {
   let controller: SessionExerciseController;
@@ -29,7 +31,12 @@ describe('ExerciseLogController', () => {
           },
         },
       ],
-    }).compile();
+    })
+      .overrideGuard(RolesGuard)
+      .useValue({ canActivate: () => true })
+      .overrideGuard(JwtAuthGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
 
     controller = module.get<SessionExerciseController>(
       SessionExerciseController,
@@ -54,15 +61,17 @@ describe('ExerciseLogController', () => {
   });
 
   describe('getSessionExerciseById', () => {
-    it('should return an exercise log by id', async () => {
+    it('should return an exercise log by id when it belongs to the user', async () => {
       jest
         .spyOn(service, 'getSessionExerciseById')
         .mockResolvedValue(mockExerciseLog);
 
-      const result = await controller.getSessionExerciseById(1, 1);
+      const req = { user: { sub: 1 } } as any;
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+      const result = await controller.getSessionExerciseById(req, 1, 1);
 
       expect(result).toEqual(mockExerciseLog);
-      expect(service.getSessionExerciseById).toHaveBeenCalledWith(1, 1);
+      expect(service.getSessionExerciseById).toHaveBeenCalledWith(1, 1, 1);
     });
   });
 });

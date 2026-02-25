@@ -5,6 +5,8 @@ import { SessionController } from './session.controller';
 import { SERVICES } from 'src/utils/constants';
 import type { Request } from 'express';
 import { ISessionService } from 'src/session/interfaces/session/session.interface';
+import { RolesGuard } from 'src/auth/guards/roles.guard';
+import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 
 describe('WorkoutSessionController', () => {
   let controller: SessionController;
@@ -36,6 +38,9 @@ describe('WorkoutSessionController', () => {
             getIntensityStats: jest.fn().mockResolvedValue({ avg_bpm: 145 }),
             getSessions: jest.fn().mockResolvedValue([mockWorkoutSession]),
             getSessionById: jest.fn().mockResolvedValue(mockWorkoutSession),
+            getSessionByUserIdAndId: jest
+              .fn()
+              .mockResolvedValue(mockWorkoutSession),
             getTodaySummary: jest.fn().mockResolvedValue({
               total_sessions_today: 1,
               total_duration_h: 1.5,
@@ -46,7 +51,12 @@ describe('WorkoutSessionController', () => {
           },
         },
       ],
-    }).compile();
+    })
+      .overrideGuard(RolesGuard)
+      .useValue({ canActivate: () => true })
+      .overrideGuard(JwtAuthGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
 
     controller = module.get<SessionController>(SessionController);
     service = module.get<ISessionService>(SERVICES.SESSION);

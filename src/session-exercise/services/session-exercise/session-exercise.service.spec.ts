@@ -17,6 +17,7 @@ describe('ExerciseLogService', () => {
     sessionExercise: {
       findMany: jest.Mock;
       findUnique: jest.Mock;
+      findFirst: jest.Mock;
       groupBy: jest.Mock;
       deleteMany: jest.Mock;
       create: jest.Mock;
@@ -58,6 +59,7 @@ describe('ExerciseLogService', () => {
             sessionExercise: {
               findMany: jest.fn(),
               findUnique: jest.fn(),
+              findFirst: jest.fn(),
               groupBy: jest.fn(),
               deleteMany: jest.fn(),
               create: jest.fn(),
@@ -97,26 +99,25 @@ describe('ExerciseLogService', () => {
   });
 
   describe('getSessionExerciseById', () => {
-    it('should return an exercise log by id', async () => {
-      prisma.sessionExercise.findUnique.mockResolvedValue(mockExerciseLog);
-      await expect(service.getSessionExerciseById(1, 1)).resolves.toEqual(
+    it('should return an exercise log by id when it belongs to the user', async () => {
+      prisma.sessionExercise.findFirst.mockResolvedValue(mockExerciseLog);
+      await expect(service.getSessionExerciseById(1, 1, 1)).resolves.toEqual(
         mockExerciseLog,
       );
-      expect(prisma.sessionExercise.findUnique).toHaveBeenCalledWith({
+      expect(prisma.sessionExercise.findFirst).toHaveBeenCalledWith({
         where: {
-          session_id_exercise_id: {
-            session_id: 1,
-            exercise_id: 1,
-          },
+          session_id: 1,
+          exercise_id: 1,
+          session: { user_id: 1 },
         },
         include: { exercise: true, session: true },
       });
     });
 
     it('should throw NotFoundException when log not found', async () => {
-      prisma.sessionExercise.findUnique.mockResolvedValue(null);
+      prisma.sessionExercise.findFirst.mockResolvedValue(null);
 
-      await expect(service.getSessionExerciseById(1, 1)).rejects.toThrow(
+      await expect(service.getSessionExerciseById(1, 1, 1)).rejects.toThrow(
         NotFoundException,
       );
     });

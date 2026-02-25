@@ -5,6 +5,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { UsersService } from './users.service';
 import { PrismaService } from 'src/prisma/services/prisma/prisma.service';
 import { NotFoundException } from '@nestjs/common';
+import { SERVICES } from 'src/utils/constants';
 
 jest.mock('src/utils/security/password', () => ({
   hashPassword: jest.fn(() => 'HASHED_PASSWORD'),
@@ -46,6 +47,10 @@ describe('UsersService', () => {
           provide: PrismaService,
           useValue: prisma,
         },
+        {
+          provide: SERVICES.ROLES,
+          useValue: { getRoles: jest.fn(), seedDefaultRoles: jest.fn() },
+        },
       ],
     }).compile();
 
@@ -70,22 +75,6 @@ describe('UsersService', () => {
       await expect(service.getUsers()).rejects.toBeInstanceOf(
         NotFoundException,
       );
-    });
-  });
-
-  describe('getRoles', () => {
-    it('retourne tous les roles triés par nom', async () => {
-      const roles = [
-        { id: 1, name: 'ADMIN' },
-        { id: 2, name: 'USER' },
-      ] as any[];
-      prisma.role.findMany.mockResolvedValue(roles);
-
-      await expect(service.getRoles()).resolves.toEqual(roles);
-      expect(prisma.role.findMany).toHaveBeenCalledWith({
-        select: { id: true, name: true },
-        orderBy: { name: 'asc' },
-      });
     });
   });
 
@@ -200,24 +189,6 @@ describe('UsersService', () => {
         data: {
           first_name: 'New',
           organization_id: 99,
-        },
-        select: expect.any(Object),
-      });
-    });
-
-    it('connecte un role si role_id est fourni', async () => {
-      const updated = { id: 1 } as any;
-      prisma.user.findUnique.mockResolvedValue({ id: 1, is_deleted: false });
-      prisma.user.update.mockResolvedValue(updated);
-
-      const dto = { role_id: 2, first_name: 'New' } as any;
-      await expect(service.updateUser('1', dto)).resolves.toEqual(updated);
-
-      expect(prisma.user.update).toHaveBeenCalledWith({
-        where: { id: 1 },
-        data: {
-          first_name: 'New',
-          role_id: 2,
         },
         select: expect.any(Object),
       });

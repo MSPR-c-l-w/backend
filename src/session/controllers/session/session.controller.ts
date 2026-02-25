@@ -182,7 +182,7 @@ export class SessionController implements ISessionController {
     @Param('id', ParseIntPipe) id: number,
   ) {
     const payload = req.user as JwtPayload;
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+
     return await this.sessionService.getSessionByUserIdAndId(payload.sub, id);
   }
 

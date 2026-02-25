@@ -66,7 +66,7 @@ export class HealthProfileController implements IHealthProfileController {
   @UseGuards(JwtAuthGuard)
   getMyHealthProfile(@Req() req: Request): Promise<HealthProfile> {
     const payload = req.user as JwtPayload;
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-call
+
     return this.healthProfileService.getMyHealthProfile(payload.sub);
   }
 
