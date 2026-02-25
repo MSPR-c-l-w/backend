@@ -4,6 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from 'src/prisma/services/prisma/prisma.service';
 import type { IRoleService } from 'src/roles/interfaces/role.interface';
 import { CreateUserDto } from 'src/users/dtos/create.user.dto';
@@ -69,12 +70,10 @@ export class UsersService implements IUsersService {
 
   async createUser(user: CreateUserDto): Promise<User> {
     const organizationId = user.organization_id;
-    const roleId = user.role_id;
     const passwordHash = await hashPassword(user.password);
 
     const data: {
       organization_id?: number;
-      role_id?: number;
       email: string;
       password_hash: string;
       first_name: string;
@@ -99,14 +98,24 @@ export class UsersService implements IUsersService {
     if (organizationId != null) {
       data.organization_id = organizationId;
     }
-    if (roleId != null) {
-      data.role_id = roleId;
-    }
 
-    return await this.prisma.user.create({
-      data,
-      select: this.userSelect(),
-    });
+    try {
+      return await this.prisma.user.create({
+        data,
+        select: this.userSelect(),
+      });
+    } catch (error) {
+      if (!(error instanceof Prisma.PrismaClientKnownRequestError)) {
+        throw error;
+      }
+      if (error.code === 'P2002' && error.meta?.modelName === 'User') {
+        throw new BadRequestException('EMAIL_ALREADY_USED');
+      }
+      if (error.code === 'P2003' && error.meta?.modelName === 'User') {
+        throw new BadRequestException('ORGANIZATION_NOT_FOUND');
+      }
+      throw error;
+    }
   }
 
   async updateUser(id: string, user: UpdateUserDto): Promise<User> {

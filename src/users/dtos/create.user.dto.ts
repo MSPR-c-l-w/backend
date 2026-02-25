@@ -14,11 +14,6 @@ export class CreateUserDto {
   @IsOptional()
   organization_id?: number;
 
-  @ApiPropertyOptional({ example: 1 })
-  @IsNumber({}, { message: 'ROLE_ID_MUST_BE_A_NUMBER' })
-  @IsOptional()
-  role_id?: number;
-
   @ApiProperty({ example: 'john.doe@example.com' })
   @IsEmail({}, { message: 'EMAIL_MUST_BE_VALID' })
   @IsNotEmpty({ message: 'EMAIL_IS_REQUIRED' })
