@@ -2,6 +2,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { SubscriptionController } from './subscription.controller';
 import { SERVICES } from 'src/utils/constants';
+import { RolesGuard } from 'src/auth/guards/roles.guard';
+import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 
 describe('SubscriptionController', () => {
   let controller: SubscriptionController;
@@ -19,7 +21,12 @@ describe('SubscriptionController', () => {
           useValue: subscriptionServiceMock,
         },
       ],
-    }).compile();
+    })
+      .overrideGuard(RolesGuard)
+      .useValue({ canActivate: () => true })
+      .overrideGuard(JwtAuthGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
 
     controller = module.get<SubscriptionController>(SubscriptionController);
     jest.clearAllMocks();

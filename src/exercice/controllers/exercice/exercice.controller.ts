@@ -9,6 +9,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import {
+  ApiBearerAuth,
   ApiBadGatewayResponse,
   ApiInternalServerErrorResponse,
   ApiNotFoundResponse,
@@ -19,7 +20,9 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { Exercise } from '@prisma/client';
+import { Roles } from 'src/auth/decorators/roles.decorator';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
+import { RolesGuard } from 'src/auth/guards/roles.guard';
 import type {
   IExerciceController,
   IExerciceService,
@@ -28,6 +31,7 @@ import { ROUTES, SERVICES } from 'src/utils/constants';
 
 @Controller(ROUTES.EXERCISE)
 @UseGuards(JwtAuthGuard)
+@ApiBearerAuth('access-token')
 @ApiTags(ROUTES.EXERCISE)
 export class ExerciceController implements IExerciceController {
   constructor(
@@ -44,8 +48,9 @@ export class ExerciceController implements IExerciceController {
   @ApiInternalServerErrorResponse({
     description: 'Erreur lors du pipeline ETL',
   })
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN')
   async triggerImport(): Promise<{ message: string; count: number }> {
-    // Appelle le service que tu viens de coder
     const count = await this.exerciceService.runImportPipeline();
 
     return {
@@ -64,7 +69,6 @@ export class ExerciceController implements IExerciceController {
     return this.exerciceService.getExercices(page, limit);
   }
 
-  // Route de recherche : GET /exercises/search?muscle=pectoraux&level=débutant
   @Get('search')
   @ApiOperation({ summary: 'Rechercher des exercices par filtres' })
   @ApiOkResponse({ description: 'Résultats de la recherche' })

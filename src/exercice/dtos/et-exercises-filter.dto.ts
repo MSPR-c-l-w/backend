@@ -35,7 +35,6 @@ export class GetExercisesFilterDto {
   @IsString({ message: 'CATEGORY_MUST_BE_A_STRING' })
   category?: string;
 
-  // --- Pagination ---
   @ApiPropertyOptional({
     example: 1,
     default: 1,
