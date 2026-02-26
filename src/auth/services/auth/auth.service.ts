@@ -209,7 +209,28 @@ export class AuthService {
   async getProfile(userId: number): Promise<User> {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      select: publicUserSelect(),
+      select: {
+        ...publicUserSelect(),
+        organization: {
+          select: {
+            id: true,
+            name: true,
+            type: true,
+            branding_config: true,
+            created_at: true,
+            updated_at: true,
+            deleted_at: true,
+            is_active: true,
+            is_deleted: true,
+          },
+        },
+        role: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
     });
 
     if (!user) {
