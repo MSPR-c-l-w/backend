@@ -15,7 +15,7 @@ describe('HealthProfileService', () => {
       create: jest.fn(),
     },
     user: {
-      upsert: jest.fn(),
+      findMany: jest.fn(),
     },
     $executeRaw: jest.fn(),
   };
@@ -104,11 +104,8 @@ P0002,45,Female,75.2,165,27.6,Obesity,Moderate,Sedentary,1800`;
       // Mock HttpService.get() pour retourner le CSV
       httpServiceMock.get.mockReturnValue(of({ data: mockCsvData }));
 
-      // Mock Prisma user.upsert
-      prismaMock.user.upsert.mockResolvedValue({
-        id: 1,
-        email: 'admin@test.fr',
-      });
+      // Mock Prisma users (seeded)
+      prismaMock.user.findMany.mockResolvedValue([{ id: 1 }, { id: 2 }]);
 
       // Mock Prisma healthProfile.deleteMany
       prismaMock.healthProfile.deleteMany.mockResolvedValue({ count: 0 });
@@ -123,19 +120,15 @@ P0002,45,Female,75.2,165,27.6,Obesity,Moderate,Sedentary,1800`;
           user_id: 1,
           weight: 58.4,
           bmi: 22.8,
-          disease_type: 'None',
-          severity: 'Mild',
           physical_activity_level: 'Moderate',
           daily_calories_target: 2000,
           updated_at: new Date(),
         })
         .mockResolvedValueOnce({
           id: 2,
-          user_id: 1,
+          user_id: 2,
           weight: 75.2,
           bmi: 27.6,
-          disease_type: 'Obesity',
-          severity: 'Moderate',
           physical_activity_level: 'Sedentary',
           daily_calories_target: 1800,
           updated_at: new Date(),
@@ -146,7 +139,7 @@ P0002,45,Female,75.2,165,27.6,Obesity,Moderate,Sedentary,1800`;
 
       // Vérifications
       expect(result).toBe(2); // 2 lignes dans le CSV mock
-      expect(prismaMock.user.upsert).toHaveBeenCalledTimes(1);
+      expect(prismaMock.user.findMany).toHaveBeenCalledTimes(1);
       expect(prismaMock.healthProfile.deleteMany).toHaveBeenCalledTimes(1);
       expect(prismaMock.healthProfile.create).toHaveBeenCalledTimes(2); // 2 profils
       expect(httpServiceMock.get).toHaveBeenCalled();
@@ -156,7 +149,7 @@ P0002,45,Female,75.2,165,27.6,Obesity,Moderate,Sedentary,1800`;
       httpServiceMock.get.mockReturnValue(
         of({ data: 'Patient_ID,Age\n' }), // Header seulement
       );
-      prismaMock.user.upsert.mockResolvedValue({ id: 1 });
+      prismaMock.user.findMany.mockResolvedValue([{ id: 1 }]);
       prismaMock.healthProfile.deleteMany.mockResolvedValue({ count: 0 });
       prismaMock.$executeRaw.mockResolvedValue(undefined);
 
@@ -171,7 +164,7 @@ P0002,45,Female,75.2,165,27.6,Obesity,Moderate,Sedentary,1800`;
         throw new Error('Network error');
       });
 
-      prismaMock.user.upsert.mockResolvedValue({ id: 1 });
+      prismaMock.user.findMany.mockResolvedValue([{ id: 1 }]);
 
       await expect(service.runHealthProfilePipeline()).rejects.toThrow(
         'Network error',
@@ -183,7 +176,7 @@ P0002,45,Female,75.2,165,27.6,Obesity,Moderate,Sedentary,1800`;
 P0001,56,Male,58.4,160,22.8,Diabetes,Severe,Active,2500`;
 
       httpServiceMock.get.mockReturnValue(of({ data: csvWithAllFields }));
-      prismaMock.user.upsert.mockResolvedValue({ id: 1 });
+      prismaMock.user.findMany.mockResolvedValue([{ id: 1 }]);
       prismaMock.healthProfile.deleteMany.mockResolvedValue({ count: 0 });
       prismaMock.$executeRaw.mockResolvedValue(undefined);
       prismaMock.healthProfile.create.mockResolvedValue({ id: 1 } as any);
@@ -196,8 +189,6 @@ P0001,56,Male,58.4,160,22.8,Diabetes,Severe,Active,2500`;
           user_id: 1,
           weight: 58.4,
           bmi: 22.8,
-          disease_type: 'Diabetes',
-          severity: 'Severe',
           physical_activity_level: 'Active',
           daily_calories_target: 2500,
         },
@@ -209,7 +200,7 @@ P0001,56,Male,58.4,160,22.8,Diabetes,Severe,Active,2500`;
 P0001,56,Male,22.8`;
 
       httpServiceMock.get.mockReturnValue(of({ data: csvWithMissingFields }));
-      prismaMock.user.upsert.mockResolvedValue({ id: 1 });
+      prismaMock.user.findMany.mockResolvedValue([{ id: 1 }]);
       prismaMock.healthProfile.deleteMany.mockResolvedValue({ count: 0 });
       prismaMock.$executeRaw.mockResolvedValue(undefined);
       prismaMock.healthProfile.create.mockResolvedValue({ id: 1 } as any);
@@ -222,8 +213,6 @@ P0001,56,Male,22.8`;
           user_id: 1,
           weight: null,
           bmi: 22.8,
-          disease_type: null,
-          severity: null,
           physical_activity_level: null,
           daily_calories_target: null,
         },

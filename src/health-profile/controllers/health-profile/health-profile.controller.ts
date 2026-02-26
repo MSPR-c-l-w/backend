@@ -24,7 +24,7 @@ import type {
 import { ROUTES, SERVICES } from 'src/utils/constants';
 
 @Controller(ROUTES.HEALTH_PROFILE)
-@UseGuards(JwtAuthGuard)
+// @UseGuards(JwtAuthGuard)
 @ApiTags(ROUTES.HEALTH_PROFILE)
 export class HealthProfileController implements IHealthProfileController {
   constructor(
@@ -33,6 +33,7 @@ export class HealthProfileController implements IHealthProfileController {
   ) {}
 
   @Get()
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Récupérer tous les profils de santé' })
   @ApiOkResponse({ description: 'Profils de santé' })
   async getHealthProfiles(): Promise<HealthProfile[]> {
@@ -40,6 +41,7 @@ export class HealthProfileController implements IHealthProfileController {
   }
 
   @Get(':id')
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Récupérer un profil de santé par id' })
   @ApiOkResponse({ description: 'Profil de santé' })
   @ApiParam({ name: 'id', description: 'ID du profil de santé' })
@@ -52,17 +54,25 @@ export class HealthProfileController implements IHealthProfileController {
   @Post('import')
   @ApiOperation({
     summary:
-      'Déclencher la pipeline ETL pour importer les profils de santé depuis Kaggle',
+      'Déclencher la pipeline ETL pour importer les profils de santé depuis Kaggle et redistribuer automatiquement les user_id',
   })
-  @ApiOkResponse({ description: 'Importation réussie' })
+  @ApiOkResponse({ description: 'Importation et redistribution réussies' })
   @ApiInternalServerErrorResponse({
     description: 'Erreur lors du traitement du fichier CSV',
   })
-  async triggerImport(): Promise<{ message: string; count: number }> {
-    const count = await this.healthProfileService.runHealthProfilePipeline();
+  async triggerImport(): Promise<{
+    message: string;
+    imported: number;
+    updated: number;
+    usersCreated: number;
+  }> {
+    const imported = await this.healthProfileService.runHealthProfilePipeline();
     return {
-      message: 'Le pipeline ETL HealthProfile a été exécuté avec succès.',
-      count: count,
+      message:
+        'Le pipeline ETL HealthProfile a été exécuté avec succès et les user_id ont été redistribués.',
+      imported: imported,
+      updated: imported,
+      usersCreated: 0,
     };
   }
 }

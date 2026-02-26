@@ -23,17 +23,15 @@ export class HealthProfileService implements IHealthProfileService {
   ) {}
   async runHealthProfilePipeline(): Promise<number> {
     try {
-      await this.prisma.user.upsert({
-        where: { id: 1 },
-        update: {},
-        create: {
-          id: 1,
-          email: 'admin@test.fr',
-          password_hash: 'hash',
-          first_name: 'Jeff',
-          last_name: 'Leote',
-        },
+      const users = await this.prisma.user.findMany({
+        select: { id: true },
+        orderBy: { id: 'asc' },
       });
+      if (users.length === 0) {
+        throw new Error(
+          'NO_USERS_SEEDED: seed la table User avant de lancer le pipeline HealthProfile',
+        );
+      }
 
       const auth = Buffer.from(
         `${this.KAGGLE_USER}:${this.KAGGLE_KEY}`,
@@ -62,9 +60,10 @@ export class HealthProfileService implements IHealthProfileService {
 
       let importedCount = 0;
 
-      for (const row of rows) {
+      for (const [index, row] of rows.entries()) {
+        const userId = users[index % users.length].id;
         const healthProfile = {
-          user_id: row['user_id'] || 1,
+          user_id: userId,
           weight: row['Weight_kg'] || row['weight_kg'] || null,
           bmi: row['BMI'] || row['bmi'] || null,
           physical_activity_level:
@@ -115,6 +114,7 @@ export class HealthProfileService implements IHealthProfileService {
   }
   async redistributeUserIds(): Promise<{ updated: number; usersCreated: number }> {
     try {
+      const usersCreated = 0;
       const profiles = await this.prisma.healthProfile.findMany({
         where: { user_id: 1 },
       });
@@ -124,43 +124,32 @@ export class HealthProfileService implements IHealthProfileService {
         return { updated: 0, usersCreated: 0 };
       }
 
-      const profilesPerUser = 500;
-      const numberOfUsers = Math.ceil(profiles.length / profilesPerUser);
-
-      let usersCreated = 0;
-      for (let i = 2; i <= numberOfUsers; i++) {
-        const userExists = await this.prisma.user.findUnique({
-          where: { id: i }
-        });
-
-        if (!userExists) {
-          await this.prisma.user.create({
-            data: {
-              id: i,
-              email: `user${i}@test.fr`,
-              password_hash: 'hash',
-              first_name: `User ${i}`,
-              last_name: 'Test',
-            },
-          });
-          usersCreated++;
-        }
+      const userIds = await this.prisma.user.findMany({
+        select: { id: true },
+        orderBy: { id: 'asc' },
+      });
+      if (userIds.length === 0) {
+        throw new Error(
+          'NO_USERS_SEEDED: seed la table User avant de redistribuer les user_id',
+        );
       }
 
       let updated = 0;
+      const profilesPerUser = 500;
       for (let i = 0; i < profiles.length; i++) {
-        const targetUserid = Math.floor(i / profilesPerUser) + 1;
+        const bucket = Math.floor(i / profilesPerUser);
+        const targetUserId = userIds[bucket % userIds.length].id;
 
         await this.prisma.healthProfile.update({
           where: { id: profiles[i].id },
-          data: { user_id: targetUserid },
+          data: { user_id: targetUserId },
         });
 
         updated++;
       }
 
       this.logger.log(
-      `Redistribution terminée : ${updated} profils mis à jour, ${usersCreated} utilisateurs créés`	
+        `Redistribution terminée : ${updated} profils mis à jour, ${usersCreated} utilisateurs créés`,
       );
 
       return { updated, usersCreated };
