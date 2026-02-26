@@ -11,9 +11,9 @@ import { CreateUserDto } from 'src/users/dtos/create.user.dto';
 import { UpdateUserDto } from 'src/users/dtos/update.user.dto';
 import { UpdateUserRoleDto } from 'src/users/dtos/update-user-role.dto';
 import { IUsersService } from 'src/users/interfaces/users.interface.js';
-import { User } from 'src/utils/types';
 import { SERVICES } from 'src/utils/constants';
 import { hashPassword } from 'src/utils/security/password';
+import { User } from 'src/utils/types';
 
 @Injectable()
 export class UsersService implements IUsersService {
@@ -27,6 +27,25 @@ export class UsersService implements IUsersService {
       id: true,
       organization_id: true,
       role_id: true,
+      organization: {
+        select: {
+          id: true,
+          name: true,
+          type: true,
+          branding_config: true,
+          created_at: true,
+          updated_at: true,
+          deleted_at: true,
+          is_active: true,
+          is_deleted: true,
+        },
+      },
+      role: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
       email: true,
       first_name: true,
       last_name: true,
