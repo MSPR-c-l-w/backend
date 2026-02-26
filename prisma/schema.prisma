@@ -135,8 +135,6 @@ model HealthProfile {
   user_id                 Int      @unique
   weight                  Float?
   bmi                     Float?
-  disease_type            String?
-  severity                String?
   physical_activity_level String?
   daily_calories_target   Int?
   updated_at              DateTime @updatedAt

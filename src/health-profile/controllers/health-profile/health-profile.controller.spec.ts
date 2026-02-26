@@ -69,8 +69,11 @@ describe('HealthProfileController', () => {
     const result = await controller.triggerImport();
 
     expect(result).toEqual({
-      message: 'Le pipeline ETL HealthProfile a été exécuté avec succès.',
-      count: 150,
+      message:
+        'Le pipeline ETL HealthProfile a été exécuté avec succès et les user_id ont été redistribués.',
+      imported: 150,
+      updated: 150,
+      usersCreated: 0,
     });
     expect(
       healthProfileServiceMock.runHealthProfilePipeline,

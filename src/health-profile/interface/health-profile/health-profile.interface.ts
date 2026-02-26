@@ -4,8 +4,9 @@ import { HealthProfile } from '@prisma/client';
 export interface IHealthProfileService {
   getHealthProfiles(): Promise<HealthProfile[]>;
   getHealthProfile(id: string): Promise<HealthProfile>;
-  getMyHealthProfile(userId: number): Promise<HealthProfile>;
+
   runHealthProfilePipeline(): Promise<number>;
+  redistributeUserIds(): Promise<{ updated: number; usersCreated: number }>;
 }
 
 export interface IHealthProfileController {

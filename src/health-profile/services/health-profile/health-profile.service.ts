@@ -1,7 +1,12 @@
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { HealthProfile } from '@prisma/client';
 import { IHealthProfileService } from 'src/health-profile/interface/health-profile/health-profile.interface';
 import { PrismaService } from 'src/prisma/services/prisma/prisma.service';
@@ -23,17 +28,15 @@ export class HealthProfileService implements IHealthProfileService {
   ) {}
   async runHealthProfilePipeline(): Promise<number> {
     try {
-      await this.prisma.user.upsert({
-        where: { id: 1 },
-        update: {},
-        create: {
-          id: 1,
-          email: 'admin@test.fr',
-          password_hash: 'hash',
-          first_name: 'Jeff',
-          last_name: 'Leote',
-        },
+      const users = await this.prisma.user.findMany({
+        select: { id: true },
+        orderBy: { id: 'asc' },
       });
+      if (users.length === 0) {
+        throw new BadRequestException(
+          'NO_USERS_SEEDED: seed la table User avant de lancer le pipeline HealthProfile',
+        );
+      }
 
       const auth = Buffer.from(
         `${this.KAGGLE_USER}:${this.KAGGLE_KEY}`,
@@ -62,17 +65,12 @@ export class HealthProfileService implements IHealthProfileService {
 
       let importedCount = 0;
 
-      for (const row of rows) {
+      for (const [index, row] of rows.entries()) {
+        const userId = users[index % users.length].id;
         const healthProfile = {
-          user_id: row['user_id'] || 1,
+          user_id: userId,
           weight: row['Weight_kg'] || row['weight_kg'] || null,
           bmi: row['BMI'] || row['bmi'] || null,
-          disease_type:
-            row['Disease'] ||
-            row['Disease_Type'] ||
-            row['disease_type'] ||
-            null,
-          severity: row['Severity'] || row['severity'] || null,
           physical_activity_level:
             row['Physical_Activity_Level'] ||
             row['Physical_Activity'] ||
@@ -114,21 +112,58 @@ export class HealthProfileService implements IHealthProfileService {
     });
 
     if (!healthProfile) {
-      throw new Error('HEALTH_PROFILE_NOT_FOUND');
-    }
-
-    return healthProfile;
-  }
-
-  async getMyHealthProfile(userId: number): Promise<HealthProfile> {
-    const healthProfile = await this.prisma.healthProfile.findUnique({
-      where: { user_id: userId },
-    });
-
-    if (!healthProfile) {
       throw new NotFoundException('HEALTH_PROFILE_NOT_FOUND');
     }
 
     return healthProfile;
+  }
+  async redistributeUserIds(): Promise<{
+    updated: number;
+    usersCreated: number;
+  }> {
+    try {
+      const usersCreated = 0;
+      const profiles = await this.prisma.healthProfile.findMany({
+        where: { user_id: 1 },
+      });
+
+      if (profiles.length === 0) {
+        this.logger.warn('Aucun profil avec user_id 1 trouvé');
+        return { updated: 0, usersCreated: 0 };
+      }
+
+      const userIds = await this.prisma.user.findMany({
+        select: { id: true },
+        orderBy: { id: 'asc' },
+      });
+      if (userIds.length === 0) {
+        throw new BadRequestException(
+          'NO_USERS_SEEDED: seed la table User avant de redistribuer les user_id',
+        );
+      }
+
+      let updated = 0;
+      const profilesPerUser = 500;
+      for (let i = 0; i < profiles.length; i++) {
+        const bucket = Math.floor(i / profilesPerUser);
+        const targetUserId = userIds[bucket % userIds.length].id;
+
+        await this.prisma.healthProfile.update({
+          where: { id: profiles[i].id },
+          data: { user_id: targetUserId },
+        });
+
+        updated++;
+      }
+
+      this.logger.log(
+        `Redistribution terminée : ${updated} profils mis à jour, ${usersCreated} utilisateurs créés`,
+      );
+
+      return { updated, usersCreated };
+    } catch (e) {
+      this.logger.error(`Erreur redistribution des user_ids: ${e.message}`);
+      throw e;
+    }
   }
 }

@@ -8,13 +8,13 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import {
-  ApiBadRequestResponse,
   ApiBearerAuth,
-  ApiInternalServerErrorResponse,
-  ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
   ApiParam,
+  ApiNotFoundResponse,
+  ApiBadRequestResponse,
+  ApiInternalServerErrorResponse,
   ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
@@ -32,6 +32,7 @@ import { ROUTES, SERVICES } from 'src/utils/constants';
 
 @Controller(ROUTES.HEALTH_PROFILE)
 @ApiTags(ROUTES.HEALTH_PROFILE)
+@UseGuards(JwtAuthGuard)
 export class HealthProfileController implements IHealthProfileController {
   constructor(
     @Inject(SERVICES.HEALTH_PROFILE)
@@ -63,11 +64,10 @@ export class HealthProfileController implements IHealthProfileController {
   })
   @ApiUnauthorizedResponse({ description: 'JWT invalide ou expiré' })
   @ApiBearerAuth('access-token')
-  @UseGuards(JwtAuthGuard)
   getMyHealthProfile(@Req() req: Request): Promise<HealthProfile> {
     const payload = req.user as JwtPayload;
 
-    return this.healthProfileService.getMyHealthProfile(payload.sub);
+    return this.healthProfileService.getHealthProfile(payload.sub.toString());
   }
 
   @Get(':id')
@@ -86,21 +86,28 @@ export class HealthProfileController implements IHealthProfileController {
   @Post('import')
   @ApiOperation({
     summary:
-      'Déclencher la pipeline ETL pour importer les profils de santé depuis Kaggle',
+      'Déclencher la pipeline ETL pour importer les profils de santé depuis Kaggle et redistribuer automatiquement les user_id',
   })
-  @ApiOkResponse({ description: 'Importation réussie' })
-  @ApiUnauthorizedResponse({ description: 'JWT invalide ou expiré' })
+  @ApiOkResponse({ description: 'Importation et redistribution réussies' })
   @ApiInternalServerErrorResponse({
     description: 'Erreur lors du traitement du fichier CSV',
   })
   @ApiBearerAuth('access-token')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN')
-  async triggerImport(): Promise<{ message: string; count: number }> {
-    const count = await this.healthProfileService.runHealthProfilePipeline();
+  async triggerImport(): Promise<{
+    message: string;
+    imported: number;
+    updated: number;
+    usersCreated: number;
+  }> {
+    const imported = await this.healthProfileService.runHealthProfilePipeline();
     return {
-      message: 'Le pipeline ETL HealthProfile a été exécuté avec succès.',
-      count: count,
+      message:
+        'Le pipeline ETL HealthProfile a été exécuté avec succès et les user_id ont été redistribués.',
+      imported: imported,
+      updated: imported,
+      usersCreated: 0,
     };
   }
 }
