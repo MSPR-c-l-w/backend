@@ -8,7 +8,9 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { Subscription } from '@prisma/client';
+import { Roles } from 'src/auth/decorators/roles.decorator';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
+import { RolesGuard } from 'src/auth/guards/roles.guard';
 import type {
   ISubscriptionController,
   ISubscriptionService,
@@ -16,7 +18,8 @@ import type {
 import { ROUTES, SERVICES } from 'src/utils/constants';
 
 @Controller(ROUTES.SUBSCRIPTION)
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('ADMIN')
 @ApiTags(ROUTES.SUBSCRIPTION)
 export class SubscriptionController implements ISubscriptionController {
   constructor(

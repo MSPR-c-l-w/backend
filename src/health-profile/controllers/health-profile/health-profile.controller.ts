@@ -7,16 +7,34 @@ import {
   Post,
 } from '@nestjs/common';
 import {
-  ApiOperation,
+  Controller,
+  Get,
+  Inject,
+  Param,
+  Post,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
+import {
+  ApiBadRequestResponse,
+  ApiBearerAuth,
+  ApiInternalServerErrorResponse,
+  ApiNotFoundResponse,
   ApiOkResponse,
-  ApiTags,
+  ApiOperation,
   ApiParam,
   ApiNotFoundResponse,
   ApiBadRequestResponse,
   ApiInternalServerErrorResponse,
+  ApiTags,
+  ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import { HealthProfile } from '@prisma/client';
+import type { Request } from 'express';
+import { Roles } from 'src/auth/decorators/roles.decorator';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
+import { RolesGuard } from 'src/auth/guards/roles.guard';
+import type { JwtPayload } from 'src/auth/strategies/jwt.strategy';
 import type {
   IHealthProfileController,
   IHealthProfileService,
@@ -24,7 +42,6 @@ import type {
 import { ROUTES, SERVICES } from 'src/utils/constants';
 
 @Controller(ROUTES.HEALTH_PROFILE)
-// @UseGuards(JwtAuthGuard)
 @ApiTags(ROUTES.HEALTH_PROFILE)
 export class HealthProfileController implements IHealthProfileController {
   constructor(
@@ -35,19 +52,47 @@ export class HealthProfileController implements IHealthProfileController {
   @Get()
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Récupérer tous les profils de santé' })
-  @ApiOkResponse({ description: 'Profils de santé' })
-  async getHealthProfiles(): Promise<HealthProfile[]> {
+  @ApiOkResponse({
+    description: 'Liste des profils de santé récupérée avec succès',
+  })
+  @ApiUnauthorizedResponse({ description: 'JWT invalide ou expiré' })
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('COACH', 'ADMIN')
+  getHealthProfiles(): Promise<HealthProfile[]> {
     return this.healthProfileService.getHealthProfiles();
+  }
+
+  @Get('me')
+  @ApiOperation({
+    summary: 'Récupérer mon propre profil de santé (utilisateur connecté)',
+  })
+  @ApiOkResponse({
+    description: 'Profil de santé de l’utilisateur connecté',
+  })
+  @ApiNotFoundResponse({
+    description: 'Profil de santé non trouvé pour cet utilisateur',
+  })
+  @ApiUnauthorizedResponse({ description: 'JWT invalide ou expiré' })
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard)
+  getMyHealthProfile(@Req() req: Request): Promise<HealthProfile> {
+    const payload = req.user as JwtPayload;
+
+    return this.healthProfileService.getMyHealthProfile(payload.sub);
   }
 
   @Get(':id')
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Récupérer un profil de santé par id' })
-  @ApiOkResponse({ description: 'Profil de santé' })
+  @ApiOkResponse({ description: 'Profil de santé correspondant à l’id' })
   @ApiParam({ name: 'id', description: 'ID du profil de santé' })
   @ApiNotFoundResponse({ description: 'Profil de santé non trouvé' })
   @ApiBadRequestResponse({ description: 'ID invalide' })
-  async getHealthProfile(@Param('id') id: string): Promise<HealthProfile> {
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('COACH', 'ADMIN')
+  getHealthProfile(@Param('id') id: string): Promise<HealthProfile> {
     return this.healthProfileService.getHealthProfile(id);
   }
 

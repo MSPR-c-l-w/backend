@@ -1,12 +1,13 @@
 export enum ROUTES {
   AUTH = 'auth',
   USERS = 'users',
+  ROLES = 'roles',
   ORGANIZATIONS = 'organizations',
   EXERCISE = 'exercise',
   NUTRITION = 'nutrition',
   PLAN = 'plan',
-  EXERCISE_LOG = 'exercise_log',
-  WORKOUT_SESSION = 'workout-session',
+  SESSION_EXERCISE = 'session-exercise',
+  SESSION = 'session',
   HEALTH_PROFILE = 'health-profile',
   SUBSCRIPTION = 'subscription',
 }
@@ -14,12 +15,13 @@ export enum ROUTES {
 export enum SERVICES {
   AUTH = 'AUTH_SERVICE',
   USERS = 'USERS_SERVICE',
+  ROLES = 'ROLES_SERVICE',
   ORGANIZATIONS = 'ORGANIZATIONS_SERVICE',
   EXERCISE = 'EXERCISE_SERVICE',
   NUTRITION = 'NUTRITION_SERVICE',
   PLAN = 'PLAN_SERVICE',
-  EXERCISE_LOG = 'EXERCISELOG_SERVICE',
-  WORKOUT_SESSION = 'WORKOUT_SESSION_SERVICE',
+  SESSION_EXERCISE = 'SESSION_EXERCISE_SERVICE',
+  SESSION = 'SESSION_SERVICE',
   HEALTH_PROFILE = 'HEALTH_PROFILE',
   SUBSCRIPTION = 'SUBSCRIPTION_SERVICE',
 }

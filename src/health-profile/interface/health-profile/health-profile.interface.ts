@@ -1,3 +1,4 @@
+import type { Request } from 'express';
 import { HealthProfile } from '@prisma/client';
 
 export interface IHealthProfileService {
@@ -11,4 +12,5 @@ export interface IHealthProfileService {
 export interface IHealthProfileController {
   getHealthProfiles(): Promise<HealthProfile[]>;
   getHealthProfile(id: string): Promise<HealthProfile>;
+  getMyHealthProfile(req: Request): Promise<HealthProfile>;
 }
