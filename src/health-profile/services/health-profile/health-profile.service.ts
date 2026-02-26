@@ -1,7 +1,12 @@
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { HealthProfile } from '@prisma/client';
 import { IHealthProfileService } from 'src/health-profile/interface/health-profile/health-profile.interface';
 import { PrismaService } from 'src/prisma/services/prisma/prisma.service';
@@ -28,7 +33,7 @@ export class HealthProfileService implements IHealthProfileService {
         orderBy: { id: 'asc' },
       });
       if (users.length === 0) {
-        throw new Error(
+        throw new BadRequestException(
           'NO_USERS_SEEDED: seed la table User avant de lancer le pipeline HealthProfile',
         );
       }
@@ -107,12 +112,15 @@ export class HealthProfileService implements IHealthProfileService {
     });
 
     if (!healthProfile) {
-      throw new Error('HEALTH_PROFILE_NOT_FOUND');
+      throw new NotFoundException('HEALTH_PROFILE_NOT_FOUND');
     }
 
     return healthProfile;
   }
-  async redistributeUserIds(): Promise<{ updated: number; usersCreated: number }> {
+  async redistributeUserIds(): Promise<{
+    updated: number;
+    usersCreated: number;
+  }> {
     try {
       const usersCreated = 0;
       const profiles = await this.prisma.healthProfile.findMany({
@@ -129,7 +137,7 @@ export class HealthProfileService implements IHealthProfileService {
         orderBy: { id: 'asc' },
       });
       if (userIds.length === 0) {
-        throw new Error(
+        throw new BadRequestException(
           'NO_USERS_SEEDED: seed la table User avant de redistribuer les user_id',
         );
       }

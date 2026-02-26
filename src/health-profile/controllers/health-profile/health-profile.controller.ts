@@ -3,23 +3,12 @@ import {
   Get,
   Inject,
   Param,
-  UseGuards,
-  Post,
-} from '@nestjs/common';
-import {
-  Controller,
-  Get,
-  Inject,
-  Param,
   Post,
   Req,
   UseGuards,
 } from '@nestjs/common';
 import {
-  ApiBadRequestResponse,
   ApiBearerAuth,
-  ApiInternalServerErrorResponse,
-  ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
   ApiParam,
@@ -43,6 +32,7 @@ import { ROUTES, SERVICES } from 'src/utils/constants';
 
 @Controller(ROUTES.HEALTH_PROFILE)
 @ApiTags(ROUTES.HEALTH_PROFILE)
+@UseGuards(JwtAuthGuard)
 export class HealthProfileController implements IHealthProfileController {
   constructor(
     @Inject(SERVICES.HEALTH_PROFILE)
@@ -50,7 +40,6 @@ export class HealthProfileController implements IHealthProfileController {
   ) {}
 
   @Get()
-  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Récupérer tous les profils de santé' })
   @ApiOkResponse({
     description: 'Liste des profils de santé récupérée avec succès',
@@ -75,15 +64,13 @@ export class HealthProfileController implements IHealthProfileController {
   })
   @ApiUnauthorizedResponse({ description: 'JWT invalide ou expiré' })
   @ApiBearerAuth('access-token')
-  @UseGuards(JwtAuthGuard)
   getMyHealthProfile(@Req() req: Request): Promise<HealthProfile> {
     const payload = req.user as JwtPayload;
 
-    return this.healthProfileService.getMyHealthProfile(payload.sub);
+    return this.healthProfileService.getHealthProfile(payload.sub.toString());
   }
 
   @Get(':id')
-  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Récupérer un profil de santé par id' })
   @ApiOkResponse({ description: 'Profil de santé correspondant à l’id' })
   @ApiParam({ name: 'id', description: 'ID du profil de santé' })
@@ -105,6 +92,9 @@ export class HealthProfileController implements IHealthProfileController {
   @ApiInternalServerErrorResponse({
     description: 'Erreur lors du traitement du fichier CSV',
   })
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN')
   async triggerImport(): Promise<{
     message: string;
     imported: number;
