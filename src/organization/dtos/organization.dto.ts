@@ -1,5 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsNotEmpty, IsObject, IsOptional, IsString } from 'class-validator';
+import type { BrandingConfig } from 'src/utils/types';
 
 export class CreateOrganizationDto {
   @ApiProperty({ example: 'ACME' })
@@ -19,7 +20,7 @@ export class CreateOrganizationDto {
     },
   })
   @IsObject({ message: 'BRANDING_CONFIG_MUST_BE_AN_OBJECT' })
-  branding_config: Record<string, any>;
+  branding_config: BrandingConfig;
 }
 
 export class UpdateOrganizationDto {
@@ -41,5 +42,5 @@ export class UpdateOrganizationDto {
   })
   @IsObject({ message: 'BRANDING_CONFIG_MUST_BE_AN_OBJECT' })
   @IsOptional()
-  branding_config?: Record<string, any>;
+  branding_config?: BrandingConfig;
 }

@@ -15,11 +15,18 @@ export type User = {
   is_deleted: boolean;
 };
 
+/** Configuration de marque (couleurs, logo, etc.) d'une organisation */
+export type BrandingConfig = {
+  primaryColor?: string;
+  logoUrl?: string;
+  [key: string]: string | undefined;
+};
+
 export type Organization = {
   id: number;
   name: string;
   type: string;
-  branding_config: Record<string, any>;
+  branding_config: BrandingConfig;
   created_at: Date;
   updated_at: Date;
   deleted_at: Date | null;
