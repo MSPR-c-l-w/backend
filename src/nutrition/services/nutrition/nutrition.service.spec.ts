@@ -27,6 +27,9 @@ describe('NutritionService', () => {
       findUnique: jest.Mock;
       upsert: jest.Mock;
     };
+    nutritionStaging: {
+      create: jest.Mock;
+    };
   };
   const mockHttpService = {
     get: jest.fn(),
@@ -55,6 +58,9 @@ describe('NutritionService', () => {
         findMany: jest.fn(),
         findUnique: jest.fn(),
         upsert: jest.fn(),
+      },
+      nutritionStaging: {
+        create: jest.fn(),
       },
     };
 
@@ -229,7 +235,7 @@ describe('NutritionService', () => {
       await expect(localService.runImportPipeline()).rejects.toThrow(
         /Aucun fichier \.csv trouvé dans le ZIP Kaggle/,
       );
-      expect(prisma.nutrition.upsert).not.toHaveBeenCalled();
+      expect(prisma.nutritionStaging.create).not.toHaveBeenCalled();
 
       process.env.KAGGLE_USER = originalUser;
       process.env.KAGGLE_KEY = originalKey;
@@ -270,12 +276,16 @@ describe('NutritionService', () => {
       const result = await localService.runImportPipeline();
 
       expect(result).toBe(1);
-      expect(prisma.nutrition.upsert).toHaveBeenCalledTimes(1);
-      const upsertArgs = prisma.nutrition.upsert.mock.calls[0][0];
-      expect(upsertArgs.where.name_category).toEqual({
-        name: 'Pomme',
-        category: 'Fruit',
+      expect(prisma.nutritionStaging.create).toHaveBeenCalledTimes(1);
+      const createArgs = prisma.nutritionStaging.create.mock.calls[0][0];
+      expect(createArgs.data).toMatchObject({
+        cleanedData: expect.objectContaining({
+          name: 'Pomme',
+          category: 'Fruit',
+        }),
+        anomalies: [],
       });
+      expect(createArgs.data.rawData).toBeDefined();
 
       process.env.KAGGLE_USER = originalUser;
       process.env.KAGGLE_KEY = originalKey;

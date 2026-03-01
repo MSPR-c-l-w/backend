@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import {
   BadRequestException,
   Injectable,
@@ -57,43 +56,47 @@ export class HealthProfileService implements IHealthProfileService {
         skipEmptyLines: true,
         dynamicTyping: true,
       });
-      const rows = parsed.data as any[];
-
-      await this.prisma.healthProfile.deleteMany({});
-      await this.prisma.$executeRaw`ALTER TABLE HealthProfile AUTO_INCREMENT =
-        1`;
+      const rows = parsed.data as Record<string, unknown>[];
 
       let importedCount = 0;
 
       for (const [index, row] of rows.entries()) {
         const userId = users[index % users.length].id;
-        const healthProfile = {
+        const cleanedData = {
           user_id: userId,
-          weight: row['Weight_kg'] || row['weight_kg'] || null,
-          bmi: row['BMI'] || row['bmi'] || null,
+          weight: row['Weight_kg'] ?? row['weight_kg'] ?? null,
+          bmi: row['BMI'] ?? row['bmi'] ?? null,
           physical_activity_level:
-            row['Physical_Activity_Level'] ||
-            row['Physical_Activity'] ||
-            row['physical_activity_level'] ||
+            row['Physical_Activity_Level'] ??
+            row['Physical_Activity'] ??
+            row['physical_activity_level'] ??
             null,
           daily_calories_target:
-            row['Daily_Caloric_Intake'] ||
-            row['Daily_Calories'] ||
-            row['Calories_Target'] ||
-            row['daily_calories_target'] ||
+            row['Daily_Caloric_Intake'] ??
+            row['Daily_Calories'] ??
+            row['Calories_Target'] ??
+            row['daily_calories_target'] ??
             null,
         };
 
-        await this.prisma.healthProfile.create({
-          data: healthProfile,
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-call -- healthProfileStaging fourni par PrismaClient
+        await this.prisma.healthProfileStaging.create({
+          data: {
+            rawData: row as object,
+            cleanedData,
+            anomalies: [],
+          },
         });
         importedCount++;
       }
 
-      this.logger.log(`Import réussi : ${importedCount} profils importés`);
+      this.logger.log(
+        `Import staging réussi : ${importedCount} profils en PENDING.`,
+      );
       return importedCount;
     } catch (e) {
-      this.logger.error(`Erreur ETL: ${e.message}`);
+      const message = e instanceof Error ? e.message : String(e);
+      this.logger.error(`Erreur ETL: ${message}`);
       throw e;
     }
   }

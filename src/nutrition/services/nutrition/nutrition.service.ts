@@ -228,28 +228,28 @@ export class NutritionService implements INutritionService {
       return 0;
     }
 
-    const toUpsertAll = rows
-      .map((row) => this.mapRowToNutrition(row))
-      .filter((n) => n.name.length > 0);
-    if (toUpsertAll.length === 0) {
+    const items = rows
+      .map((row) => ({ raw: row, cleaned: this.mapRowToNutrition(row) }))
+      .filter((x) => x.cleaned.name.length > 0);
+    if (items.length === 0) {
       this.logger.warn(
         `Aucune ligne avec un nom valide après mapping. Vérifiez les colonnes (ex. name/category). Premier enregistrement brut: ${JSON.stringify(rows[0])}`,
       );
       return 0;
     }
     this.logger.log(
-      `${toUpsertAll.length}/${rows.length} lignes à insérer/mettre à jour.`,
+      `${items.length}/${rows.length} lignes à enregistrer en staging.`,
     );
 
     const BATCH_SIZE = 50;
     const TRANSLATION_SEP = ' ||| ';
     let successCount = 0;
 
-    for (let i = 0; i < toUpsertAll.length; i += BATCH_SIZE) {
-      const batch = toUpsertAll.slice(i, i + BATCH_SIZE);
+    for (let i = 0; i < items.length; i += BATCH_SIZE) {
+      const batch = items.slice(i, i + BATCH_SIZE);
       const stringsToTranslate = batch.map(
         (d) =>
-          `${d.name}${TRANSLATION_SEP}${d.category}${TRANSLATION_SEP}${d.meal_type_name}`,
+          `${d.cleaned.name}${TRANSLATION_SEP}${d.cleaned.category}${TRANSLATION_SEP}${d.cleaned.meal_type_name}`,
       );
 
       let translatedBatch: string[] = [];
@@ -265,63 +265,49 @@ export class NutritionService implements INutritionService {
         translatedBatch = stringsToTranslate;
       }
 
-      const upsertPromises = batch.map((data, j) => {
+      const stagingPromises = batch.map((item, j) => {
+        const data = item.cleaned;
         const parts = (translatedBatch[j] ?? stringsToTranslate[j]).split(
           TRANSLATION_SEP,
         );
         const name = (parts[0] ?? data.name).trim();
         const category = (parts[1] ?? data.category).trim();
         const meal_type_name = (parts[2] ?? data.meal_type_name).trim();
-
-        return this.prisma.nutrition.upsert({
-          where: {
-            name_category: {
-              name,
-              category,
-            },
-          },
-          update: {
-            calories_kcal: data.calories_kcal,
-            protein_g: data.protein_g,
-            carbohydrates_g: data.carbohydrates_g,
-            fat_g: data.fat_g,
-            fiber_g: data.fiber_g,
-            sugar_g: data.sugar_g,
-            sodium_mg: data.sodium_mg,
-            cholesterol_mg: data.cholesterol_mg,
-            meal_type_name: meal_type_name || 'Autre',
-            water_intake_ml: data.water_intake_ml,
-            picture_url: data.picture_url,
-          },
-          create: {
-            name,
-            category,
-            calories_kcal: data.calories_kcal,
-            protein_g: data.protein_g,
-            carbohydrates_g: data.carbohydrates_g,
-            fat_g: data.fat_g,
-            fiber_g: data.fiber_g,
-            sugar_g: data.sugar_g,
-            sodium_mg: data.sodium_mg,
-            cholesterol_mg: data.cholesterol_mg,
-            meal_type_name: meal_type_name || 'Autre',
-            water_intake_ml: data.water_intake_ml,
-            picture_url: data.picture_url,
+        const cleanedData = {
+          name,
+          category,
+          calories_kcal: data.calories_kcal,
+          protein_g: data.protein_g,
+          carbohydrates_g: data.carbohydrates_g,
+          fat_g: data.fat_g,
+          fiber_g: data.fiber_g,
+          sugar_g: data.sugar_g,
+          sodium_mg: data.sodium_mg,
+          cholesterol_mg: data.cholesterol_mg,
+          meal_type_name: meal_type_name || 'Autre',
+          water_intake_ml: data.water_intake_ml,
+          picture_url: data.picture_url,
+        };
+        return this.prisma.nutritionStaging.create({
+          data: {
+            rawData: item.raw as object,
+            cleanedData,
+            anomalies: [],
           },
         });
       });
 
-      await Promise.all(upsertPromises);
+      await Promise.all(stagingPromises);
       successCount += batch.length;
 
       this.logger.log(
-        `Import : ${Math.min(i + BATCH_SIZE, toUpsertAll.length)}/${toUpsertAll.length} enregistrements traités.`,
+        `Staging : ${Math.min(i + BATCH_SIZE, items.length)}/${items.length} enregistrements.`,
       );
       await new Promise((resolve) => setTimeout(resolve, 600));
     }
 
     this.logger.log(
-      `--- Fin pipeline ETL Nutrition : ${successCount} enregistrements. ---`,
+      `--- Fin pipeline ETL Nutrition : ${successCount} enregistrements en staging (PENDING). ---`,
     );
     return successCount;
   }

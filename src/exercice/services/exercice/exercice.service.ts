@@ -123,50 +123,46 @@ export class ExerciceService implements IExerciceService {
           translatedBatch = allInstructionsStrings;
         }
 
-        const promises = batch.map((item, index) => {
-          const fullImageUrls = item.images
-            ? item.images.map((path: string) => `${this.IMG_BASE_URL}${path}`)
+        const stagingPromises = batch.map((item: Record<string, unknown>, index: number) => {
+          const fullImageUrls = Array.isArray(item.images)
+            ? (item.images as string[]).map(
+                (path: string) => `${this.IMG_BASE_URL}${path}`,
+              )
             : [];
           const translatedInstructions = translatedBatch[index].split(' ||| ');
-          const forceValue = this.translateTerm(item.force);
-
-          return this.prisma.exercise.upsert({
-            where: { name: item.name },
-            update: {
-              primary_muscles: (item.primaryMuscles || []).map((m: string) =>
-                this.translateTerm(m),
-              ),
-              secondary_muscles: (item.secondaryMuscles || []).map(
-                (m: string) => this.translateTerm(m),
-              ),
-              level: this.translateTerm(item.level),
-              mechanic: this.translateTerm(item.mechanic),
-              equipment: this.translateTerm(item.equipment),
-              category: this.translateTerm(item.category),
-              instructions: translatedInstructions,
-              image_urls: fullImageUrls,
-              exercise_type: forceValue,
-            },
-            create: {
-              name: item.name,
-              primary_muscles: (item.primaryMuscles || []).map((m: string) =>
-                this.translateTerm(m),
-              ),
-              secondary_muscles: (item.secondaryMuscles || []).map(
-                (m: string) => this.translateTerm(m),
-              ),
-              level: this.translateTerm(item.level),
-              mechanic: this.translateTerm(item.mechanic),
-              equipment: this.translateTerm(item.equipment),
-              category: this.translateTerm(item.category),
-              instructions: translatedInstructions,
-              image_urls: fullImageUrls,
-              exercise_type: forceValue,
+          const forceValue = this.translateTerm(item.force as string | null);
+          const primaryMuscles = Array.isArray(item.primaryMuscles)
+            ? (item.primaryMuscles as string[])
+            : [];
+          const secondaryMuscles = Array.isArray(item.secondaryMuscles)
+            ? (item.secondaryMuscles as string[])
+            : [];
+          const cleanedData = {
+            name: item.name as string,
+            primary_muscles: primaryMuscles.map((m: string) =>
+              this.translateTerm(m),
+            ),
+            secondary_muscles: secondaryMuscles.map((m: string) =>
+              this.translateTerm(m),
+            ),
+            level: this.translateTerm(item.level as string | null),
+            mechanic: this.translateTerm(item.mechanic as string | null),
+            equipment: this.translateTerm(item.equipment as string | null),
+            category: this.translateTerm(item.category as string | null),
+            instructions: translatedInstructions,
+            image_urls: fullImageUrls,
+            exercise_type: forceValue,
+          };
+          return this.prisma.exerciseStaging.create({
+            data: {
+              rawData: item as object,
+              cleanedData,
+              anomalies: [],
             },
           });
         });
 
-        await Promise.all(promises);
+        await Promise.all(stagingPromises);
         successCount += batch.length;
         this.logger.log(
           `Statut : ${successCount}/${rawData.length} synchronisés.`,

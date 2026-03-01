@@ -51,6 +51,9 @@ describe('ExerciceService', () => {
               upsert: jest.fn(),
               deleteMany: jest.fn(),
             },
+            exerciseStaging: {
+              create: jest.fn(),
+            },
           },
         },
         {
