@@ -79,7 +79,8 @@ export class HealthProfileService implements IHealthProfileService {
             null,
         };
 
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-call -- healthProfileStaging fourni par PrismaClient
+        // Nécessaire quand l'IDE ne résout pas le type Prisma (healthProfileStaging vu comme "error")
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-call
         await this.prisma.healthProfileStaging.create({
           data: {
             rawData: row as object,

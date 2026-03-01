@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-argument */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
@@ -123,44 +122,47 @@ export class ExerciceService implements IExerciceService {
           translatedBatch = allInstructionsStrings;
         }
 
-        const stagingPromises = batch.map((item: Record<string, unknown>, index: number) => {
-          const fullImageUrls = Array.isArray(item.images)
-            ? (item.images as string[]).map(
-                (path: string) => `${this.IMG_BASE_URL}${path}`,
-              )
-            : [];
-          const translatedInstructions = translatedBatch[index].split(' ||| ');
-          const forceValue = this.translateTerm(item.force as string | null);
-          const primaryMuscles = Array.isArray(item.primaryMuscles)
-            ? (item.primaryMuscles as string[])
-            : [];
-          const secondaryMuscles = Array.isArray(item.secondaryMuscles)
-            ? (item.secondaryMuscles as string[])
-            : [];
-          const cleanedData = {
-            name: item.name as string,
-            primary_muscles: primaryMuscles.map((m: string) =>
-              this.translateTerm(m),
-            ),
-            secondary_muscles: secondaryMuscles.map((m: string) =>
-              this.translateTerm(m),
-            ),
-            level: this.translateTerm(item.level as string | null),
-            mechanic: this.translateTerm(item.mechanic as string | null),
-            equipment: this.translateTerm(item.equipment as string | null),
-            category: this.translateTerm(item.category as string | null),
-            instructions: translatedInstructions,
-            image_urls: fullImageUrls,
-            exercise_type: forceValue,
-          };
-          return this.prisma.exerciseStaging.create({
-            data: {
-              rawData: item as object,
-              cleanedData,
-              anomalies: [],
-            },
-          });
-        });
+        const stagingPromises = batch.map(
+          (item: Record<string, unknown>, index: number) => {
+            const fullImageUrls = Array.isArray(item.images)
+              ? (item.images as string[]).map(
+                  (path: string) => `${this.IMG_BASE_URL}${path}`,
+                )
+              : [];
+            const translatedInstructions =
+              translatedBatch[index].split(' ||| ');
+            const forceValue = this.translateTerm(item.force as string | null);
+            const primaryMuscles = Array.isArray(item.primaryMuscles)
+              ? (item.primaryMuscles as string[])
+              : [];
+            const secondaryMuscles = Array.isArray(item.secondaryMuscles)
+              ? (item.secondaryMuscles as string[])
+              : [];
+            const cleanedData = {
+              name: item.name as string,
+              primary_muscles: primaryMuscles.map((m: string) =>
+                this.translateTerm(m),
+              ),
+              secondary_muscles: secondaryMuscles.map((m: string) =>
+                this.translateTerm(m),
+              ),
+              level: this.translateTerm(item.level as string | null),
+              mechanic: this.translateTerm(item.mechanic as string | null),
+              equipment: this.translateTerm(item.equipment as string | null),
+              category: this.translateTerm(item.category as string | null),
+              instructions: translatedInstructions,
+              image_urls: fullImageUrls,
+              exercise_type: forceValue,
+            };
+            return this.prisma.exerciseStaging.create({
+              data: {
+                rawData: item as object,
+                cleanedData,
+                anomalies: [],
+              },
+            });
+          },
+        );
 
         await Promise.all(stagingPromises);
         successCount += batch.length;
