@@ -65,7 +65,7 @@ model Session {
   max_bpm          Int
   resting_bpm      Int?
   created_at       DateTime          @default(now())
-  user             User              @relation(fields: [user_id], references: [id])
+  user             User              @relation(fields: [user_id], references: [id], onDelete: Cascade)
   sessionExercises SessionExercise[]
 }
 
@@ -167,43 +167,43 @@ enum StagingStatus {
 }
 
 model NutritionStaging {
-  id          String         @id @default(uuid())
-  rawData     Json
-  cleanedData Json
+  id          String        @id @default(uuid())
+  raw_data    Json
+  cleaned_data Json
   anomalies   Json
-  status      StagingStatus  @default(PENDING)
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
-  reviewedBy  Int?
-  reviewedAt  DateTime?
+  status      StagingStatus @default(PENDING)
+  created_at  DateTime      @default(now())
+  updated_at  DateTime      @updatedAt
+  reviewed_by Int?
+  reviewed_at DateTime?
 
   @@index([status])
 }
 
 model ExerciseStaging {
-  id          String        @id @default(uuid())
-  rawData     Json
-  cleanedData Json
-  anomalies   Json
-  status      StagingStatus @default(PENDING)
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
-  reviewedBy  Int?
-  reviewedAt  DateTime?
+  id           String        @id @default(uuid())
+  raw_data     Json
+  cleaned_data Json
+  anomalies    Json
+  status       StagingStatus @default(PENDING)
+  created_at   DateTime      @default(now())
+  updated_at   DateTime      @updatedAt
+  reviewed_by  Int?
+  reviewed_at  DateTime?
 
   @@index([status])
 }
 
 model HealthProfileStaging {
-  id          String        @id @default(uuid())
-  rawData     Json
-  cleanedData Json
-  anomalies   Json
-  status      StagingStatus @default(PENDING)
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
-  reviewedBy  Int?
-  reviewedAt  DateTime?
+  id           String        @id @default(uuid())
+  raw_data     Json
+  cleaned_data Json
+  anomalies    Json
+  status       StagingStatus @default(PENDING)
+  created_at   DateTime      @default(now())
+  updated_at   DateTime      @updatedAt
+  reviewed_by  Int?
+  reviewed_at  DateTime?
 
   @@index([status])
 }

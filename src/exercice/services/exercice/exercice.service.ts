@@ -156,8 +156,8 @@ export class ExerciceService implements IExerciceService {
             };
             return this.prisma.exerciseStaging.create({
               data: {
-                rawData: item as object,
-                cleanedData,
+                raw_data: item as object,
+                cleaned_data: cleanedData,
                 anomalies: [],
               },
             });

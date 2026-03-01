@@ -279,13 +279,13 @@ describe('NutritionService', () => {
       expect(prisma.nutritionStaging.create).toHaveBeenCalledTimes(1);
       const createArgs = prisma.nutritionStaging.create.mock.calls[0][0];
       expect(createArgs.data).toMatchObject({
-        cleanedData: expect.objectContaining({
+        cleaned_data: expect.objectContaining({
           name: 'Pomme',
           category: 'Fruit',
         }),
         anomalies: [],
       });
-      expect(createArgs.data.rawData).toBeDefined();
+      expect(createArgs.data.raw_data).toBeDefined();
 
       process.env.KAGGLE_USER = originalUser;
       process.env.KAGGLE_KEY = originalKey;

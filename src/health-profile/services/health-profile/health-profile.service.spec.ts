@@ -127,8 +127,8 @@ P0002,45,Female,75.2,165,27.6,Obesity,Moderate,Sedentary,1800`;
         {
           data: {
             // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- matcher Jest
-            rawData: expect.any(Object),
-            cleanedData: {
+            raw_data: expect.any(Object),
+            cleaned_data: {
               user_id: 1,
               weight: 58.4,
               bmi: 22.8,
@@ -181,8 +181,8 @@ P0001,56,Male,58.4,160,22.8,Diabetes,Severe,Active,2500`;
       expect(prismaMock.healthProfileStaging.create).toHaveBeenCalledWith({
         data: {
           // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- matcher Jest
-          rawData: expect.any(Object),
-          cleanedData: {
+          raw_data: expect.any(Object),
+          cleaned_data: {
             user_id: 1,
             weight: 58.4,
             bmi: 22.8,
@@ -209,8 +209,8 @@ P0001,56,Male,22.8`;
       expect(prismaMock.healthProfileStaging.create).toHaveBeenCalledWith({
         data: {
           // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- matcher Jest
-          rawData: expect.any(Object),
-          cleanedData: {
+          raw_data: expect.any(Object),
+          cleaned_data: {
             user_id: 1,
             weight: null,
             bmi: 22.8,

@@ -83,8 +83,8 @@ export class HealthProfileService implements IHealthProfileService {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-call
         await this.prisma.healthProfileStaging.create({
           data: {
-            rawData: row as object,
-            cleanedData,
+            raw_data: row as object,
+            cleaned_data: cleanedData,
             anomalies: [],
           },
         });

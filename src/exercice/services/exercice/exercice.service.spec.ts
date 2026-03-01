@@ -5,9 +5,20 @@ import { Exercise } from '@prisma/client';
 import { HttpService } from '@nestjs/axios';
 import { of } from 'rxjs';
 
+jest.mock('google-translate-api-x', () => ({
+  translate: jest.fn((texts: string[] | string) => {
+    if (Array.isArray(texts)) {
+      return Promise.resolve(texts.map((t) => ({ text: t })));
+    }
+    return Promise.resolve({ text: texts });
+  }),
+}));
+
 describe('ExerciceService', () => {
   let service: ExerciceService;
   let prismaService: PrismaService;
+  let httpGetMock: jest.Mock;
+  let exerciseStagingCreateMock: jest.Mock;
 
   const mockExercises: Exercise[] = [
     {
@@ -52,14 +63,14 @@ describe('ExerciceService', () => {
               deleteMany: jest.fn(),
             },
             exerciseStaging: {
-              create: jest.fn(),
+              create: (exerciseStagingCreateMock = jest.fn()),
             },
           },
         },
         {
           provide: HttpService,
           useValue: {
-            get: jest.fn().mockReturnValue(of({ data: [] })),
+            get: (httpGetMock = jest.fn().mockReturnValue(of({ data: [] }))),
           },
         },
       ],
@@ -116,6 +127,55 @@ describe('ExerciceService', () => {
       await expect(service.getExerciceById(999)).rejects.toThrow(
         'Exercice 999 introuvable',
       );
+    });
+  });
+
+  describe('runImportPipeline', () => {
+    const minimalPayload: Record<string, unknown>[] = [
+      {
+        name: 'Bench Press',
+        primaryMuscles: ['chest'],
+        secondaryMuscles: ['triceps'],
+        instructions: ['Step 1', 'Step 2'],
+        images: ['bench.jpg'],
+        force: 'push',
+        level: 'beginner',
+        mechanic: 'compound',
+        equipment: 'barbell',
+        category: 'strength',
+      },
+    ];
+
+    it('should fetch JSON, write to exerciseStaging and return successCount', async () => {
+      httpGetMock.mockReturnValue(of({ data: minimalPayload }));
+      exerciseStagingCreateMock.mockResolvedValue({ id: 'staging-uuid' });
+
+      const result = await service.runImportPipeline();
+
+      expect(result).toBe(1);
+      expect(exerciseStagingCreateMock).toHaveBeenCalledTimes(1);
+      expect(exerciseStagingCreateMock).toHaveBeenCalledWith({
+        data: {
+          // raw_data = payload brut du pipeline
+          raw_data: minimalPayload[0] as object,
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- matcher Jest
+          cleaned_data: expect.objectContaining({
+            name: 'Bench Press',
+            primary_muscles: ['pectoraux'],
+            secondary_muscles: ['triceps'],
+            level: 'débutant',
+            mechanic: 'polyarticulaire',
+            equipment: 'barre',
+            category: 'force',
+            instructions: ['Step 1', 'Step 2'],
+            image_urls: [
+              'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/bench.jpg',
+            ],
+            exercise_type: 'poussée',
+          }),
+          anomalies: [],
+        },
+      });
     });
   });
 });

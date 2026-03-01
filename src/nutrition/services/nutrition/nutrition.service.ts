@@ -290,8 +290,8 @@ export class NutritionService implements INutritionService {
         };
         return this.prisma.nutritionStaging.create({
           data: {
-            rawData: item.raw as object,
-            cleanedData,
+            raw_data: item.raw as object,
+            cleaned_data: cleanedData,
             anomalies: [],
           },
         });
