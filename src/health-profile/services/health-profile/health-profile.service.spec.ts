@@ -4,6 +4,7 @@ import { PrismaService } from 'src/prisma/services/prisma/prisma.service';
 import { NotFoundException } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { of } from 'rxjs';
+import { EtlLogService } from 'src/etl-log/etl-log.service';
 
 describe('HealthProfileService', () => {
   let service: HealthProfileService;
@@ -38,6 +39,10 @@ describe('HealthProfileService', () => {
         {
           provide: HttpService,
           useValue: httpServiceMock,
+        },
+        {
+          provide: EtlLogService,
+          useValue: { emit: jest.fn(), getStream: jest.fn(() => ({ subscribe: () => {} })) },
         },
       ],
     }).compile();
@@ -126,8 +131,6 @@ P0002,45,Female,75.2,165,27.6,Obesity,Moderate,Sedentary,1800`;
         1,
         {
           data: {
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- matcher Jest
-            raw_data: expect.any(Object),
             cleaned_data: {
               user_id: 1,
               weight: 58.4,
@@ -180,8 +183,6 @@ P0001,56,Male,58.4,160,22.8,Diabetes,Severe,Active,2500`;
 
       expect(prismaMock.healthProfileStaging.create).toHaveBeenCalledWith({
         data: {
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- matcher Jest
-          raw_data: expect.any(Object),
           cleaned_data: {
             user_id: 1,
             weight: 58.4,
@@ -208,8 +209,6 @@ P0001,56,Male,22.8`;
 
       expect(prismaMock.healthProfileStaging.create).toHaveBeenCalledWith({
         data: {
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- matcher Jest
-          raw_data: expect.any(Object),
           cleaned_data: {
             user_id: 1,
             weight: null,

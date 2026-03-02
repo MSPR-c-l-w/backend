@@ -3,6 +3,7 @@ import { ExerciceService } from './exercice.service';
 import { PrismaService } from 'src/prisma/services/prisma/prisma.service';
 import { Exercise } from '@prisma/client';
 import { HttpService } from '@nestjs/axios';
+import { EtlLogService } from 'src/etl-log/etl-log.service';
 import { of } from 'rxjs';
 
 jest.mock('google-translate-api-x', () => ({
@@ -72,6 +73,10 @@ describe('ExerciceService', () => {
           useValue: {
             get: (httpGetMock = jest.fn().mockReturnValue(of({ data: [] }))),
           },
+        },
+        {
+          provide: EtlLogService,
+          useValue: { emit: jest.fn(), getStream: jest.fn(() => ({ subscribe: () => {} })) },
         },
       ],
     }).compile();
@@ -156,8 +161,6 @@ describe('ExerciceService', () => {
       expect(exerciseStagingCreateMock).toHaveBeenCalledTimes(1);
       expect(exerciseStagingCreateMock).toHaveBeenCalledWith({
         data: {
-          // raw_data = payload brut du pipeline
-          raw_data: minimalPayload[0] as object,
           // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- matcher Jest
           cleaned_data: expect.objectContaining({
             name: 'Bench Press',

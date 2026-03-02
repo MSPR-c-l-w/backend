@@ -8,6 +8,7 @@ import { Exercise } from '@prisma/client';
 import { IExerciceService } from 'src/exercice/interfaces/exercice/exercice.interface';
 import { PrismaService } from 'src/prisma/services/prisma/prisma.service';
 import { HttpService } from '@nestjs/axios';
+import { EtlLogService } from 'src/etl-log/etl-log.service';
 import { lastValueFrom } from 'rxjs';
 import { translate } from 'google-translate-api-x';
 import { GetExercisesFilterDto } from 'src/exercice/dtos/et-exercises-filter.dto';
@@ -62,6 +63,7 @@ export class ExerciceService implements IExerciceService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly httpService: HttpService,
+    private readonly etlLog: EtlLogService,
   ) {}
 
   private translateTerm(term: string | null): string | null {
@@ -94,7 +96,9 @@ export class ExerciceService implements IExerciceService {
 
   async runImportPipeline(): Promise<number> {
     try {
-      this.logger.log('--- DÉBUT PIPELINE ETL (UPSERT & BATCH) ---');
+      const startMsg = '--- DÉBUT PIPELINE ETL (UPSERT & BATCH) ---';
+      this.logger.log(startMsg);
+      this.etlLog.emit('exercise', 'INFO', startMsg);
       const response = await lastValueFrom(
         this.httpService.get(this.SOURCE_URL),
       );
@@ -156,7 +160,6 @@ export class ExerciceService implements IExerciceService {
             };
             return this.prisma.exerciseStaging.create({
               data: {
-                raw_data: item as object,
                 cleaned_data: cleanedData,
                 anomalies: [],
               },
@@ -166,14 +169,18 @@ export class ExerciceService implements IExerciceService {
 
         await Promise.all(stagingPromises);
         successCount += batch.length;
-        this.logger.log(
-          `Statut : ${successCount}/${rawData.length} synchronisés.`,
-        );
+        const statusMsg = `Statut : ${successCount}/${rawData.length} synchronisés.`;
+        this.logger.log(statusMsg);
+        this.etlLog.emit('exercise', 'INFO', statusMsg);
         await new Promise((resolve) => setTimeout(resolve, 600));
       }
+      const endMsg = `--- Fin pipeline ETL Exercice : ${successCount} enregistrements en staging (PENDING). ---`;
+      this.etlLog.emit('exercise', 'SUCCESS', endMsg);
       return successCount;
     } catch (error) {
-      this.logger.error(`ERREUR ETL : ${error.message}`);
+      const errMsg = `ERREUR ETL : ${(error as Error).message}`;
+      this.logger.error(errMsg);
+      this.etlLog.emit('exercise', 'ERROR', errMsg);
       throw error;
     }
   }

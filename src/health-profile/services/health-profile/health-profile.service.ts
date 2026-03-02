@@ -10,6 +10,7 @@ import { HealthProfile } from '@prisma/client';
 import { IHealthProfileService } from 'src/health-profile/interface/health-profile/health-profile.interface';
 import { PrismaService } from 'src/prisma/services/prisma/prisma.service';
 import { HttpService } from '@nestjs/axios';
+import { EtlLogService } from 'src/etl-log/etl-log.service';
 import { lastValueFrom } from 'rxjs';
 import * as Papa from 'papaparse';
 
@@ -24,9 +25,11 @@ export class HealthProfileService implements IHealthProfileService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly httpService: HttpService,
+    private readonly etlLog: EtlLogService,
   ) {}
   async runHealthProfilePipeline(): Promise<number> {
     try {
+      this.etlLog.emit('health-profile', 'INFO', '--- Début pipeline ETL HealthProfile ---');
       const users = await this.prisma.user.findMany({
         select: { id: true },
         orderBy: { id: 'asc' },
@@ -83,7 +86,6 @@ export class HealthProfileService implements IHealthProfileService {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-call
         await this.prisma.healthProfileStaging.create({
           data: {
-            raw_data: row as object,
             cleaned_data: cleanedData,
             anomalies: [],
           },
@@ -91,13 +93,14 @@ export class HealthProfileService implements IHealthProfileService {
         importedCount++;
       }
 
-      this.logger.log(
-        `Import staging réussi : ${importedCount} profils en PENDING.`,
-      );
+      const successMsg = `Import staging réussi : ${importedCount} profils en PENDING.`;
+      this.logger.log(successMsg);
+      this.etlLog.emit('health-profile', 'SUCCESS', successMsg);
       return importedCount;
     } catch (e) {
       const message = e instanceof Error ? e.message : String(e);
       this.logger.error(`Erreur ETL: ${message}`);
+      this.etlLog.emit('health-profile', 'ERROR', `Erreur ETL: ${message}`);
       throw e;
     }
   }

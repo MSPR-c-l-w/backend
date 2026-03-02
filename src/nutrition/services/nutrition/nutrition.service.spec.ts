@@ -6,6 +6,7 @@ import { NotFoundException } from '@nestjs/common';
 import { NutritionService } from './nutrition.service';
 import { PrismaService } from 'src/prisma/services/prisma/prisma.service';
 import { HttpService } from '@nestjs/axios';
+import { EtlLogService } from 'src/etl-log/etl-log.service';
 import { Nutrition } from '@prisma/client';
 import { of } from 'rxjs';
 import AdmZip from 'adm-zip';
@@ -74,6 +75,10 @@ describe('NutritionService', () => {
         {
           provide: HttpService,
           useValue: mockHttpService,
+        },
+        {
+          provide: EtlLogService,
+          useValue: { emit: jest.fn(), getStream: jest.fn(() => ({ subscribe: () => {} })) },
         },
       ],
     }).compile();
@@ -191,6 +196,10 @@ describe('NutritionService', () => {
             provide: HttpService,
             useValue: mockHttpService,
           },
+          {
+            provide: EtlLogService,
+            useValue: { emit: jest.fn(), getStream: jest.fn(() => ({ subscribe: () => {} })) },
+          },
         ],
       }).compile();
 
@@ -226,6 +235,10 @@ describe('NutritionService', () => {
           {
             provide: HttpService,
             useValue: mockHttpService,
+          },
+          {
+            provide: EtlLogService,
+            useValue: { emit: jest.fn(), getStream: jest.fn(() => ({ subscribe: () => {} })) },
           },
         ],
       }).compile();
@@ -268,6 +281,10 @@ describe('NutritionService', () => {
             provide: HttpService,
             useValue: mockHttpService,
           },
+          {
+            provide: EtlLogService,
+            useValue: { emit: jest.fn(), getStream: jest.fn(() => ({ subscribe: () => {} })) },
+          },
         ],
       }).compile();
 
@@ -285,7 +302,6 @@ describe('NutritionService', () => {
         }),
         anomalies: [],
       });
-      expect(createArgs.data.raw_data).toBeDefined();
 
       process.env.KAGGLE_USER = originalUser;
       process.env.KAGGLE_KEY = originalKey;

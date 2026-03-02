@@ -4,9 +4,10 @@ import { HealthProfileController } from './controllers/health-profile/health-pro
 import { SERVICES } from 'src/utils/constants';
 import { HttpModule } from '@nestjs/axios';
 import { PrismaModule } from 'src/prisma/prisma.module';
+import { EtlLogModule } from 'src/etl-log/etl-log.module';
 
 @Module({
-  imports: [PrismaModule, HttpModule],
+  imports: [PrismaModule, HttpModule, EtlLogModule],
   providers: [
     HealthProfileService,
     {
