@@ -4,7 +4,7 @@ import { PrismaService } from 'src/prisma/services/prisma/prisma.service';
 import { NotFoundException } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { of } from 'rxjs';
-import { EtlLogService } from 'src/etl-log/etl-log.service';
+import { EtlService } from 'src/etl/services/etl/etl.service';
 
 describe('HealthProfileService', () => {
   let service: HealthProfileService;
@@ -41,8 +41,11 @@ describe('HealthProfileService', () => {
           useValue: httpServiceMock,
         },
         {
-          provide: EtlLogService,
-          useValue: { emit: jest.fn(), getStream: jest.fn(() => ({ subscribe: () => {} })) },
+          provide: EtlService,
+          useValue: {
+            emit: jest.fn(),
+            getStream: jest.fn(() => ({ subscribe: () => {} })),
+          },
         },
       ],
     }).compile();

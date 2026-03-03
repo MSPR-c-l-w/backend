@@ -2,11 +2,11 @@ import { Module } from '@nestjs/common';
 import { HttpModule } from '@nestjs/axios';
 import { NutritionService } from './services/nutrition/nutrition.service';
 import { NutritionController } from './controllers/nutrition/nutrition.controller';
-import { EtlLogModule } from 'src/etl-log/etl-log.module';
+import { EtlModule } from 'src/etl/etl.module';
 import { SERVICES } from 'src/utils/constants';
 
 @Module({
-  imports: [HttpModule, EtlLogModule],
+  imports: [HttpModule, EtlModule],
   providers: [
     NutritionService,
     {

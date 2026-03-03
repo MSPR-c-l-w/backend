@@ -8,7 +8,7 @@ import { Exercise } from '@prisma/client';
 import { IExerciceService } from 'src/exercice/interfaces/exercice/exercice.interface';
 import { PrismaService } from 'src/prisma/services/prisma/prisma.service';
 import { HttpService } from '@nestjs/axios';
-import { EtlLogService } from 'src/etl-log/etl-log.service';
+import { EtlService } from 'src/etl/services/etl/etl.service';
 import { lastValueFrom } from 'rxjs';
 import { translate } from 'google-translate-api-x';
 import { GetExercisesFilterDto } from 'src/exercice/dtos/et-exercises-filter.dto';
@@ -63,7 +63,7 @@ export class ExerciceService implements IExerciceService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly httpService: HttpService,
-    private readonly etlLog: EtlLogService,
+    private readonly etl: EtlService,
   ) {}
 
   private translateTerm(term: string | null): string | null {
@@ -98,7 +98,7 @@ export class ExerciceService implements IExerciceService {
     try {
       const startMsg = '--- DÉBUT PIPELINE ETL (UPSERT & BATCH) ---';
       this.logger.log(startMsg);
-      this.etlLog.emit('exercise', 'INFO', startMsg);
+      this.etl.emit('exercise', 'INFO', startMsg);
       const response = await lastValueFrom(
         this.httpService.get(this.SOURCE_URL),
       );
@@ -171,16 +171,16 @@ export class ExerciceService implements IExerciceService {
         successCount += batch.length;
         const statusMsg = `Statut : ${successCount}/${rawData.length} synchronisés.`;
         this.logger.log(statusMsg);
-        this.etlLog.emit('exercise', 'INFO', statusMsg);
+        this.etl.emit('exercise', 'INFO', statusMsg);
         await new Promise((resolve) => setTimeout(resolve, 600));
       }
       const endMsg = `--- Fin pipeline ETL Exercice : ${successCount} enregistrements en staging (PENDING). ---`;
-      this.etlLog.emit('exercise', 'SUCCESS', endMsg);
+      this.etl.emit('exercise', 'SUCCESS', endMsg);
       return successCount;
     } catch (error) {
       const errMsg = `ERREUR ETL : ${(error as Error).message}`;
       this.logger.error(errMsg);
-      this.etlLog.emit('exercise', 'ERROR', errMsg);
+      this.etl.emit('exercise', 'ERROR', errMsg);
       throw error;
     }
   }

@@ -11,7 +11,7 @@ export interface EtlLogEntry {
 }
 
 @Injectable()
-export class EtlLogService {
+export class EtlService {
   private readonly logSubject = new Subject<EtlLogEntry>();
 
   emit(pipelineId: PipelineId, level: string, message: string): void {

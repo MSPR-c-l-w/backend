@@ -3,10 +3,10 @@ import { ExerciceService } from './services/exercice/exercice.service';
 import { ExerciceController } from './controllers/exercice/exercice.controller';
 import { SERVICES } from 'src/utils/constants';
 import { HttpModule } from '@nestjs/axios';
-import { EtlLogModule } from 'src/etl-log/etl-log.module';
+import { EtlModule } from 'src/etl/etl.module';
 
 @Module({
-  imports: [HttpModule, EtlLogModule],
+  imports: [HttpModule, EtlModule],
   providers: [
     ExerciceService,
     {

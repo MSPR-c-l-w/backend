@@ -9,7 +9,7 @@ import { Nutrition } from '@prisma/client';
 import { INutritionService } from 'src/nutrition/interfaces/nutrition/nutrition.interface';
 import { PrismaService } from 'src/prisma/services/prisma/prisma.service';
 import { HttpService } from '@nestjs/axios';
-import { EtlLogService } from 'src/etl-log/etl-log.service';
+import { EtlService } from 'src/etl/services/etl/etl.service';
 import { lastValueFrom } from 'rxjs';
 import * as Papa from 'papaparse';
 import { translate } from 'google-translate-api-x';
@@ -45,7 +45,7 @@ export class NutritionService implements INutritionService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly httpService: HttpService,
-    private readonly etlLog: EtlLogService,
+    private readonly etl: EtlService,
   ) {}
 
   async getNutritions(): Promise<Nutrition[]> {
@@ -192,7 +192,7 @@ export class NutritionService implements INutritionService {
       const msg =
         "KAGGLE_USER et KAGGLE_KEY doivent être définis pour l'import.";
       this.logger.error(msg);
-      this.etlLog.emit('nutrition', 'ERROR', msg);
+      this.etl.emit('nutrition', 'ERROR', msg);
       throw new Error(
         "Variables d'environnement KAGGLE_USER et KAGGLE_KEY requises.",
       );
@@ -200,7 +200,7 @@ export class NutritionService implements INutritionService {
 
     const startMsg = '--- Début pipeline ETL Nutrition (Kaggle) ---';
     this.logger.log(startMsg);
-    this.etlLog.emit('nutrition', 'INFO', startMsg);
+    this.etl.emit('nutrition', 'INFO', startMsg);
 
     const auth = Buffer.from(`${this.kaggleUser}:${this.kaggleKey}`).toString(
       'base64',
@@ -230,7 +230,7 @@ export class NutritionService implements INutritionService {
 
     if (rows.length === 0) {
       this.logger.warn('Aucune ligne dans le CSV Kaggle.');
-      this.etlLog.emit('nutrition', 'WARNING', 'Aucune ligne dans le CSV Kaggle.');
+      this.etl.emit('nutrition', 'WARNING', 'Aucune ligne dans le CSV Kaggle.');
       return 0;
     }
 
@@ -240,12 +240,12 @@ export class NutritionService implements INutritionService {
     if (items.length === 0) {
       const warnMsg = `Aucune ligne avec un nom valide après mapping. Vérifiez les colonnes (ex. name/category). Premier enregistrement brut: ${JSON.stringify(rows[0])}`;
       this.logger.warn(warnMsg);
-      this.etlLog.emit('nutrition', 'WARNING', warnMsg);
+      this.etl.emit('nutrition', 'WARNING', warnMsg);
       return 0;
     }
     const linesMsg = `${items.length}/${rows.length} lignes à enregistrer en staging.`;
     this.logger.log(linesMsg);
-    this.etlLog.emit('nutrition', 'INFO', linesMsg);
+    this.etl.emit('nutrition', 'INFO', linesMsg);
 
     const BATCH_SIZE = 50;
     const TRANSLATION_SEP = ' ||| ';
@@ -267,7 +267,7 @@ export class NutritionService implements INutritionService {
       } catch (err) {
         const warnMsg = `Traduction batch ${i / BATCH_SIZE + 1} échouée, conservation du texte original: ${(err as Error).message}`;
         this.logger.warn(warnMsg);
-        this.etlLog.emit('nutrition', 'WARNING', warnMsg);
+        this.etl.emit('nutrition', 'WARNING', warnMsg);
         translatedBatch = stringsToTranslate;
       }
 
@@ -307,13 +307,13 @@ export class NutritionService implements INutritionService {
 
       const stagingMsg = `Staging : ${Math.min(i + BATCH_SIZE, items.length)}/${items.length} enregistrements.`;
       this.logger.log(stagingMsg);
-      this.etlLog.emit('nutrition', 'INFO', stagingMsg);
+      this.etl.emit('nutrition', 'INFO', stagingMsg);
       await new Promise((resolve) => setTimeout(resolve, 600));
     }
 
     const endMsg = `--- Fin pipeline ETL Nutrition : ${successCount} enregistrements en staging (PENDING). ---`;
     this.logger.log(endMsg);
-    this.etlLog.emit('nutrition', 'SUCCESS', endMsg);
+    this.etl.emit('nutrition', 'SUCCESS', endMsg);
     return successCount;
   }
 }

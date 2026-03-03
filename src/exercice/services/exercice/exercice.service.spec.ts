@@ -3,7 +3,7 @@ import { ExerciceService } from './exercice.service';
 import { PrismaService } from 'src/prisma/services/prisma/prisma.service';
 import { Exercise } from '@prisma/client';
 import { HttpService } from '@nestjs/axios';
-import { EtlLogService } from 'src/etl-log/etl-log.service';
+import { EtlService } from 'src/etl/services/etl/etl.service';
 import { of } from 'rxjs';
 
 jest.mock('google-translate-api-x', () => ({
@@ -75,8 +75,11 @@ describe('ExerciceService', () => {
           },
         },
         {
-          provide: EtlLogService,
-          useValue: { emit: jest.fn(), getStream: jest.fn(() => ({ subscribe: () => {} })) },
+          provide: EtlService,
+          useValue: {
+            emit: jest.fn(),
+            getStream: jest.fn(() => ({ subscribe: () => {} })),
+          },
         },
       ],
     }).compile();

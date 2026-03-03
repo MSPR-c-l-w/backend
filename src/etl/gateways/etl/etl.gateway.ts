@@ -9,7 +9,7 @@ import {
 import { Logger } from '@nestjs/common';
 import { Server } from 'socket.io';
 import type { Socket } from 'socket.io';
-import { EtlLogService, type PipelineId } from './etl-log.service';
+import { EtlService, type PipelineId } from '../../services/etl/etl.service';
 
 const VALID_PIPELINES: PipelineId[] = [
   'nutrition',
@@ -20,16 +20,16 @@ const VALID_PIPELINES: PipelineId[] = [
 @WebSocketGateway({
   cors: { origin: true },
 })
-export class EtlLogGateway implements OnGatewayInit {
+export class EtlGateway implements OnGatewayInit {
   @WebSocketServer()
   server!: Server;
 
-  private readonly logger = new Logger(EtlLogGateway.name);
+  private readonly logger = new Logger(EtlGateway.name);
 
-  constructor(private readonly etlLogService: EtlLogService) {}
+  constructor(private readonly etlService: EtlService) {}
 
   afterInit(): void {
-    this.etlLogService.getStream().subscribe((entry) => {
+    this.etlService.getStream().subscribe((entry) => {
       const room = `etl:${entry.pipelineId}`;
       this.server.to(room).emit('etl:log', {
         timestamp: entry.timestamp,
@@ -40,10 +40,10 @@ export class EtlLogGateway implements OnGatewayInit {
   }
 
   @SubscribeMessage('subscribe')
-  handleSubscribe(
+  async handleSubscribe(
     @MessageBody() data: { pipeline?: string },
     @ConnectedSocket() client: Socket,
-  ): void {
+  ): Promise<void> {
     const pipeline = data?.pipeline;
     if (!pipeline || !VALID_PIPELINES.includes(pipeline as PipelineId)) {
       this.logger.warn(
@@ -52,7 +52,7 @@ export class EtlLogGateway implements OnGatewayInit {
       return;
     }
     const room = `etl:${pipeline}`;
-    client.join(room);
+    await client.join(room);
     this.logger.log(`Client ${client.id} subscribed to ${room}`);
   }
 }

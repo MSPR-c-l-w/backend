@@ -6,7 +6,7 @@ import { NotFoundException } from '@nestjs/common';
 import { NutritionService } from './nutrition.service';
 import { PrismaService } from 'src/prisma/services/prisma/prisma.service';
 import { HttpService } from '@nestjs/axios';
-import { EtlLogService } from 'src/etl-log/etl-log.service';
+import { EtlLogService } from 'src/etl/services/etl/etl.service';
 import { Nutrition } from '@prisma/client';
 import { of } from 'rxjs';
 import AdmZip from 'adm-zip';
@@ -78,7 +78,10 @@ describe('NutritionService', () => {
         },
         {
           provide: EtlLogService,
-          useValue: { emit: jest.fn(), getStream: jest.fn(() => ({ subscribe: () => {} })) },
+          useValue: {
+            emit: jest.fn(),
+            getStream: jest.fn(() => ({ subscribe: () => {} })),
+          },
         },
       ],
     }).compile();
@@ -198,7 +201,10 @@ describe('NutritionService', () => {
           },
           {
             provide: EtlLogService,
-            useValue: { emit: jest.fn(), getStream: jest.fn(() => ({ subscribe: () => {} })) },
+            useValue: {
+              emit: jest.fn(),
+              getStream: jest.fn(() => ({ subscribe: () => {} })),
+            },
           },
         ],
       }).compile();
@@ -238,7 +244,10 @@ describe('NutritionService', () => {
           },
           {
             provide: EtlLogService,
-            useValue: { emit: jest.fn(), getStream: jest.fn(() => ({ subscribe: () => {} })) },
+            useValue: {
+              emit: jest.fn(),
+              getStream: jest.fn(() => ({ subscribe: () => {} })),
+            },
           },
         ],
       }).compile();
@@ -283,7 +292,10 @@ describe('NutritionService', () => {
           },
           {
             provide: EtlLogService,
-            useValue: { emit: jest.fn(), getStream: jest.fn(() => ({ subscribe: () => {} })) },
+            useValue: {
+              emit: jest.fn(),
+              getStream: jest.fn(() => ({ subscribe: () => {} })),
+            },
           },
         ],
       }).compile();
