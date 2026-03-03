@@ -16,6 +16,8 @@ describe('HealthProfileService', () => {
       create: jest.fn(),
     },
     healthProfileStaging: {
+      findFirst: jest.fn(),
+      update: jest.fn(),
       create: jest.fn(),
     },
     user: {
@@ -142,6 +144,7 @@ P0002,45,Female,75.2,165,27.6,Obesity,Moderate,Sedentary,1800`;
               daily_calories_target: 2000,
             },
             anomalies: [],
+            status: 'PENDING',
           },
         },
       );
@@ -184,18 +187,21 @@ P0001,56,Male,58.4,160,22.8,Diabetes,Severe,Active,2500`;
 
       await service.runHealthProfilePipeline();
 
-      expect(prismaMock.healthProfileStaging.create).toHaveBeenCalledWith({
-        data: {
-          cleaned_data: {
-            user_id: 1,
-            weight: 58.4,
-            bmi: 22.8,
-            physical_activity_level: 'Active',
-            daily_calories_target: 2500,
+      expect(prismaMock.healthProfileStaging.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: {
+            cleaned_data: {
+              user_id: 1,
+              weight: 58.4,
+              bmi: 22.8,
+              physical_activity_level: 'Active',
+              daily_calories_target: 2500,
+            },
+            anomalies: [],
+            status: 'PENDING',
           },
-          anomalies: [],
-        },
-      });
+        }),
+      );
     });
 
     it('should handle missing CSV columns with null values', async () => {
@@ -210,18 +216,21 @@ P0001,56,Male,22.8`;
 
       await service.runHealthProfilePipeline();
 
-      expect(prismaMock.healthProfileStaging.create).toHaveBeenCalledWith({
-        data: {
-          cleaned_data: {
-            user_id: 1,
-            weight: null,
-            bmi: 22.8,
-            physical_activity_level: null,
-            daily_calories_target: null,
+      expect(prismaMock.healthProfileStaging.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: {
+            cleaned_data: {
+              user_id: 1,
+              weight: null,
+              bmi: 22.8,
+              physical_activity_level: null,
+              daily_calories_target: null,
+            },
+            anomalies: [],
+            status: 'PENDING',
           },
-          anomalies: [],
-        },
-      });
+        }),
+      );
     });
   });
 });

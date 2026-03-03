@@ -6,7 +6,7 @@ import { NotFoundException } from '@nestjs/common';
 import { NutritionService } from './nutrition.service';
 import { PrismaService } from 'src/prisma/services/prisma/prisma.service';
 import { HttpService } from '@nestjs/axios';
-import { EtlLogService } from 'src/etl/services/etl/etl.service';
+import { EtlService } from 'src/etl/services/etl/etl.service';
 import { Nutrition } from '@prisma/client';
 import { of } from 'rxjs';
 import AdmZip from 'adm-zip';
@@ -29,6 +29,8 @@ describe('NutritionService', () => {
       upsert: jest.Mock;
     };
     nutritionStaging: {
+      findFirst: jest.Mock;
+      update: jest.Mock;
       create: jest.Mock;
     };
   };
@@ -61,6 +63,8 @@ describe('NutritionService', () => {
         upsert: jest.fn(),
       },
       nutritionStaging: {
+        findFirst: jest.fn(),
+        update: jest.fn(),
         create: jest.fn(),
       },
     };
@@ -77,7 +81,7 @@ describe('NutritionService', () => {
           useValue: mockHttpService,
         },
         {
-          provide: EtlLogService,
+          provide: EtlService,
           useValue: {
             emit: jest.fn(),
             getStream: jest.fn(() => ({ subscribe: () => {} })),
@@ -200,7 +204,7 @@ describe('NutritionService', () => {
             useValue: mockHttpService,
           },
           {
-            provide: EtlLogService,
+            provide: EtlService,
             useValue: {
               emit: jest.fn(),
               getStream: jest.fn(() => ({ subscribe: () => {} })),
@@ -243,7 +247,7 @@ describe('NutritionService', () => {
             useValue: mockHttpService,
           },
           {
-            provide: EtlLogService,
+            provide: EtlService,
             useValue: {
               emit: jest.fn(),
               getStream: jest.fn(() => ({ subscribe: () => {} })),
@@ -291,7 +295,7 @@ describe('NutritionService', () => {
             useValue: mockHttpService,
           },
           {
-            provide: EtlLogService,
+            provide: EtlService,
             useValue: {
               emit: jest.fn(),
               getStream: jest.fn(() => ({ subscribe: () => {} })),

@@ -4,7 +4,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { Exercise } from '@prisma/client';
+import { Exercise, Prisma } from '@prisma/client';
 import { IExerciceService } from 'src/exercice/interfaces/exercice/exercice.interface';
 import { PrismaService } from 'src/prisma/services/prisma/prisma.service';
 import { HttpService } from '@nestjs/axios';
@@ -127,7 +127,7 @@ export class ExerciceService implements IExerciceService {
         }
 
         const stagingPromises = batch.map(
-          (item: Record<string, unknown>, index: number) => {
+          async (item: Record<string, unknown>, index: number) => {
             const fullImageUrls = Array.isArray(item.images)
               ? (item.images as string[]).map(
                   (path: string) => `${this.IMG_BASE_URL}${path}`,
@@ -158,12 +158,39 @@ export class ExerciceService implements IExerciceService {
               image_urls: fullImageUrls,
               exercise_type: forceValue,
             };
-            return this.prisma.exerciseStaging.create({
-              data: {
-                cleaned_data: cleanedData,
-                anomalies: [],
+
+            const anomalies: Prisma.JsonArray = [];
+
+            const existing = await this.prisma.exerciseStaging.findFirst({
+              where: {
+                cleaned_data: {
+                  path: '$.name',
+                  equals: cleanedData.name,
+                },
               },
             });
+
+            if (existing) {
+              await this.prisma.exerciseStaging.update({
+                where: { id: existing.id },
+                data: {
+                  cleaned_data: cleanedData,
+                  anomalies,
+                  status:
+                    existing.status === 'REJECTED'
+                      ? 'PENDING'
+                      : existing.status,
+                },
+              });
+            } else {
+              await this.prisma.exerciseStaging.create({
+                data: {
+                  cleaned_data: cleanedData,
+                  anomalies,
+                  status: 'PENDING',
+                },
+              });
+            }
           },
         );
 

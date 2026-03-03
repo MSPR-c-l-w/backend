@@ -64,6 +64,8 @@ describe('ExerciceService', () => {
               deleteMany: jest.fn(),
             },
             exerciseStaging: {
+              findFirst: jest.fn(),
+              update: jest.fn(),
               create: (exerciseStagingCreateMock = jest.fn()),
             },
           },
@@ -162,26 +164,29 @@ describe('ExerciceService', () => {
 
       expect(result).toBe(1);
       expect(exerciseStagingCreateMock).toHaveBeenCalledTimes(1);
-      expect(exerciseStagingCreateMock).toHaveBeenCalledWith({
-        data: {
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- matcher Jest
-          cleaned_data: expect.objectContaining({
-            name: 'Bench Press',
-            primary_muscles: ['pectoraux'],
-            secondary_muscles: ['triceps'],
-            level: 'débutant',
-            mechanic: 'polyarticulaire',
-            equipment: 'barre',
-            category: 'force',
-            instructions: ['Step 1', 'Step 2'],
-            image_urls: [
-              'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/bench.jpg',
-            ],
-            exercise_type: 'poussée',
-          }),
-          anomalies: [],
-        },
-      });
+      expect(exerciseStagingCreateMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: {
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- matcher Jest
+            cleaned_data: expect.objectContaining({
+              name: 'Bench Press',
+              primary_muscles: ['pectoraux'],
+              secondary_muscles: ['triceps'],
+              level: 'débutant',
+              mechanic: 'polyarticulaire',
+              equipment: 'barre',
+              category: 'force',
+              instructions: ['Step 1', 'Step 2'],
+              image_urls: [
+                'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/bench.jpg',
+              ],
+              exercise_type: 'poussée',
+            }),
+            anomalies: [],
+            status: 'PENDING',
+          },
+        }),
+      );
     });
   });
 });

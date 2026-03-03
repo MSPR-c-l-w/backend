@@ -5,7 +5,7 @@
 /* eslint-disable @typescript-eslint/no-base-to-string */
 /* eslint-disable @typescript-eslint/no-require-imports */
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { Nutrition } from '@prisma/client';
+import { Nutrition, Prisma } from '@prisma/client';
 import { INutritionService } from 'src/nutrition/interfaces/nutrition/nutrition.interface';
 import { PrismaService } from 'src/prisma/services/prisma/prisma.service';
 import { HttpService } from '@nestjs/axios';
@@ -271,7 +271,7 @@ export class NutritionService implements INutritionService {
         translatedBatch = stringsToTranslate;
       }
 
-      const stagingPromises = batch.map((item, j) => {
+      const stagingPromises = batch.map(async (item, j) => {
         const data = item.cleaned;
         const parts = (translatedBatch[j] ?? stringsToTranslate[j]).split(
           TRANSLATION_SEP,
@@ -294,12 +294,47 @@ export class NutritionService implements INutritionService {
           water_intake_ml: data.water_intake_ml,
           picture_url: data.picture_url,
         };
-        return this.prisma.nutritionStaging.create({
-          data: {
-            cleaned_data: cleanedData,
-            anomalies: [],
+
+        const anomalies: Prisma.JsonArray = [];
+
+        const existing = await this.prisma.nutritionStaging.findFirst({
+          where: {
+            AND: [
+              {
+                cleaned_data: {
+                  path: '$.name',
+                  equals: cleanedData.name,
+                },
+              },
+              {
+                cleaned_data: {
+                  path: '$.category',
+                  equals: cleanedData.category,
+                },
+              },
+            ],
           },
         });
+
+        if (existing) {
+          await this.prisma.nutritionStaging.update({
+            where: { id: existing.id },
+            data: {
+              cleaned_data: cleanedData,
+              anomalies,
+              status:
+                existing.status === 'REJECTED' ? 'PENDING' : existing.status,
+            },
+          });
+        } else {
+          await this.prisma.nutritionStaging.create({
+            data: {
+              cleaned_data: cleanedData,
+              anomalies,
+              status: 'PENDING',
+            },
+          });
+        }
       });
 
       await Promise.all(stagingPromises);

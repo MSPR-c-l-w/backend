@@ -6,7 +6,7 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { HealthProfile } from '@prisma/client';
+import { HealthProfile, Prisma } from '@prisma/client';
 import { IHealthProfileService } from 'src/health-profile/interface/health-profile/health-profile.interface';
 import { PrismaService } from 'src/prisma/services/prisma/prisma.service';
 import { HttpService } from '@nestjs/axios';
@@ -86,14 +86,56 @@ export class HealthProfileService implements IHealthProfileService {
             null,
         };
 
-        // Nécessaire quand l'IDE ne résout pas le type Prisma (healthProfileStaging vu comme "error")
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-call
-        await this.prisma.healthProfileStaging.create({
-          data: {
-            cleaned_data: cleanedData,
-            anomalies: [],
-          },
-        });
+        const anomalies: Prisma.JsonArray = [];
+
+        const bmiValue =
+          typeof cleanedData.bmi === 'number'
+            ? cleanedData.bmi
+            : Number.isFinite(Number(cleanedData.bmi))
+              ? Number(cleanedData.bmi)
+              : null;
+
+        if (bmiValue !== null && (bmiValue < 10 || bmiValue > 50)) {
+          anomalies.push({
+            field: 'bmi',
+            code: 'BMI_OUT_OF_RANGE',
+            message: `BMI ${bmiValue} en dehors des bornes [10, 50]`,
+          });
+        }
+
+        const existing =
+          // Nécessaire quand l'IDE ne résout pas le type Prisma (healthProfileStaging vu comme "error")
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+          await this.prisma.healthProfileStaging.findFirst({
+            where: {
+              cleaned_data: {
+                path: '$.user_id',
+                equals: cleanedData.user_id,
+              },
+            },
+          });
+
+        if (existing) {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+          await this.prisma.healthProfileStaging.update({
+            where: { id: existing.id },
+            data: {
+              cleaned_data: cleanedData,
+              anomalies,
+              status:
+                existing.status === 'REJECTED' ? 'PENDING' : existing.status,
+            },
+          });
+        } else {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+          await this.prisma.healthProfileStaging.create({
+            data: {
+              cleaned_data: cleanedData,
+              anomalies,
+              status: 'PENDING',
+            },
+          });
+        }
         importedCount++;
       }
 
