@@ -26,7 +26,7 @@ Un **back-office** (Next.js) consomme cette API pour le dashboard, les logs ETL 
 Le backend expose des **pipelines ETL** qui n’écrivent **pas** directement dans les tables métier. Les données nettoyées sont enregistrées dans des **tables de staging** pour validation humaine avant insertion en base finale.
 
 - **Tables staging** : `NutritionStaging`, `ExerciseStaging`, `HealthProfileStaging`
-- **Champs** : `id` (UUID), `rawData` (JSON), `cleanedData` (JSON), `anomalies` (JSON), `status` (PENDING | APPROVED | REJECTED), `createdAt`, `updatedAt`, `reviewedBy`, `reviewedAt`
+- **Champs** : `id` (UUID), `cleaned_data` (JSON), `anomalies` (JSON), `status` (PENDING | APPROVED | REJECTED), `created_at`, `updated_at`
 - **Services concernés** :
   - `NutritionService.runImportPipeline()` → écrit dans `NutritionStaging`
   - `ExerciceService.runImportPipeline()` → écrit dans `ExerciseStaging`

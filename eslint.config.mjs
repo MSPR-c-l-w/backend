@@ -31,11 +31,4 @@ export default tseslint.config(
       '@typescript-eslint/no-unsafe-argument': 'warn'
     },
   },
-  // Désactive le rapport "Unused eslint-disable" pour le service health-profile (Prisma healthProfileStaging mal résolu par l'IDE)
-  {
-    files: ['src/health-profile/services/health-profile/health-profile.service.ts'],
-    linterOptions: {
-      reportUnusedDisableDirectives: false,
-    },
-  },
 );

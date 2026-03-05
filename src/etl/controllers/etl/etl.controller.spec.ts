@@ -1,6 +1,7 @@
 import { EtlController } from './etl.controller';
 import { EtlStagingService } from 'src/etl/services/etl-staging/etl-staging.service';
 import { EtlService } from 'src/etl/services/etl/etl.service';
+import { PrismaService } from 'src/prisma/services/prisma/prisma.service';
 
 describe('EtlController', () => {
   let controller: EtlController;
@@ -11,6 +12,14 @@ describe('EtlController', () => {
     updateCleanedDataAndRecheck: jest.Mock;
   };
   let etlService: { getAllPipelineStatuses: jest.Mock };
+  let prisma: {
+    nutrition: { findMany: jest.Mock };
+    exercise: { findMany: jest.Mock };
+    healthProfile: { findMany: jest.Mock };
+    nutritionStaging: { count: jest.Mock; aggregate: jest.Mock };
+    exerciseStaging: { count: jest.Mock; aggregate: jest.Mock };
+    healthProfileStaging: { count: jest.Mock; aggregate: jest.Mock };
+  };
 
   const now = new Date('2026-01-02T10:00:00.000Z');
 
@@ -24,9 +33,18 @@ describe('EtlController', () => {
     etlService = {
       getAllPipelineStatuses: jest.fn(),
     };
+    prisma = {
+      nutrition: { findMany: jest.fn() },
+      exercise: { findMany: jest.fn() },
+      healthProfile: { findMany: jest.fn() },
+      nutritionStaging: { count: jest.fn(), aggregate: jest.fn() },
+      exerciseStaging: { count: jest.fn(), aggregate: jest.fn() },
+      healthProfileStaging: { count: jest.fn(), aggregate: jest.fn() },
+    };
     controller = new EtlController(
       etlStagingService as unknown as EtlStagingService,
       etlService as unknown as EtlService,
+      prisma as unknown as PrismaService,
     );
   });
 
@@ -43,6 +61,30 @@ describe('EtlController', () => {
       nutrition: false,
       exercise: true,
       'health-profile': false,
+    });
+  });
+
+  it('should return pipelines summary with anomalies and last sync', async () => {
+    const updatedAt = new Date('2026-02-10T08:30:00.000Z');
+    prisma.nutritionStaging.count.mockResolvedValue(4);
+    prisma.exerciseStaging.count.mockResolvedValue(1);
+    prisma.healthProfileStaging.count.mockResolvedValue(0);
+    prisma.nutritionStaging.aggregate.mockResolvedValue({
+      _max: { updated_at: updatedAt },
+    });
+    prisma.exerciseStaging.aggregate.mockResolvedValue({
+      _max: { updated_at: null },
+    });
+    prisma.healthProfileStaging.aggregate.mockResolvedValue({
+      _max: { updated_at: updatedAt },
+    });
+
+    const result = await controller.getPipelinesSummary();
+
+    expect(result).toEqual({
+      nutrition: { anomalies: 4, lastSync: updatedAt.toISOString() },
+      exercise: { anomalies: 1, lastSync: null },
+      'health-profile': { anomalies: 0, lastSync: updatedAt.toISOString() },
     });
   });
 
@@ -182,5 +224,35 @@ describe('EtlController', () => {
       created_at: now.toISOString(),
       updated_at: now.toISOString(),
     });
+  });
+
+  it('should export final nutrition data as CSV with headers', async () => {
+    prisma.nutrition.findMany.mockResolvedValue([
+      {
+        id: 1,
+        name: 'Pomme, rouge',
+        category: 'Fruit',
+        calories_kcal: 52,
+      },
+    ]);
+    const setHeader = jest.fn();
+
+    const csv = await controller.exportFinalDatasetAsCsv('nutrition', {
+      setHeader,
+    } as never);
+
+    expect(prisma.nutrition.findMany).toHaveBeenCalledWith({
+      orderBy: { id: 'asc' },
+    });
+    expect(setHeader).toHaveBeenCalledWith(
+      'Content-Type',
+      'text/csv; charset=utf-8',
+    );
+    expect(setHeader).toHaveBeenCalledWith(
+      'Content-Disposition',
+      expect.stringContaining('nutrition-final-'),
+    );
+    expect(csv).toContain('id,name,category,calories_kcal');
+    expect(csv).toContain('"Pomme, rouge"');
   });
 });

@@ -1,4 +1,13 @@
-import { Body, Controller, Get, Patch, Query, UseGuards } from '@nestjs/common';
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Get,
+  Patch,
+  Query,
+  Res,
+  UseGuards,
+} from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiOkResponse,
@@ -6,6 +15,7 @@ import {
   ApiQuery,
   ApiTags,
 } from '@nestjs/swagger';
+import { Prisma } from '@prisma/client';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { Roles } from 'src/auth/decorators/roles.decorator';
@@ -13,6 +23,8 @@ import type { PipelineId } from 'src/etl/services/etl/etl.service';
 import { ROUTES } from 'src/utils/constants';
 import { EtlService } from 'src/etl/services/etl/etl.service';
 import { EtlStagingService } from 'src/etl/services/etl-staging/etl-staging.service';
+import { PrismaService } from 'src/prisma/services/prisma/prisma.service';
+import type { Response } from 'express';
 
 export type StagingStatus = 'APPROVED' | 'REJECTED';
 
@@ -37,6 +49,13 @@ export interface UpdateStagingCleanedDataDto {
   cleaned_data: Record<string, unknown> | string;
 }
 
+type CsvRow = Record<string, unknown>;
+
+export interface PipelineSummaryDto {
+  anomalies: number;
+  lastSync: string | null;
+}
+
 @Controller(ROUTES.ETL)
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles('ADMIN')
@@ -46,6 +65,7 @@ export class EtlController {
   constructor(
     private readonly etlStagingService: EtlStagingService,
     private readonly etlService: EtlService,
+    private readonly prisma: PrismaService,
   ) {}
 
   @Get('pipelines/status')
@@ -58,6 +78,67 @@ export class EtlController {
   })
   getPipelinesStatus(): Record<PipelineId, boolean> {
     return this.etlService.getAllPipelineStatuses();
+  }
+
+  @Get('pipelines/summary')
+  @ApiOperation({
+    summary:
+      'Retourne les métriques des pipelines (anomalies en attente et dernière sync)',
+  })
+  @ApiOkResponse({
+    description: 'Métriques consolidées des pipelines ETL',
+  })
+  async getPipelinesSummary(): Promise<Record<PipelineId, PipelineSummaryDto>> {
+    const emptyAnomalies: Prisma.JsonArray = [];
+
+    const [nutritionAnomalies, exerciseAnomalies, healthProfileAnomalies] =
+      await Promise.all([
+        this.prisma.nutritionStaging.count({
+          where: {
+            status: 'PENDING',
+            NOT: { anomalies: { equals: emptyAnomalies } },
+          },
+        }),
+        this.prisma.exerciseStaging.count({
+          where: {
+            status: 'PENDING',
+            NOT: { anomalies: { equals: emptyAnomalies } },
+          },
+        }),
+        this.prisma.healthProfileStaging.count({
+          where: {
+            status: 'PENDING',
+            NOT: { anomalies: { equals: emptyAnomalies } },
+          },
+        }),
+      ]);
+
+    const [nutritionMax, exerciseMax, healthProfileMax] = await Promise.all([
+      this.prisma.nutritionStaging.aggregate({
+        _max: { updated_at: true },
+      }),
+      this.prisma.exerciseStaging.aggregate({
+        _max: { updated_at: true },
+      }),
+      this.prisma.healthProfileStaging.aggregate({
+        _max: { updated_at: true },
+      }),
+    ]);
+
+    return {
+      nutrition: {
+        anomalies: nutritionAnomalies,
+        lastSync: nutritionMax._max.updated_at?.toISOString() ?? null,
+      },
+      exercise: {
+        anomalies: exerciseAnomalies,
+        lastSync: exerciseMax._max.updated_at?.toISOString() ?? null,
+      },
+      'health-profile': {
+        anomalies: healthProfileAnomalies,
+        lastSync: healthProfileMax._max.updated_at?.toISOString() ?? null,
+      },
+    };
   }
 
   @Get('staging')
@@ -180,6 +261,38 @@ export class EtlController {
     };
   }
 
+  @Get('export/final')
+  @ApiOperation({
+    summary:
+      'Exporte en CSV les données de la table finale pour un pipeline donné',
+  })
+  @ApiQuery({
+    name: 'pipeline',
+    required: true,
+    enum: ['nutrition', 'exercise', 'health-profile'],
+    description: 'Pipeline concerné (table finale exportée)',
+  })
+  @ApiOkResponse({
+    description: 'Contenu CSV des données validées en base finale',
+  })
+  async exportFinalDatasetAsCsv(
+    @Query('pipeline') pipeline: PipelineId,
+    @Res({ passthrough: true }) response: Response,
+  ): Promise<string> {
+    const rows = await this.getFinalRowsForPipeline(pipeline);
+    const csv = this.toCsv(rows);
+    const date = new Date().toISOString().slice(0, 10);
+    const filename = `${pipeline}-final-${date}.csv`;
+
+    response.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    response.setHeader(
+      'Content-Disposition',
+      `attachment; filename="${filename}"`,
+    );
+
+    return csv;
+  }
+
   @Patch('staging/status')
   @ApiOperation({
     summary: 'Met à jour le statut de lignes staging (Accepter / Rejeter)',
@@ -222,5 +335,78 @@ export class EtlController {
         updated_at: row.updated_at.toISOString(),
       },
     };
+  }
+
+  private async getFinalRowsForPipeline(
+    pipeline: PipelineId,
+  ): Promise<CsvRow[]> {
+    if (pipeline === 'nutrition') {
+      const rows = await this.prisma.nutrition.findMany({
+        orderBy: { id: 'asc' },
+      });
+      return rows.map((row) => ({ ...row }));
+    }
+
+    if (pipeline === 'exercise') {
+      const rows = await this.prisma.exercise.findMany({
+        orderBy: { id: 'asc' },
+      });
+      return rows.map((row) => ({ ...row }));
+    }
+
+    if (pipeline === 'health-profile') {
+      const rows = await this.prisma.healthProfile.findMany({
+        orderBy: { id: 'asc' },
+      });
+      return rows.map((row) => ({ ...row }));
+    }
+
+    throw new BadRequestException('Pipeline ETL invalide.');
+  }
+
+  private toCsv(rows: CsvRow[]): string {
+    if (rows.length === 0) {
+      return '';
+    }
+
+    const headers = Array.from(
+      rows.reduce((set, row) => {
+        Object.keys(row).forEach((key) => set.add(key));
+        return set;
+      }, new Set<string>()),
+    );
+
+    const lines = [
+      headers.join(','),
+      ...rows.map((row) =>
+        headers.map((header) => this.escapeCsvValue(row[header])).join(','),
+      ),
+    ];
+
+    return lines.join('\n');
+  }
+
+  private escapeCsvValue(value: unknown): string {
+    if (value === null || value === undefined) {
+      return '';
+    }
+
+    let normalized = '';
+    if (typeof value === 'string') {
+      normalized = value;
+    } else if (
+      typeof value === 'number' ||
+      typeof value === 'boolean' ||
+      typeof value === 'bigint'
+    ) {
+      normalized = value.toString();
+    } else if (value instanceof Date) {
+      normalized = value.toISOString();
+    } else if (typeof value === 'object') {
+      normalized = JSON.stringify(value);
+    }
+
+    const escaped = normalized.replace(/"/g, '""');
+    return /[",\n\r]/.test(escaped) ? `"${escaped}"` : escaped;
   }
 }
