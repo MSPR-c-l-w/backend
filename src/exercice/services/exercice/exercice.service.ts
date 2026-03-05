@@ -177,7 +177,8 @@ export class ExerciceService implements IExerciceService {
                   cleaned_data: cleanedData,
                   anomalies,
                   status:
-                    existing.status === 'REJECTED'
+                    existing.status === 'REJECTED' ||
+                    existing.status === 'APPROVED'
                       ? 'PENDING'
                       : existing.status,
                 },

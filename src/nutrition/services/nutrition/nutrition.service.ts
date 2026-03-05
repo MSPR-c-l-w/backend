@@ -323,7 +323,9 @@ export class NutritionService implements INutritionService {
               cleaned_data: cleanedData,
               anomalies,
               status:
-                existing.status === 'REJECTED' ? 'PENDING' : existing.status,
+                existing.status === 'REJECTED' || existing.status === 'APPROVED'
+                  ? 'PENDING'
+                  : existing.status,
             },
           });
         } else {
