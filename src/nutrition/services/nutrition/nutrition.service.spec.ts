@@ -6,9 +6,11 @@ import { NotFoundException } from '@nestjs/common';
 import { NutritionService } from './nutrition.service';
 import { PrismaService } from 'src/prisma/services/prisma/prisma.service';
 import { HttpService } from '@nestjs/axios';
+import { EtlService } from 'src/etl/services/etl/etl.service';
 import { Nutrition } from '@prisma/client';
 import { of } from 'rxjs';
 import AdmZip from 'adm-zip';
+import { EtlAnomalyDetectorService } from 'src/etl/services/etl-anomaly-detector/etl-anomaly-detector.service';
 
 jest.mock('google-translate-api-x', () => ({
   translate: jest.fn((texts: string[] | string) => {
@@ -26,6 +28,11 @@ describe('NutritionService', () => {
       findMany: jest.Mock;
       findUnique: jest.Mock;
       upsert: jest.Mock;
+    };
+    nutritionStaging: {
+      findFirst: jest.Mock;
+      update: jest.Mock;
+      create: jest.Mock;
     };
   };
   const mockHttpService = {
@@ -56,6 +63,11 @@ describe('NutritionService', () => {
         findUnique: jest.fn(),
         upsert: jest.fn(),
       },
+      nutritionStaging: {
+        findFirst: jest.fn(),
+        update: jest.fn(),
+        create: jest.fn(),
+      },
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -68,6 +80,23 @@ describe('NutritionService', () => {
         {
           provide: HttpService,
           useValue: mockHttpService,
+        },
+        {
+          provide: EtlService,
+          useValue: {
+            emit: jest.fn(),
+            getStream: jest.fn(() => ({ subscribe: () => {} })),
+            runWithPipelineLock: jest.fn(
+              async (_pipeline: string, task: () => Promise<unknown>) =>
+                await task(),
+            ),
+          },
+        },
+        {
+          provide: EtlAnomalyDetectorService,
+          useValue: {
+            detectForPipeline: jest.fn(() => []),
+          },
         },
       ],
     }).compile();
@@ -185,6 +214,23 @@ describe('NutritionService', () => {
             provide: HttpService,
             useValue: mockHttpService,
           },
+          {
+            provide: EtlService,
+            useValue: {
+              emit: jest.fn(),
+              getStream: jest.fn(() => ({ subscribe: () => {} })),
+              runWithPipelineLock: jest.fn(
+                async (_pipeline: string, task: () => Promise<unknown>) =>
+                  await task(),
+              ),
+            },
+          },
+          {
+            provide: EtlAnomalyDetectorService,
+            useValue: {
+              detectForPipeline: jest.fn(() => []),
+            },
+          },
         ],
       }).compile();
 
@@ -221,6 +267,23 @@ describe('NutritionService', () => {
             provide: HttpService,
             useValue: mockHttpService,
           },
+          {
+            provide: EtlService,
+            useValue: {
+              emit: jest.fn(),
+              getStream: jest.fn(() => ({ subscribe: () => {} })),
+              runWithPipelineLock: jest.fn(
+                async (_pipeline: string, task: () => Promise<unknown>) =>
+                  await task(),
+              ),
+            },
+          },
+          {
+            provide: EtlAnomalyDetectorService,
+            useValue: {
+              detectForPipeline: jest.fn(() => []),
+            },
+          },
         ],
       }).compile();
 
@@ -229,7 +292,7 @@ describe('NutritionService', () => {
       await expect(localService.runImportPipeline()).rejects.toThrow(
         /Aucun fichier \.csv trouvé dans le ZIP Kaggle/,
       );
-      expect(prisma.nutrition.upsert).not.toHaveBeenCalled();
+      expect(prisma.nutritionStaging.create).not.toHaveBeenCalled();
 
       process.env.KAGGLE_USER = originalUser;
       process.env.KAGGLE_KEY = originalKey;
@@ -262,6 +325,23 @@ describe('NutritionService', () => {
             provide: HttpService,
             useValue: mockHttpService,
           },
+          {
+            provide: EtlService,
+            useValue: {
+              emit: jest.fn(),
+              getStream: jest.fn(() => ({ subscribe: () => {} })),
+              runWithPipelineLock: jest.fn(
+                async (_pipeline: string, task: () => Promise<unknown>) =>
+                  await task(),
+              ),
+            },
+          },
+          {
+            provide: EtlAnomalyDetectorService,
+            useValue: {
+              detectForPipeline: jest.fn(() => []),
+            },
+          },
         ],
       }).compile();
 
@@ -270,11 +350,14 @@ describe('NutritionService', () => {
       const result = await localService.runImportPipeline();
 
       expect(result).toBe(1);
-      expect(prisma.nutrition.upsert).toHaveBeenCalledTimes(1);
-      const upsertArgs = prisma.nutrition.upsert.mock.calls[0][0];
-      expect(upsertArgs.where.name_category).toEqual({
-        name: 'Pomme',
-        category: 'Fruit',
+      expect(prisma.nutritionStaging.create).toHaveBeenCalledTimes(1);
+      const createArgs = prisma.nutritionStaging.create.mock.calls[0][0];
+      expect(createArgs.data).toMatchObject({
+        cleaned_data: expect.objectContaining({
+          name: 'Pomme',
+          category: 'Fruit',
+        }),
+        anomalies: [],
       });
 
       process.env.KAGGLE_USER = originalUser;

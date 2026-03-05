@@ -9,9 +9,11 @@ import { Nutrition } from '@prisma/client';
 import { INutritionService } from 'src/nutrition/interfaces/nutrition/nutrition.interface';
 import { PrismaService } from 'src/prisma/services/prisma/prisma.service';
 import { HttpService } from '@nestjs/axios';
+import { EtlService } from 'src/etl/services/etl/etl.service';
 import { lastValueFrom } from 'rxjs';
 import * as Papa from 'papaparse';
 import { translate } from 'google-translate-api-x';
+import { EtlAnomalyDetectorService } from 'src/etl/services/etl-anomaly-detector/etl-anomaly-detector.service';
 const AdmZipModule = require('adm-zip');
 const AdmZip = AdmZipModule.default ?? AdmZipModule;
 
@@ -44,6 +46,8 @@ export class NutritionService implements INutritionService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly httpService: HttpService,
+    private readonly etl: EtlService,
+    private readonly anomalyDetector: EtlAnomalyDetectorService,
   ) {}
 
   async getNutritions(): Promise<Nutrition[]> {
@@ -186,114 +190,103 @@ export class NutritionService implements INutritionService {
   }
 
   async runImportPipeline(): Promise<number> {
-    if (!this.kaggleUser || !this.kaggleKey) {
-      this.logger.error(
-        "KAGGLE_USER et KAGGLE_KEY doivent être définis pour l'import.",
-      );
-      throw new Error(
-        "Variables d'environnement KAGGLE_USER et KAGGLE_KEY requises.",
-      );
-    }
-
-    this.logger.log('--- Début pipeline ETL Nutrition (Kaggle) ---');
-
-    const auth = Buffer.from(`${this.kaggleUser}:${this.kaggleKey}`).toString(
-      'base64',
-    );
-
-    const response = await lastValueFrom(
-      this.httpService.get(KAGGLE_DATASET_DOWNLOAD_URL, {
-        headers: {
-          Authorization: `Basic ${auth}`,
-          Accept: 'application/octet-stream',
-        },
-        responseType: 'arraybuffer',
-      }),
-    );
-
-    const csvText = this.getCsvContentFromResponse({
-      data: response.data as Buffer,
-    });
-
-    const parsed = Papa.parse(csvText, {
-      header: true,
-      skipEmptyLines: true,
-      dynamicTyping: true,
-    });
-
-    const rows = (parsed.data ?? []) as unknown as KaggleNutritionRow[];
-
-    if (rows.length === 0) {
-      this.logger.warn('Aucune ligne dans le CSV Kaggle.');
-      return 0;
-    }
-
-    const toUpsertAll = rows
-      .map((row) => this.mapRowToNutrition(row))
-      .filter((n) => n.name.length > 0);
-    if (toUpsertAll.length === 0) {
-      this.logger.warn(
-        `Aucune ligne avec un nom valide après mapping. Vérifiez les colonnes (ex. name/category). Premier enregistrement brut: ${JSON.stringify(rows[0])}`,
-      );
-      return 0;
-    }
-    this.logger.log(
-      `${toUpsertAll.length}/${rows.length} lignes à insérer/mettre à jour.`,
-    );
-
-    const BATCH_SIZE = 50;
-    const TRANSLATION_SEP = ' ||| ';
-    let successCount = 0;
-
-    for (let i = 0; i < toUpsertAll.length; i += BATCH_SIZE) {
-      const batch = toUpsertAll.slice(i, i + BATCH_SIZE);
-      const stringsToTranslate = batch.map(
-        (d) =>
-          `${d.name}${TRANSLATION_SEP}${d.category}${TRANSLATION_SEP}${d.meal_type_name}`,
-      );
-
-      let translatedBatch: string[] = [];
-      try {
-        const res = await translate(stringsToTranslate, { to: 'fr' });
-        translatedBatch = Array.isArray(res)
-          ? (res as { text: string }[]).map((r) => r.text)
-          : [(res as { text: string }).text];
-      } catch (err) {
-        this.logger.warn(
-          `Traduction batch ${i / BATCH_SIZE + 1} échouée, conservation du texte original: ${(err as Error).message}`,
+    return this.etl.runWithPipelineLock('nutrition', async () => {
+      if (!this.kaggleUser || !this.kaggleKey) {
+        const msg =
+          "KAGGLE_USER et KAGGLE_KEY doivent être définis pour l'import.";
+        this.logger.error(msg);
+        this.etl.emit('nutrition', 'ERROR', msg);
+        throw new Error(
+          "Variables d'environnement KAGGLE_USER et KAGGLE_KEY requises.",
         );
-        translatedBatch = stringsToTranslate;
       }
 
-      const upsertPromises = batch.map((data, j) => {
-        const parts = (translatedBatch[j] ?? stringsToTranslate[j]).split(
-          TRANSLATION_SEP,
-        );
-        const name = (parts[0] ?? data.name).trim();
-        const category = (parts[1] ?? data.category).trim();
-        const meal_type_name = (parts[2] ?? data.meal_type_name).trim();
+      const startMsg = '--- Début pipeline ETL Nutrition (Kaggle) ---';
+      this.logger.log(startMsg);
+      this.etl.emit('nutrition', 'INFO', startMsg);
 
-        return this.prisma.nutrition.upsert({
-          where: {
-            name_category: {
-              name,
-              category,
-            },
+      const auth = Buffer.from(`${this.kaggleUser}:${this.kaggleKey}`).toString(
+        'base64',
+      );
+
+      const response = await lastValueFrom(
+        this.httpService.get(KAGGLE_DATASET_DOWNLOAD_URL, {
+          headers: {
+            Authorization: `Basic ${auth}`,
+            Accept: 'application/octet-stream',
           },
-          update: {
-            calories_kcal: data.calories_kcal,
-            protein_g: data.protein_g,
-            carbohydrates_g: data.carbohydrates_g,
-            fat_g: data.fat_g,
-            fiber_g: data.fiber_g,
-            sugar_g: data.sugar_g,
-            sodium_mg: data.sodium_mg,
-            cholesterol_mg: data.cholesterol_mg,
-            meal_type_name: meal_type_name || 'Autre',
-            water_intake_ml: data.water_intake_ml,
-            picture_url: data.picture_url,
-          },
-          create: {
+          responseType: 'arraybuffer',
+        }),
+      );
+
+      const csvText = this.getCsvContentFromResponse({
+        data: response.data as Buffer,
+      });
+
+      const parsed = Papa.parse(csvText, {
+        header: true,
+        skipEmptyLines: true,
+        dynamicTyping: true,
+      });
+
+      const rows = (parsed.data ?? []) as unknown as KaggleNutritionRow[];
+
+      if (rows.length === 0) {
+        this.logger.warn('Aucune ligne dans le CSV Kaggle.');
+        this.etl.emit(
+          'nutrition',
+          'WARNING',
+          'Aucune ligne dans le CSV Kaggle.',
+        );
+        return 0;
+      }
+
+      const items = rows
+        .map((row) => ({ raw: row, cleaned: this.mapRowToNutrition(row) }))
+        .filter((x) => x.cleaned.name.length > 0);
+      if (items.length === 0) {
+        const warnMsg = `Aucune ligne avec un nom valide après mapping. Vérifiez les colonnes (ex. name/category). Premier enregistrement brut: ${JSON.stringify(rows[0])}`;
+        this.logger.warn(warnMsg);
+        this.etl.emit('nutrition', 'WARNING', warnMsg);
+        return 0;
+      }
+      const linesMsg = `${items.length}/${rows.length} lignes à enregistrer en staging.`;
+      this.logger.log(linesMsg);
+      this.etl.emit('nutrition', 'INFO', linesMsg);
+
+      const BATCH_SIZE = 50;
+      const TRANSLATION_SEP = ' ||| ';
+      let successCount = 0;
+
+      for (let i = 0; i < items.length; i += BATCH_SIZE) {
+        const batch = items.slice(i, i + BATCH_SIZE);
+        const stringsToTranslate = batch.map(
+          (d) =>
+            `${d.cleaned.name}${TRANSLATION_SEP}${d.cleaned.category}${TRANSLATION_SEP}${d.cleaned.meal_type_name}`,
+        );
+
+        let translatedBatch: string[] = [];
+        try {
+          const res = await translate(stringsToTranslate, { to: 'fr' });
+          translatedBatch = Array.isArray(res)
+            ? (res as { text: string }[]).map((r) => r.text)
+            : [(res as { text: string }).text];
+        } catch (err) {
+          const warnMsg = `Traduction batch ${i / BATCH_SIZE + 1} échouée, conservation du texte original: ${(err as Error).message}`;
+          this.logger.warn(warnMsg);
+          this.etl.emit('nutrition', 'WARNING', warnMsg);
+          translatedBatch = stringsToTranslate;
+        }
+
+        const stagingPromises = batch.map(async (item, j) => {
+          const data = item.cleaned;
+          const parts = (translatedBatch[j] ?? stringsToTranslate[j]).split(
+            TRANSLATION_SEP,
+          );
+          const name = (parts[0] ?? data.name).trim();
+          const category = (parts[1] ?? data.category).trim();
+          const meal_type_name = (parts[2] ?? data.meal_type_name).trim();
+          const cleanedData = {
             name,
             category,
             calories_kcal: data.calories_kcal,
@@ -307,22 +300,69 @@ export class NutritionService implements INutritionService {
             meal_type_name: meal_type_name || 'Autre',
             water_intake_ml: data.water_intake_ml,
             picture_url: data.picture_url,
-          },
+          };
+
+          const anomalies = this.anomalyDetector.detectForPipeline(
+            'nutrition',
+            cleanedData,
+          );
+
+          const existing = await this.prisma.nutritionStaging.findFirst({
+            where: {
+              AND: [
+                {
+                  cleaned_data: {
+                    path: '$.name',
+                    equals: cleanedData.name,
+                  },
+                },
+                {
+                  cleaned_data: {
+                    path: '$.category',
+                    equals: cleanedData.category,
+                  },
+                },
+              ],
+            },
+          });
+
+          if (existing) {
+            await this.prisma.nutritionStaging.update({
+              where: { id: existing.id },
+              data: {
+                cleaned_data: cleanedData,
+                anomalies,
+                status:
+                  existing.status === 'REJECTED' ||
+                  existing.status === 'APPROVED'
+                    ? 'PENDING'
+                    : existing.status,
+              },
+            });
+          } else {
+            await this.prisma.nutritionStaging.create({
+              data: {
+                cleaned_data: cleanedData,
+                anomalies,
+                status: 'PENDING',
+              },
+            });
+          }
         });
-      });
 
-      await Promise.all(upsertPromises);
-      successCount += batch.length;
+        await Promise.all(stagingPromises);
+        successCount += batch.length;
 
-      this.logger.log(
-        `Import : ${Math.min(i + BATCH_SIZE, toUpsertAll.length)}/${toUpsertAll.length} enregistrements traités.`,
-      );
-      await new Promise((resolve) => setTimeout(resolve, 600));
-    }
+        const stagingMsg = `Staging : ${Math.min(i + BATCH_SIZE, items.length)}/${items.length} enregistrements.`;
+        this.logger.log(stagingMsg);
+        this.etl.emit('nutrition', 'INFO', stagingMsg);
+        await new Promise((resolve) => setTimeout(resolve, 600));
+      }
 
-    this.logger.log(
-      `--- Fin pipeline ETL Nutrition : ${successCount} enregistrements. ---`,
-    );
-    return successCount;
+      const endMsg = `--- Fin pipeline ETL Nutrition : ${successCount} enregistrements en staging (PENDING). ---`;
+      this.logger.log(endMsg);
+      this.etl.emit('nutrition', 'SUCCESS', endMsg);
+      return successCount;
+    });
   }
 }

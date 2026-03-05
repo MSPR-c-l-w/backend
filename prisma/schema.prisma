@@ -65,7 +65,7 @@ model Session {
   max_bpm          Int
   resting_bpm      Int?
   created_at       DateTime          @default(now())
-  user             User              @relation(fields: [user_id], references: [id])
+  user             User              @relation(fields: [user_id], references: [id], onDelete: Cascade)
   sessionExercises SessionExercise[]
 }
 
@@ -156,4 +156,45 @@ model Subscription {
   status     String
   user       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
   plan       Plan     @relation(fields: [plan_id], references: [id], onDelete: Cascade)
+}
+
+// --- Staging ETL (validation humaine avant insertion en base finale) ---
+
+enum StagingStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model NutritionStaging {
+  id           String        @id @default(uuid())
+  cleaned_data Json
+  anomalies    Json
+  status       StagingStatus @default(PENDING)
+  created_at   DateTime      @default(now())
+  updated_at   DateTime      @updatedAt
+
+  @@index([status])
+}
+
+model ExerciseStaging {
+  id           String        @id @default(uuid())
+  cleaned_data Json
+  anomalies    Json
+  status       StagingStatus @default(PENDING)
+  created_at   DateTime      @default(now())
+  updated_at   DateTime      @updatedAt
+
+  @@index([status])
+}
+
+model HealthProfileStaging {
+  id           String        @id @default(uuid())
+  cleaned_data Json
+  anomalies    Json
+  status       StagingStatus @default(PENDING)
+  created_at   DateTime      @default(now())
+  updated_at   DateTime      @updatedAt
+
+  @@index([status])
 }

@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-argument */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
@@ -9,9 +8,11 @@ import { Exercise } from '@prisma/client';
 import { IExerciceService } from 'src/exercice/interfaces/exercice/exercice.interface';
 import { PrismaService } from 'src/prisma/services/prisma/prisma.service';
 import { HttpService } from '@nestjs/axios';
+import { EtlService } from 'src/etl/services/etl/etl.service';
 import { lastValueFrom } from 'rxjs';
 import { translate } from 'google-translate-api-x';
 import { GetExercisesFilterDto } from 'src/exercice/dtos/et-exercises-filter.dto';
+import { EtlAnomalyDetectorService } from 'src/etl/services/etl-anomaly-detector/etl-anomaly-detector.service';
 
 @Injectable()
 export class ExerciceService implements IExerciceService {
@@ -63,6 +64,8 @@ export class ExerciceService implements IExerciceService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly httpService: HttpService,
+    private readonly etl: EtlService,
+    private readonly anomalyDetector: EtlAnomalyDetectorService,
   ) {}
 
   private translateTerm(term: string | null): string | null {
@@ -94,90 +97,129 @@ export class ExerciceService implements IExerciceService {
   }
 
   async runImportPipeline(): Promise<number> {
-    try {
-      this.logger.log('--- DÉBUT PIPELINE ETL (UPSERT & BATCH) ---');
-      const response = await lastValueFrom(
-        this.httpService.get(this.SOURCE_URL),
-      );
-      const rawData = response.data;
-      if (!Array.isArray(rawData)) return 0;
-
-      let successCount = 0;
-      const BATCH_SIZE = 15;
-
-      for (let i = 0; i < rawData.length; i += BATCH_SIZE) {
-        const batch = rawData.slice(i, i + BATCH_SIZE);
-        const allInstructionsStrings = batch.map((item) =>
-          (item.instructions || []).join(' ||| '),
+    return this.etl.runWithPipelineLock('exercise', async () => {
+      try {
+        const startMsg = '--- DÉBUT PIPELINE ETL (UPSERT & BATCH) ---';
+        this.logger.log(startMsg);
+        this.etl.emit('exercise', 'INFO', startMsg);
+        const response = await lastValueFrom(
+          this.httpService.get(this.SOURCE_URL),
         );
+        const rawData = response.data;
+        if (!Array.isArray(rawData)) return 0;
 
-        let translatedBatch: string[] = [];
-        try {
-          const res: any = await translate(allInstructionsStrings, {
-            to: 'fr',
-          });
-          translatedBatch = Array.isArray(res)
-            ? res.map((r: any) => r.text)
-            : [res.text];
-        } catch (err) {
-          translatedBatch = allInstructionsStrings;
+        let successCount = 0;
+        const BATCH_SIZE = 15;
+
+        for (let i = 0; i < rawData.length; i += BATCH_SIZE) {
+          const batch = rawData.slice(i, i + BATCH_SIZE);
+          const allInstructionsStrings = batch.map((item) =>
+            (item.instructions || []).join(' ||| '),
+          );
+
+          let translatedBatch: string[] = [];
+          try {
+            const res: any = await translate(allInstructionsStrings, {
+              to: 'fr',
+            });
+            translatedBatch = Array.isArray(res)
+              ? res.map((r: any) => r.text)
+              : [res.text];
+          } catch (err) {
+            translatedBatch = allInstructionsStrings;
+          }
+
+          const stagingPromises = batch.map(
+            async (item: Record<string, unknown>, index: number) => {
+              const fullImageUrls = Array.isArray(item.images)
+                ? (item.images as string[]).map(
+                    (path: string) => `${this.IMG_BASE_URL}${path}`,
+                  )
+                : [];
+              const translatedInstructions =
+                translatedBatch[index].split(' ||| ');
+              const forceValue = this.translateTerm(
+                item.force as string | null,
+              );
+              const primaryMuscles = Array.isArray(item.primaryMuscles)
+                ? (item.primaryMuscles as string[])
+                : [];
+              const secondaryMuscles = Array.isArray(item.secondaryMuscles)
+                ? (item.secondaryMuscles as string[])
+                : [];
+              const cleanedData = {
+                name: item.name as string,
+                primary_muscles: primaryMuscles.map((m: string) =>
+                  this.translateTerm(m),
+                ),
+                secondary_muscles: secondaryMuscles.map((m: string) =>
+                  this.translateTerm(m),
+                ),
+                level: this.translateTerm(item.level as string | null),
+                mechanic: this.translateTerm(item.mechanic as string | null),
+                equipment: this.translateTerm(item.equipment as string | null),
+                category: this.translateTerm(item.category as string | null),
+                instructions: translatedInstructions,
+                image_urls: fullImageUrls,
+                exercise_type: forceValue,
+              };
+
+              const anomalies = this.anomalyDetector.detectForPipeline(
+                'exercise',
+                cleanedData,
+              );
+
+              const existing = await this.prisma.exerciseStaging.findFirst({
+                where: {
+                  cleaned_data: {
+                    path: '$.name',
+                    equals: cleanedData.name,
+                  },
+                },
+              });
+
+              if (existing) {
+                await this.prisma.exerciseStaging.update({
+                  where: { id: existing.id },
+                  data: {
+                    cleaned_data: cleanedData,
+                    anomalies,
+                    status:
+                      existing.status === 'REJECTED' ||
+                      existing.status === 'APPROVED'
+                        ? 'PENDING'
+                        : existing.status,
+                  },
+                });
+              } else {
+                await this.prisma.exerciseStaging.create({
+                  data: {
+                    cleaned_data: cleanedData,
+                    anomalies,
+                    status: 'PENDING',
+                  },
+                });
+              }
+            },
+          );
+
+          await Promise.all(stagingPromises);
+          successCount += batch.length;
+          const statusMsg = `Statut : ${successCount}/${rawData.length} synchronisés.`;
+          this.logger.log(statusMsg);
+          this.etl.emit('exercise', 'INFO', statusMsg);
+          await new Promise((resolve) => setTimeout(resolve, 600));
         }
-
-        const promises = batch.map((item, index) => {
-          const fullImageUrls = item.images
-            ? item.images.map((path: string) => `${this.IMG_BASE_URL}${path}`)
-            : [];
-          const translatedInstructions = translatedBatch[index].split(' ||| ');
-          const forceValue = this.translateTerm(item.force);
-
-          return this.prisma.exercise.upsert({
-            where: { name: item.name },
-            update: {
-              primary_muscles: (item.primaryMuscles || []).map((m: string) =>
-                this.translateTerm(m),
-              ),
-              secondary_muscles: (item.secondaryMuscles || []).map(
-                (m: string) => this.translateTerm(m),
-              ),
-              level: this.translateTerm(item.level),
-              mechanic: this.translateTerm(item.mechanic),
-              equipment: this.translateTerm(item.equipment),
-              category: this.translateTerm(item.category),
-              instructions: translatedInstructions,
-              image_urls: fullImageUrls,
-              exercise_type: forceValue,
-            },
-            create: {
-              name: item.name,
-              primary_muscles: (item.primaryMuscles || []).map((m: string) =>
-                this.translateTerm(m),
-              ),
-              secondary_muscles: (item.secondaryMuscles || []).map(
-                (m: string) => this.translateTerm(m),
-              ),
-              level: this.translateTerm(item.level),
-              mechanic: this.translateTerm(item.mechanic),
-              equipment: this.translateTerm(item.equipment),
-              category: this.translateTerm(item.category),
-              instructions: translatedInstructions,
-              image_urls: fullImageUrls,
-              exercise_type: forceValue,
-            },
-          });
-        });
-
-        await Promise.all(promises);
-        successCount += batch.length;
-        this.logger.log(
-          `Statut : ${successCount}/${rawData.length} synchronisés.`,
-        );
-        await new Promise((resolve) => setTimeout(resolve, 600));
+        const endMsg = `--- Fin pipeline ETL Exercice : ${successCount} enregistrements en staging (PENDING). ---`;
+        this.etl.emit('exercise', 'SUCCESS', endMsg);
+        return successCount;
+      } catch (error) {
+        const errMsg = `ERREUR ETL : ${(error as Error).message}`;
+        this.logger.error(errMsg);
+        this.etl.emit('exercise', 'ERROR', errMsg);
+        throw error;
       }
-      return successCount;
-    } catch (error) {
-      this.logger.error(`ERREUR ETL : ${error.message}`);
-      throw error;
-    }
+    });
   }
 
   async findByFilters(filters: GetExercisesFilterDto): Promise<Exercise[]> {

@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import {
   BadRequestException,
   Injectable,
@@ -11,8 +10,10 @@ import { HealthProfile } from '@prisma/client';
 import { IHealthProfileService } from 'src/health-profile/interface/health-profile/health-profile.interface';
 import { PrismaService } from 'src/prisma/services/prisma/prisma.service';
 import { HttpService } from '@nestjs/axios';
+import { EtlService } from 'src/etl/services/etl/etl.service';
 import { lastValueFrom } from 'rxjs';
 import * as Papa from 'papaparse';
+import { EtlAnomalyDetectorService } from 'src/etl/services/etl-anomaly-detector/etl-anomaly-detector.service';
 
 @Injectable()
 export class HealthProfileService implements IHealthProfileService {
@@ -25,77 +26,123 @@ export class HealthProfileService implements IHealthProfileService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly httpService: HttpService,
+    private readonly etl: EtlService,
+    private readonly anomalyDetector: EtlAnomalyDetectorService,
   ) {}
   async runHealthProfilePipeline(): Promise<number> {
-    try {
-      const users = await this.prisma.user.findMany({
-        select: { id: true },
-        orderBy: { id: 'asc' },
-      });
-      if (users.length === 0) {
-        throw new BadRequestException(
-          'NO_USERS_SEEDED: seed la table User avant de lancer le pipeline HealthProfile',
+    return this.etl.runWithPipelineLock('health-profile', async () => {
+      try {
+        this.etl.emit(
+          'health-profile',
+          'INFO',
+          '--- Début pipeline ETL HealthProfile ---',
         );
-      }
-
-      const auth = Buffer.from(
-        `${this.KAGGLE_USER}:${this.KAGGLE_KEY}`,
-      ).toString('base64');
-
-      const response = await lastValueFrom(
-        this.httpService.get(this.DATASET_URL, {
-          headers: {
-            Authorization: `Basic ${auth}`,
-            Accept: 'application/octet-stream',
-          },
-          responseType: 'text',
-        }),
-      );
-
-      const parsed = Papa.parse(response.data, {
-        header: true,
-        skipEmptyLines: true,
-        dynamicTyping: true,
-      });
-      const rows = parsed.data as any[];
-
-      await this.prisma.healthProfile.deleteMany({});
-      await this.prisma.$executeRaw`ALTER TABLE HealthProfile AUTO_INCREMENT =
-        1`;
-
-      let importedCount = 0;
-
-      for (const [index, row] of rows.entries()) {
-        const userId = users[index % users.length].id;
-        const healthProfile = {
-          user_id: userId,
-          weight: row['Weight_kg'] || row['weight_kg'] || null,
-          bmi: row['BMI'] || row['bmi'] || null,
-          physical_activity_level:
-            row['Physical_Activity_Level'] ||
-            row['Physical_Activity'] ||
-            row['physical_activity_level'] ||
-            null,
-          daily_calories_target:
-            row['Daily_Caloric_Intake'] ||
-            row['Daily_Calories'] ||
-            row['Calories_Target'] ||
-            row['daily_calories_target'] ||
-            null,
-        };
-
-        await this.prisma.healthProfile.create({
-          data: healthProfile,
+        const users = await this.prisma.user.findMany({
+          select: { id: true },
+          orderBy: { id: 'asc' },
         });
-        importedCount++;
-      }
+        if (users.length === 0) {
+          throw new BadRequestException(
+            'NO_USERS_SEEDED: seed la table User avant de lancer le pipeline HealthProfile',
+          );
+        }
 
-      this.logger.log(`Import réussi : ${importedCount} profils importés`);
-      return importedCount;
-    } catch (e) {
-      this.logger.error(`Erreur ETL: ${e.message}`);
-      throw e;
-    }
+        const auth = Buffer.from(
+          `${this.KAGGLE_USER}:${this.KAGGLE_KEY}`,
+        ).toString('base64');
+
+        const response = await lastValueFrom(
+          this.httpService.get(this.DATASET_URL, {
+            headers: {
+              Authorization: `Basic ${auth}`,
+              Accept: 'application/octet-stream',
+            },
+            responseType: 'text',
+          }),
+        );
+
+        const parsed = Papa.parse(response.data, {
+          header: true,
+          skipEmptyLines: true,
+          dynamicTyping: true,
+        });
+        const rows = parsed.data as Record<string, unknown>[];
+
+        let importedCount = 0;
+
+        for (const [index, row] of rows.entries()) {
+          const userId = users[index % users.length].id;
+          const cleanedData = {
+            user_id: userId,
+            weight: row['Weight_kg'] ?? row['weight_kg'] ?? null,
+            bmi: row['BMI'] ?? row['bmi'] ?? null,
+            physical_activity_level:
+              row['Physical_Activity_Level'] ??
+              row['Physical_Activity'] ??
+              row['physical_activity_level'] ??
+              null,
+            daily_calories_target:
+              row['Daily_Caloric_Intake'] ??
+              row['Daily_Calories'] ??
+              row['Calories_Target'] ??
+              row['daily_calories_target'] ??
+              null,
+          };
+
+          const anomalies = this.anomalyDetector.detectForPipeline(
+            'health-profile',
+            cleanedData,
+          );
+
+          const existing =
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+            await this.prisma.healthProfileStaging.findFirst({
+              where: {
+                cleaned_data: {
+                  path: '$.user_id',
+                  equals: cleanedData.user_id,
+                },
+              },
+            });
+
+          if (existing) {
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+            await this.prisma.healthProfileStaging.update({
+              where: { id: existing.id },
+              data: {
+                cleaned_data: cleanedData,
+                anomalies,
+                status:
+                  existing.status === 'REJECTED' ||
+                  existing.status === 'APPROVED'
+                    ? 'PENDING'
+                    : existing.status,
+              },
+            });
+          } else {
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+            await this.prisma.healthProfileStaging.create({
+              data: {
+                cleaned_data: cleanedData,
+                anomalies,
+                status: 'PENDING',
+              },
+            });
+          }
+          importedCount++;
+        }
+
+        const successMsg = `Import staging réussi : ${importedCount} profils en PENDING.`;
+        this.logger.log(successMsg);
+        this.etl.emit('health-profile', 'SUCCESS', successMsg);
+        return importedCount;
+      } catch (e) {
+        const message = e instanceof Error ? e.message : String(e);
+        this.logger.error(`Erreur ETL: ${message}`);
+        this.etl.emit('health-profile', 'ERROR', `Erreur ETL: ${message}`);
+        throw e;
+      }
+    });
   }
   async getHealthProfiles(): Promise<HealthProfile[]> {
     const healthProfiles = await this.prisma.healthProfile.findMany();
@@ -159,10 +206,20 @@ export class HealthProfileService implements IHealthProfileService {
       this.logger.log(
         `Redistribution terminée : ${updated} profils mis à jour, ${usersCreated} utilisateurs créés`,
       );
+      this.etl.emit(
+        'health-profile',
+        'SUCCESS',
+        `Redistribution terminée : ${updated} profils mis à jour, ${usersCreated} utilisateurs créés`,
+      );
 
       return { updated, usersCreated };
     } catch (e) {
       this.logger.error(`Erreur redistribution des user_ids: ${e.message}`);
+      this.etl.emit(
+        'health-profile',
+        'ERROR',
+        `Erreur redistribution des user_ids: ${e.message}`,
+      );
       throw e;
     }
   }

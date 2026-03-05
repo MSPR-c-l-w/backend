@@ -4,6 +4,8 @@ import { PrismaService } from 'src/prisma/services/prisma/prisma.service';
 import { NotFoundException } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { of } from 'rxjs';
+import { EtlService } from 'src/etl/services/etl/etl.service';
+import { EtlAnomalyDetectorService } from 'src/etl/services/etl-anomaly-detector/etl-anomaly-detector.service';
 
 describe('HealthProfileService', () => {
   let service: HealthProfileService;
@@ -12,6 +14,11 @@ describe('HealthProfileService', () => {
       findMany: jest.fn(),
       findUnique: jest.fn(),
       deleteMany: jest.fn(),
+      create: jest.fn(),
+    },
+    healthProfileStaging: {
+      findFirst: jest.fn(),
+      update: jest.fn(),
       create: jest.fn(),
     },
     user: {
@@ -35,6 +42,23 @@ describe('HealthProfileService', () => {
         {
           provide: HttpService,
           useValue: httpServiceMock,
+        },
+        {
+          provide: EtlService,
+          useValue: {
+            emit: jest.fn(),
+            getStream: jest.fn(() => ({ subscribe: () => {} })),
+            runWithPipelineLock: jest.fn(
+              async (_pipeline: string, task: () => Promise<unknown>) =>
+                await task(),
+            ),
+          },
+        },
+        {
+          provide: EtlAnomalyDetectorService,
+          useValue: {
+            detectForPipeline: jest.fn(() => []),
+          },
         },
       ],
     }).compile();
@@ -107,32 +131,10 @@ P0002,45,Female,75.2,165,27.6,Obesity,Moderate,Sedentary,1800`;
       // Mock Prisma users (seeded)
       prismaMock.user.findMany.mockResolvedValue([{ id: 1 }, { id: 2 }]);
 
-      // Mock Prisma healthProfile.deleteMany
-      prismaMock.healthProfile.deleteMany.mockResolvedValue({ count: 0 });
-
-      // Mock Prisma $executeRaw
-      prismaMock.$executeRaw.mockResolvedValue(undefined);
-
-      // Mock Prisma healthProfile.create
-      prismaMock.healthProfile.create
-        .mockResolvedValueOnce({
-          id: 1,
-          user_id: 1,
-          weight: 58.4,
-          bmi: 22.8,
-          physical_activity_level: 'Moderate',
-          daily_calories_target: 2000,
-          updated_at: new Date(),
-        })
-        .mockResolvedValueOnce({
-          id: 2,
-          user_id: 2,
-          weight: 75.2,
-          bmi: 27.6,
-          physical_activity_level: 'Sedentary',
-          daily_calories_target: 1800,
-          updated_at: new Date(),
-        });
+      // Mock Prisma healthProfileStaging.create
+      prismaMock.healthProfileStaging.create
+        .mockResolvedValueOnce({ id: 'uuid-1' })
+        .mockResolvedValueOnce({ id: 'uuid-2' });
 
       // Exécuter le pipeline
       const result = await service.runHealthProfilePipeline();
@@ -140,8 +142,23 @@ P0002,45,Female,75.2,165,27.6,Obesity,Moderate,Sedentary,1800`;
       // Vérifications
       expect(result).toBe(2); // 2 lignes dans le CSV mock
       expect(prismaMock.user.findMany).toHaveBeenCalledTimes(1);
-      expect(prismaMock.healthProfile.deleteMany).toHaveBeenCalledTimes(1);
-      expect(prismaMock.healthProfile.create).toHaveBeenCalledTimes(2); // 2 profils
+      expect(prismaMock.healthProfileStaging.create).toHaveBeenCalledTimes(2);
+      expect(prismaMock.healthProfileStaging.create).toHaveBeenNthCalledWith(
+        1,
+        {
+          data: {
+            cleaned_data: {
+              user_id: 1,
+              weight: 58.4,
+              bmi: 22.8,
+              physical_activity_level: 'Moderate',
+              daily_calories_target: 2000,
+            },
+            anomalies: [],
+            status: 'PENDING',
+          },
+        },
+      );
       expect(httpServiceMock.get).toHaveBeenCalled();
     });
 
@@ -150,13 +167,11 @@ P0002,45,Female,75.2,165,27.6,Obesity,Moderate,Sedentary,1800`;
         of({ data: 'Patient_ID,Age\n' }), // Header seulement
       );
       prismaMock.user.findMany.mockResolvedValue([{ id: 1 }]);
-      prismaMock.healthProfile.deleteMany.mockResolvedValue({ count: 0 });
-      prismaMock.$executeRaw.mockResolvedValue(undefined);
 
       const result = await service.runHealthProfilePipeline();
 
       expect(result).toBe(0); // Aucune ligne de données
-      expect(prismaMock.healthProfile.create).not.toHaveBeenCalled();
+      expect(prismaMock.healthProfileStaging.create).not.toHaveBeenCalled();
     });
 
     it('should throw error when HTTP request fails', async () => {
@@ -171,28 +186,33 @@ P0002,45,Female,75.2,165,27.6,Obesity,Moderate,Sedentary,1800`;
       );
     });
 
-    it('should map CSV columns correctly to HealthProfile fields', async () => {
+    it('should map CSV columns correctly to HealthProfile staging', async () => {
       const csvWithAllFields = `Patient_ID,Age,Gender,Weight_kg,Height_cm,BMI,Disease_Type,Severity,Physical_Activity_Level,Daily_Caloric_Intake
 P0001,56,Male,58.4,160,22.8,Diabetes,Severe,Active,2500`;
 
       httpServiceMock.get.mockReturnValue(of({ data: csvWithAllFields }));
       prismaMock.user.findMany.mockResolvedValue([{ id: 1 }]);
-      prismaMock.healthProfile.deleteMany.mockResolvedValue({ count: 0 });
-      prismaMock.$executeRaw.mockResolvedValue(undefined);
-      prismaMock.healthProfile.create.mockResolvedValue({ id: 1 } as any);
+      prismaMock.healthProfileStaging.create.mockResolvedValue({
+        id: 'uuid-1',
+      });
 
       await service.runHealthProfilePipeline();
 
-      // Vérifier que create a été appelé avec les bons champs
-      expect(prismaMock.healthProfile.create).toHaveBeenCalledWith({
-        data: {
-          user_id: 1,
-          weight: 58.4,
-          bmi: 22.8,
-          physical_activity_level: 'Active',
-          daily_calories_target: 2500,
-        },
-      });
+      expect(prismaMock.healthProfileStaging.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: {
+            cleaned_data: {
+              user_id: 1,
+              weight: 58.4,
+              bmi: 22.8,
+              physical_activity_level: 'Active',
+              daily_calories_target: 2500,
+            },
+            anomalies: [],
+            status: 'PENDING',
+          },
+        }),
+      );
     });
 
     it('should handle missing CSV columns with null values', async () => {
@@ -201,22 +221,27 @@ P0001,56,Male,22.8`;
 
       httpServiceMock.get.mockReturnValue(of({ data: csvWithMissingFields }));
       prismaMock.user.findMany.mockResolvedValue([{ id: 1 }]);
-      prismaMock.healthProfile.deleteMany.mockResolvedValue({ count: 0 });
-      prismaMock.$executeRaw.mockResolvedValue(undefined);
-      prismaMock.healthProfile.create.mockResolvedValue({ id: 1 } as any);
+      prismaMock.healthProfileStaging.create.mockResolvedValue({
+        id: 'uuid-1',
+      });
 
       await service.runHealthProfilePipeline();
 
-      // Vérifier que les champs manquants sont null
-      expect(prismaMock.healthProfile.create).toHaveBeenCalledWith({
-        data: {
-          user_id: 1,
-          weight: null,
-          bmi: 22.8,
-          physical_activity_level: null,
-          daily_calories_target: null,
-        },
-      });
+      expect(prismaMock.healthProfileStaging.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: {
+            cleaned_data: {
+              user_id: 1,
+              weight: null,
+              bmi: 22.8,
+              physical_activity_level: null,
+              daily_calories_target: null,
+            },
+            anomalies: [],
+            status: 'PENDING',
+          },
+        }),
+      );
     });
   });
 });

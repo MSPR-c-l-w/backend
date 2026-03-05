@@ -13,13 +13,10 @@ export class RolesService implements IRoleService, OnModuleInit {
   }
 
   async seedDefaultRoles(): Promise<void> {
-    for (const name of DEFAULT_ROLE_NAMES) {
-      await this.prisma.role.upsert({
-        where: { name },
-        create: { name },
-        update: {},
-      });
-    }
+    await this.prisma.role.createMany({
+      data: DEFAULT_ROLE_NAMES.map((name) => ({ name })),
+      skipDuplicates: true,
+    });
   }
 
   async getRoles(): Promise<Role[]> {

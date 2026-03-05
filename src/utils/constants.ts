@@ -1,5 +1,6 @@
 export enum ROUTES {
   AUTH = 'auth',
+  ETL = 'etl',
   USERS = 'users',
   ROLES = 'roles',
   ORGANIZATIONS = 'organizations',

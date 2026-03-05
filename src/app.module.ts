@@ -13,6 +13,7 @@ import { SessionExerciseModule } from './session-exercise/session-exercise.modul
 import { SessionModule } from './session/session.module';
 import { HealthProfileModule } from './health-profile/health-profile.module';
 import { SubscriptionModule } from './subscription/subscription.module';
+import { EtlModule } from './etl/etl.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { SubscriptionModule } from './subscription/subscription.module';
     SessionModule,
     HealthProfileModule,
     SubscriptionModule,
+    EtlModule,
   ],
   controllers: [AppController],
   providers: [AppService],
