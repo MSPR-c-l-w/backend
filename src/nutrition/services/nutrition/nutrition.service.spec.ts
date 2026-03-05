@@ -10,6 +10,7 @@ import { EtlService } from 'src/etl/services/etl/etl.service';
 import { Nutrition } from '@prisma/client';
 import { of } from 'rxjs';
 import AdmZip from 'adm-zip';
+import { EtlAnomalyDetectorService } from 'src/etl/services/etl-anomaly-detector/etl-anomaly-detector.service';
 
 jest.mock('google-translate-api-x', () => ({
   translate: jest.fn((texts: string[] | string) => {
@@ -85,6 +86,16 @@ describe('NutritionService', () => {
           useValue: {
             emit: jest.fn(),
             getStream: jest.fn(() => ({ subscribe: () => {} })),
+            runWithPipelineLock: jest.fn(
+              async (_pipeline: string, task: () => Promise<unknown>) =>
+                await task(),
+            ),
+          },
+        },
+        {
+          provide: EtlAnomalyDetectorService,
+          useValue: {
+            detectForPipeline: jest.fn(() => []),
           },
         },
       ],
@@ -208,6 +219,16 @@ describe('NutritionService', () => {
             useValue: {
               emit: jest.fn(),
               getStream: jest.fn(() => ({ subscribe: () => {} })),
+              runWithPipelineLock: jest.fn(
+                async (_pipeline: string, task: () => Promise<unknown>) =>
+                  await task(),
+              ),
+            },
+          },
+          {
+            provide: EtlAnomalyDetectorService,
+            useValue: {
+              detectForPipeline: jest.fn(() => []),
             },
           },
         ],
@@ -251,6 +272,16 @@ describe('NutritionService', () => {
             useValue: {
               emit: jest.fn(),
               getStream: jest.fn(() => ({ subscribe: () => {} })),
+              runWithPipelineLock: jest.fn(
+                async (_pipeline: string, task: () => Promise<unknown>) =>
+                  await task(),
+              ),
+            },
+          },
+          {
+            provide: EtlAnomalyDetectorService,
+            useValue: {
+              detectForPipeline: jest.fn(() => []),
             },
           },
         ],
@@ -299,6 +330,16 @@ describe('NutritionService', () => {
             useValue: {
               emit: jest.fn(),
               getStream: jest.fn(() => ({ subscribe: () => {} })),
+              runWithPipelineLock: jest.fn(
+                async (_pipeline: string, task: () => Promise<unknown>) =>
+                  await task(),
+              ),
+            },
+          },
+          {
+            provide: EtlAnomalyDetectorService,
+            useValue: {
+              detectForPipeline: jest.fn(() => []),
             },
           },
         ],

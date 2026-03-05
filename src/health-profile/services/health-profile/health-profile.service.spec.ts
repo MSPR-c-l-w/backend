@@ -5,6 +5,7 @@ import { NotFoundException } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { of } from 'rxjs';
 import { EtlService } from 'src/etl/services/etl/etl.service';
+import { EtlAnomalyDetectorService } from 'src/etl/services/etl-anomaly-detector/etl-anomaly-detector.service';
 
 describe('HealthProfileService', () => {
   let service: HealthProfileService;
@@ -47,6 +48,16 @@ describe('HealthProfileService', () => {
           useValue: {
             emit: jest.fn(),
             getStream: jest.fn(() => ({ subscribe: () => {} })),
+            runWithPipelineLock: jest.fn(
+              async (_pipeline: string, task: () => Promise<unknown>) =>
+                await task(),
+            ),
+          },
+        },
+        {
+          provide: EtlAnomalyDetectorService,
+          useValue: {
+            detectForPipeline: jest.fn(() => []),
           },
         },
       ],

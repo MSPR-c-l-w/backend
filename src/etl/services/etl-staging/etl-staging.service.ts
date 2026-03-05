@@ -1,14 +1,16 @@
 /* eslint-disable @typescript-eslint/no-base-to-string */
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from 'src/prisma/services/prisma/prisma.service';
-import type { PipelineId } from './etl.service';
+import type { PipelineId } from '../etl/etl.service';
+import { EtlAnomalyDetectorService } from '../etl-anomaly-detector/etl-anomaly-detector.service';
 
 type UpdateStagingStatus = 'APPROVED' | 'REJECTED';
 
 export interface StagingRow {
   id: string;
   cleaned_data: Record<string, unknown>;
+  anomalies: Prisma.JsonArray;
   status: string;
   created_at: Date;
   updated_at: Date;
@@ -16,7 +18,10 @@ export interface StagingRow {
 
 @Injectable()
 export class EtlStagingService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly anomalyDetector: EtlAnomalyDetectorService,
+  ) {}
 
   async findPendingWithoutAnomalies(
     pipeline: PipelineId,
@@ -27,57 +32,26 @@ export class EtlStagingService {
     const emptyAnomalies: Prisma.JsonArray = [];
     let list: StagingRow[] = [];
 
-    if (pipeline === 'nutrition') {
-      const rows = await this.prisma.nutritionStaging.findMany({
-        where: {
-          status: 'PENDING',
-          anomalies: { equals: emptyAnomalies },
-        },
-        orderBy: { created_at: 'asc' },
-      });
-      list = this.mapRows(rows, search, (r) => {
-        const d = r.cleaned_data as Record<string, unknown>;
-        const name = d?.name;
-        const category = d?.category;
-        return [
-          typeof name === 'string' ? name : '',
-          typeof category === 'string' ? category : '',
-        ].join(' ');
-      });
-    } else if (pipeline === 'exercise') {
-      const rows = await this.prisma.exerciseStaging.findMany({
-        where: {
-          status: 'PENDING',
-          anomalies: { equals: emptyAnomalies },
-        },
-        orderBy: { created_at: 'asc' },
-      });
-      list = this.mapRows(rows, search, (r) => {
-        const d = r.cleaned_data as Record<string, unknown>;
-        const name = d?.name;
-        return typeof name === 'string' ? name : '';
-      });
-    } else if (pipeline === 'health-profile') {
-      const rows = await this.prisma.healthProfileStaging.findMany({
-        where: {
-          status: 'PENDING',
-          anomalies: { equals: emptyAnomalies },
-        },
-        orderBy: { created_at: 'asc' },
-      });
-      list = this.mapRows(rows, search, (r) => {
-        const d = r.cleaned_data as Record<string, unknown>;
-        const uid = d?.user_id;
-        const bmi = d?.bmi;
-        const pal = d?.physical_activity_level;
-        return [
-          uid != null ? String(uid) : '',
-          bmi != null ? String(bmi) : '',
-          typeof pal === 'string' ? pal : '',
-        ].join(' ');
-      });
-    }
+    const rows = await this.findPendingRows(pipeline, emptyAnomalies, false);
+    list = this.mapRows(rows, search, (r) => this.toSearchText(r, pipeline));
 
+    const total = list.length;
+    const start = (page - 1) * limit;
+    const items = list.slice(start, start + limit);
+    return { items, total };
+  }
+
+  async findPendingWithAnomalies(
+    pipeline: PipelineId,
+    search?: string,
+    page: number = 1,
+    limit: number = 20,
+  ): Promise<{ items: StagingRow[]; total: number }> {
+    const emptyAnomalies: Prisma.JsonArray = [];
+    const rows = await this.findPendingRows(pipeline, emptyAnomalies, true);
+    const list = this.mapRows(rows, search, (r) =>
+      this.toSearchText(r, pipeline),
+    );
     const total = list.length;
     const start = (page - 1) * limit;
     const items = list.slice(start, start + limit);
@@ -88,6 +62,7 @@ export class EtlStagingService {
     T extends {
       id: string;
       cleaned_data: unknown;
+      anomalies: unknown;
       status: string;
       created_at: Date;
       updated_at: Date;
@@ -100,6 +75,7 @@ export class EtlStagingService {
     const list: StagingRow[] = rows.map((r) => ({
       id: r.id,
       cleaned_data: r.cleaned_data as Record<string, unknown>,
+      anomalies: (r.anomalies as Prisma.JsonArray) ?? [],
       status: r.status,
       created_at: r.created_at,
       updated_at: r.updated_at,
@@ -158,6 +134,53 @@ export class EtlStagingService {
     return 0;
   }
 
+  async updateCleanedDataAndRecheck(
+    pipeline: PipelineId,
+    id: string,
+    cleanedDataInput: unknown,
+  ): Promise<StagingRow> {
+    const parsedCleanedData =
+      this.parseAndValidateCleanedData(cleanedDataInput);
+    const anomalies = this.anomalyDetector.detectForPipeline(
+      pipeline,
+      parsedCleanedData,
+    );
+
+    if (pipeline === 'nutrition') {
+      const row = await this.prisma.nutritionStaging.update({
+        where: { id },
+        data: {
+          cleaned_data: parsedCleanedData as Prisma.InputJsonValue,
+          anomalies,
+          status: 'PENDING',
+        },
+      });
+      return this.toStagingRow(row);
+    }
+
+    if (pipeline === 'exercise') {
+      const row = await this.prisma.exerciseStaging.update({
+        where: { id },
+        data: {
+          cleaned_data: parsedCleanedData as Prisma.InputJsonValue,
+          anomalies,
+          status: 'PENDING',
+        },
+      });
+      return this.toStagingRow(row);
+    }
+
+    const row = await this.prisma.healthProfileStaging.update({
+      where: { id },
+      data: {
+        cleaned_data: parsedCleanedData as Prisma.InputJsonValue,
+        anomalies,
+        status: 'PENDING',
+      },
+    });
+    return this.toStagingRow(row);
+  }
+
   private async applyApprovedToFinal(
     pipeline: PipelineId,
     ids: string[],
@@ -167,9 +190,24 @@ export class EtlStagingService {
         where: { id: { in: ids } },
       });
 
+      const approvedIds: string[] = [];
       for (const row of rows) {
         const data = row.cleaned_data as Record<string, unknown>;
         if (!data || typeof data !== 'object') continue;
+        const anomalies = this.anomalyDetector.detectForPipeline(
+          'nutrition',
+          data,
+        );
+        if (anomalies.length > 0) {
+          await this.prisma.nutritionStaging.update({
+            where: { id: row.id },
+            data: {
+              anomalies,
+              status: 'PENDING',
+            },
+          });
+          continue;
+        }
 
         const name = data.name as string | undefined;
         const category = data.category as string | undefined;
@@ -213,13 +251,14 @@ export class EtlStagingService {
             picture_url: (data.picture_url as string | null) ?? null,
           },
         });
+        approvedIds.push(row.id);
       }
 
+      if (approvedIds.length === 0) return 0;
       const result = await this.prisma.nutritionStaging.updateMany({
-        where: { id: { in: ids } },
+        where: { id: { in: approvedIds } },
         data: { status: 'APPROVED' },
       });
-
       return result.count;
     }
 
@@ -228,9 +267,24 @@ export class EtlStagingService {
         where: { id: { in: ids } },
       });
 
+      const approvedIds: string[] = [];
       for (const row of rows) {
         const data = row.cleaned_data as Record<string, unknown>;
         if (!data || typeof data !== 'object') continue;
+        const anomalies = this.anomalyDetector.detectForPipeline(
+          'exercise',
+          data,
+        );
+        if (anomalies.length > 0) {
+          await this.prisma.exerciseStaging.update({
+            where: { id: row.id },
+            data: {
+              anomalies,
+              status: 'PENDING',
+            },
+          });
+          continue;
+        }
 
         const name = data.name as string | undefined;
         if (!name) continue;
@@ -262,13 +316,14 @@ export class EtlStagingService {
             exercise_type: (data.exercise_type as string | null) ?? null,
           },
         });
+        approvedIds.push(row.id);
       }
 
+      if (approvedIds.length === 0) return 0;
       const result = await this.prisma.exerciseStaging.updateMany({
-        where: { id: { in: ids } },
+        where: { id: { in: approvedIds } },
         data: { status: 'APPROVED' },
       });
-
       return result.count;
     }
 
@@ -277,9 +332,24 @@ export class EtlStagingService {
         where: { id: { in: ids } },
       });
 
+      const approvedIds: string[] = [];
       for (const row of rows) {
         const data = row.cleaned_data as Record<string, unknown>;
         if (!data || typeof data !== 'object') continue;
+        const anomalies = this.anomalyDetector.detectForPipeline(
+          'health-profile',
+          data,
+        );
+        if (anomalies.length > 0) {
+          await this.prisma.healthProfileStaging.update({
+            where: { id: row.id },
+            data: {
+              anomalies,
+              status: 'PENDING',
+            },
+          });
+          continue;
+        }
 
         const userId = data.user_id as number | undefined;
         if (!userId) continue;
@@ -308,16 +378,141 @@ export class EtlStagingService {
             daily_calories_target: dailyCalories ?? null,
           },
         });
+        approvedIds.push(row.id);
       }
 
+      if (approvedIds.length === 0) return 0;
       const result = await this.prisma.healthProfileStaging.updateMany({
-        where: { id: { in: ids } },
+        where: { id: { in: approvedIds } },
         data: { status: 'APPROVED' },
       });
-
       return result.count;
     }
 
     return 0;
+  }
+
+  private parseAndValidateCleanedData(
+    cleanedDataInput: unknown,
+  ): Record<string, unknown> {
+    let parsed: unknown = cleanedDataInput;
+    if (typeof cleanedDataInput === 'string') {
+      try {
+        parsed = JSON.parse(cleanedDataInput);
+      } catch {
+        throw new BadRequestException(
+          'JSON invalide : erreur de syntaxe lors du parsing.',
+        );
+      }
+    }
+
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      throw new BadRequestException(
+        'cleaned_data doit être un objet JSON valide.',
+      );
+    }
+
+    return parsed as Record<string, unknown>;
+  }
+
+  private async findPendingRows(
+    pipeline: PipelineId,
+    emptyAnomalies: Prisma.JsonArray,
+    withAnomalies: boolean,
+  ): Promise<
+    Array<{
+      id: string;
+      cleaned_data: unknown;
+      anomalies: unknown;
+      status: string;
+      created_at: Date;
+      updated_at: Date;
+    }>
+  > {
+    if (pipeline === 'nutrition') {
+      return await this.prisma.nutritionStaging.findMany({
+        where: withAnomalies
+          ? {
+              status: 'PENDING',
+              NOT: { anomalies: { equals: emptyAnomalies } },
+            }
+          : {
+              status: 'PENDING',
+              anomalies: { equals: emptyAnomalies },
+            },
+        orderBy: { created_at: 'asc' },
+      });
+    }
+    if (pipeline === 'exercise') {
+      return await this.prisma.exerciseStaging.findMany({
+        where: withAnomalies
+          ? {
+              status: 'PENDING',
+              NOT: { anomalies: { equals: emptyAnomalies } },
+            }
+          : {
+              status: 'PENDING',
+              anomalies: { equals: emptyAnomalies },
+            },
+        orderBy: { created_at: 'asc' },
+      });
+    }
+    return await this.prisma.healthProfileStaging.findMany({
+      where: withAnomalies
+        ? {
+            status: 'PENDING',
+            NOT: { anomalies: { equals: emptyAnomalies } },
+          }
+        : {
+            status: 'PENDING',
+            anomalies: { equals: emptyAnomalies },
+          },
+      orderBy: { created_at: 'asc' },
+    });
+  }
+
+  private toSearchText(
+    row: { cleaned_data: unknown },
+    pipeline: PipelineId,
+  ): string {
+    const d = row.cleaned_data as Record<string, unknown>;
+    if (pipeline === 'nutrition') {
+      const name = d?.name;
+      const category = d?.category;
+      return [
+        typeof name === 'string' ? name : '',
+        typeof category === 'string' ? category : '',
+      ].join(' ');
+    }
+    if (pipeline === 'exercise') {
+      const name = d?.name;
+      return typeof name === 'string' ? name : '';
+    }
+    const uid = d?.user_id;
+    const bmi = d?.bmi;
+    const pal = d?.physical_activity_level;
+    return [
+      uid != null ? String(uid) : '',
+      bmi != null ? String(bmi) : '',
+      typeof pal === 'string' ? pal : '',
+    ].join(' ');
+  }
+
+  private toStagingRow(row: {
+    id: string;
+    cleaned_data: unknown;
+    anomalies: unknown;
+    status: string;
+    created_at: Date;
+    updated_at: Date;
+  }): StagingRow {
+    return {
+      id: row.id,
+      cleaned_data: row.cleaned_data as Record<string, unknown>,
+      anomalies: (row.anomalies as Prisma.JsonArray) ?? [],
+      status: row.status,
+      created_at: row.created_at,
+      updated_at: row.updated_at,
+    };
   }
 }

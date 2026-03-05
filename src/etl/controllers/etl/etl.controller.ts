@@ -11,13 +11,15 @@ import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { Roles } from 'src/auth/decorators/roles.decorator';
 import type { PipelineId } from 'src/etl/services/etl/etl.service';
 import { ROUTES } from 'src/utils/constants';
-import { EtlStagingService } from 'src/etl/services/etl/etl-staging.service';
+import { EtlService } from 'src/etl/services/etl/etl.service';
+import { EtlStagingService } from 'src/etl/services/etl-staging/etl-staging.service';
 
 export type StagingStatus = 'APPROVED' | 'REJECTED';
 
 export interface StagingRowDto {
   id: string;
   cleaned_data: Record<string, unknown>;
+  anomalies: unknown[];
   status: string;
   created_at: string;
   updated_at: string;
@@ -29,13 +31,34 @@ export interface UpdateStagingStatusDto {
   status: StagingStatus;
 }
 
+export interface UpdateStagingCleanedDataDto {
+  pipeline: PipelineId;
+  id: string;
+  cleaned_data: Record<string, unknown> | string;
+}
+
 @Controller(ROUTES.ETL)
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles('ADMIN')
 @ApiTags(ROUTES.ETL)
 @ApiBearerAuth('access-token')
 export class EtlController {
-  constructor(private readonly etlStagingService: EtlStagingService) {}
+  constructor(
+    private readonly etlStagingService: EtlStagingService,
+    private readonly etlService: EtlService,
+  ) {}
+
+  @Get('pipelines/status')
+  @ApiOperation({
+    summary: "Retourne l'état d'exécution des pipelines ETL",
+  })
+  @ApiOkResponse({
+    description:
+      'Statut de chaque pipeline (true = en cours, false = libre pour lancement)',
+  })
+  getPipelinesStatus(): Record<PipelineId, boolean> {
+    return this.etlService.getAllPipelineStatuses();
+  }
 
   @Get('staging')
   @ApiOperation({
@@ -88,6 +111,67 @@ export class EtlController {
       items: items.map((r) => ({
         id: r.id,
         cleaned_data: r.cleaned_data,
+        anomalies: r.anomalies,
+        status: r.status,
+        created_at: r.created_at.toISOString(),
+        updated_at: r.updated_at.toISOString(),
+      })),
+      total,
+    };
+  }
+
+  @Get('staging/anomalies')
+  @ApiOperation({
+    summary:
+      'Liste les lignes de staging avec anomalies (PENDING) pour correction',
+  })
+  @ApiQuery({
+    name: 'pipeline',
+    required: true,
+    enum: ['nutrition', 'exercise', 'health-profile'],
+    description: 'Pipeline concerné',
+  })
+  @ApiQuery({
+    name: 'search',
+    required: false,
+    description: 'Recherche dans cleaned_data (nom, catégorie, etc.)',
+  })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    description: 'Numéro de page (défaut: 1)',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    description: 'Nombre de lignes par page (défaut: 20)',
+  })
+  @ApiOkResponse({
+    description: 'Liste paginée des lignes staging avec anomalies',
+  })
+  async getStagingPendingWithAnomalies(
+    @Query('pipeline') pipeline: PipelineId,
+    @Query('search') search?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ): Promise<{ items: StagingRowDto[]; total: number }> {
+    const pageNum = Math.max(1, parseInt(String(page || '1'), 10) || 1);
+    const limitNum = Math.min(
+      10000,
+      Math.max(1, parseInt(String(limit || '20'), 10) || 20),
+    );
+    const { items, total } =
+      await this.etlStagingService.findPendingWithAnomalies(
+        pipeline,
+        search,
+        pageNum,
+        limitNum,
+      );
+    return {
+      items: items.map((r) => ({
+        id: r.id,
+        cleaned_data: r.cleaned_data,
+        anomalies: r.anomalies,
         status: r.status,
         created_at: r.created_at.toISOString(),
         updated_at: r.updated_at.toISOString(),
@@ -110,5 +194,33 @@ export class EtlController {
       body.status,
     );
     return { updated };
+  }
+
+  @Patch('staging/cleaned-data')
+  @ApiOperation({
+    summary:
+      'Met à jour cleaned_data d’une ligne staging puis relance les détecteurs d’anomalies',
+  })
+  @ApiOkResponse({
+    description: 'Ligne staging mise à jour avec anomalies recalculées',
+  })
+  async updateStagingCleanedData(
+    @Body() body: UpdateStagingCleanedDataDto,
+  ): Promise<{ item: StagingRowDto }> {
+    const row = await this.etlStagingService.updateCleanedDataAndRecheck(
+      body.pipeline,
+      body.id,
+      body.cleaned_data,
+    );
+    return {
+      item: {
+        id: row.id,
+        cleaned_data: row.cleaned_data,
+        anomalies: row.anomalies,
+        status: row.status,
+        created_at: row.created_at.toISOString(),
+        updated_at: row.updated_at.toISOString(),
+      },
+    };
   }
 }

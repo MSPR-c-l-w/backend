@@ -32,6 +32,7 @@ export class EtlGateway implements OnGatewayInit {
     this.etlService.getStream().subscribe((entry) => {
       const room = `etl:${entry.pipelineId}`;
       this.server.to(room).emit('etl:log', {
+        pipelineId: entry.pipelineId,
         timestamp: entry.timestamp,
         level: entry.level,
         message: entry.message,
@@ -52,7 +53,23 @@ export class EtlGateway implements OnGatewayInit {
       return;
     }
     const room = `etl:${pipeline}`;
+    for (const p of VALID_PIPELINES) {
+      await client.leave(`etl:${p}`);
+    }
     await client.join(room);
     this.logger.log(`Client ${client.id} subscribed to ${room}`);
+  }
+
+  @SubscribeMessage('unsubscribe')
+  async handleUnsubscribe(
+    @MessageBody() data: { pipeline?: string },
+    @ConnectedSocket() client: Socket,
+  ): Promise<void> {
+    const pipeline = data?.pipeline;
+    if (!pipeline || !VALID_PIPELINES.includes(pipeline as PipelineId)) {
+      return;
+    }
+    await client.leave(`etl:${pipeline}`);
+    this.logger.log(`Client ${client.id} unsubscribed from etl:${pipeline}`);
   }
 }

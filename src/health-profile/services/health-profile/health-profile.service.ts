@@ -6,13 +6,14 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { HealthProfile, Prisma } from '@prisma/client';
+import { HealthProfile } from '@prisma/client';
 import { IHealthProfileService } from 'src/health-profile/interface/health-profile/health-profile.interface';
 import { PrismaService } from 'src/prisma/services/prisma/prisma.service';
 import { HttpService } from '@nestjs/axios';
 import { EtlService } from 'src/etl/services/etl/etl.service';
 import { lastValueFrom } from 'rxjs';
 import * as Papa from 'papaparse';
+import { EtlAnomalyDetectorService } from 'src/etl/services/etl-anomaly-detector/etl-anomaly-detector.service';
 
 @Injectable()
 export class HealthProfileService implements IHealthProfileService {
@@ -26,131 +27,122 @@ export class HealthProfileService implements IHealthProfileService {
     private readonly prisma: PrismaService,
     private readonly httpService: HttpService,
     private readonly etl: EtlService,
+    private readonly anomalyDetector: EtlAnomalyDetectorService,
   ) {}
   async runHealthProfilePipeline(): Promise<number> {
-    try {
-      this.etl.emit(
-        'health-profile',
-        'INFO',
-        '--- Début pipeline ETL HealthProfile ---',
-      );
-      const users = await this.prisma.user.findMany({
-        select: { id: true },
-        orderBy: { id: 'asc' },
-      });
-      if (users.length === 0) {
-        throw new BadRequestException(
-          'NO_USERS_SEEDED: seed la table User avant de lancer le pipeline HealthProfile',
+    return this.etl.runWithPipelineLock('health-profile', async () => {
+      try {
+        this.etl.emit(
+          'health-profile',
+          'INFO',
+          '--- Début pipeline ETL HealthProfile ---',
         );
-      }
-
-      const auth = Buffer.from(
-        `${this.KAGGLE_USER}:${this.KAGGLE_KEY}`,
-      ).toString('base64');
-
-      const response = await lastValueFrom(
-        this.httpService.get(this.DATASET_URL, {
-          headers: {
-            Authorization: `Basic ${auth}`,
-            Accept: 'application/octet-stream',
-          },
-          responseType: 'text',
-        }),
-      );
-
-      const parsed = Papa.parse(response.data, {
-        header: true,
-        skipEmptyLines: true,
-        dynamicTyping: true,
-      });
-      const rows = parsed.data as Record<string, unknown>[];
-
-      let importedCount = 0;
-
-      for (const [index, row] of rows.entries()) {
-        const userId = users[index % users.length].id;
-        const cleanedData = {
-          user_id: userId,
-          weight: row['Weight_kg'] ?? row['weight_kg'] ?? null,
-          bmi: row['BMI'] ?? row['bmi'] ?? null,
-          physical_activity_level:
-            row['Physical_Activity_Level'] ??
-            row['Physical_Activity'] ??
-            row['physical_activity_level'] ??
-            null,
-          daily_calories_target:
-            row['Daily_Caloric_Intake'] ??
-            row['Daily_Calories'] ??
-            row['Calories_Target'] ??
-            row['daily_calories_target'] ??
-            null,
-        };
-
-        const anomalies: Prisma.JsonArray = [];
-
-        const bmiValue =
-          typeof cleanedData.bmi === 'number'
-            ? cleanedData.bmi
-            : Number.isFinite(Number(cleanedData.bmi))
-              ? Number(cleanedData.bmi)
-              : null;
-
-        if (bmiValue !== null && (bmiValue < 10 || bmiValue > 50)) {
-          anomalies.push({
-            field: 'bmi',
-            code: 'BMI_OUT_OF_RANGE',
-            message: `BMI ${bmiValue} en dehors des bornes [10, 50]`,
-          });
+        const users = await this.prisma.user.findMany({
+          select: { id: true },
+          orderBy: { id: 'asc' },
+        });
+        if (users.length === 0) {
+          throw new BadRequestException(
+            'NO_USERS_SEEDED: seed la table User avant de lancer le pipeline HealthProfile',
+          );
         }
 
-        const existing =
-          // Nécessaire quand l'IDE ne résout pas le type Prisma (healthProfileStaging vu comme "error")
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-call
-          await this.prisma.healthProfileStaging.findFirst({
-            where: {
-              cleaned_data: {
-                path: '$.user_id',
-                equals: cleanedData.user_id,
+        const auth = Buffer.from(
+          `${this.KAGGLE_USER}:${this.KAGGLE_KEY}`,
+        ).toString('base64');
+
+        const response = await lastValueFrom(
+          this.httpService.get(this.DATASET_URL, {
+            headers: {
+              Authorization: `Basic ${auth}`,
+              Accept: 'application/octet-stream',
+            },
+            responseType: 'text',
+          }),
+        );
+
+        const parsed = Papa.parse(response.data, {
+          header: true,
+          skipEmptyLines: true,
+          dynamicTyping: true,
+        });
+        const rows = parsed.data as Record<string, unknown>[];
+
+        let importedCount = 0;
+
+        for (const [index, row] of rows.entries()) {
+          const userId = users[index % users.length].id;
+          const cleanedData = {
+            user_id: userId,
+            weight: row['Weight_kg'] ?? row['weight_kg'] ?? null,
+            bmi: row['BMI'] ?? row['bmi'] ?? null,
+            physical_activity_level:
+              row['Physical_Activity_Level'] ??
+              row['Physical_Activity'] ??
+              row['physical_activity_level'] ??
+              null,
+            daily_calories_target:
+              row['Daily_Caloric_Intake'] ??
+              row['Daily_Calories'] ??
+              row['Calories_Target'] ??
+              row['daily_calories_target'] ??
+              null,
+          };
+
+          const anomalies = this.anomalyDetector.detectForPipeline(
+            'health-profile',
+            cleanedData,
+          );
+
+          const existing =
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+            await this.prisma.healthProfileStaging.findFirst({
+              where: {
+                cleaned_data: {
+                  path: '$.user_id',
+                  equals: cleanedData.user_id,
+                },
               },
-            },
-          });
+            });
 
-        if (existing) {
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-call
-          await this.prisma.healthProfileStaging.update({
-            where: { id: existing.id },
-            data: {
-              cleaned_data: cleanedData,
-              anomalies,
-              status:
-                existing.status === 'REJECTED' || existing.status === 'APPROVED'
-                  ? 'PENDING'
-                  : existing.status,
-            },
-          });
-        } else {
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-call
-          await this.prisma.healthProfileStaging.create({
-            data: {
-              cleaned_data: cleanedData,
-              anomalies,
-              status: 'PENDING',
-            },
-          });
+          if (existing) {
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+            await this.prisma.healthProfileStaging.update({
+              where: { id: existing.id },
+              data: {
+                cleaned_data: cleanedData,
+                anomalies,
+                status:
+                  existing.status === 'REJECTED' ||
+                  existing.status === 'APPROVED'
+                    ? 'PENDING'
+                    : existing.status,
+              },
+            });
+          } else {
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+            await this.prisma.healthProfileStaging.create({
+              data: {
+                cleaned_data: cleanedData,
+                anomalies,
+                status: 'PENDING',
+              },
+            });
+          }
+          importedCount++;
         }
-        importedCount++;
-      }
 
-      const successMsg = `Import staging réussi : ${importedCount} profils en PENDING.`;
-      this.logger.log(successMsg);
-      this.etl.emit('health-profile', 'SUCCESS', successMsg);
-      return importedCount;
-    } catch (e) {
-      const message = e instanceof Error ? e.message : String(e);
-      this.logger.error(`Erreur ETL: ${message}`);
-      this.etl.emit('health-profile', 'ERROR', `Erreur ETL: ${message}`);
-      throw e;
-    }
+        const successMsg = `Import staging réussi : ${importedCount} profils en PENDING.`;
+        this.logger.log(successMsg);
+        this.etl.emit('health-profile', 'SUCCESS', successMsg);
+        return importedCount;
+      } catch (e) {
+        const message = e instanceof Error ? e.message : String(e);
+        this.logger.error(`Erreur ETL: ${message}`);
+        this.etl.emit('health-profile', 'ERROR', `Erreur ETL: ${message}`);
+        throw e;
+      }
+    });
   }
   async getHealthProfiles(): Promise<HealthProfile[]> {
     const healthProfiles = await this.prisma.healthProfile.findMany();

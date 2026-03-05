@@ -5,6 +5,7 @@ import { Exercise } from '@prisma/client';
 import { HttpService } from '@nestjs/axios';
 import { EtlService } from 'src/etl/services/etl/etl.service';
 import { of } from 'rxjs';
+import { EtlAnomalyDetectorService } from 'src/etl/services/etl-anomaly-detector/etl-anomaly-detector.service';
 
 jest.mock('google-translate-api-x', () => ({
   translate: jest.fn((texts: string[] | string) => {
@@ -81,6 +82,16 @@ describe('ExerciceService', () => {
           useValue: {
             emit: jest.fn(),
             getStream: jest.fn(() => ({ subscribe: () => {} })),
+            runWithPipelineLock: jest.fn(
+              async (_pipeline: string, task: () => Promise<unknown>) =>
+                await task(),
+            ),
+          },
+        },
+        {
+          provide: EtlAnomalyDetectorService,
+          useValue: {
+            detectForPipeline: jest.fn(() => []),
           },
         },
       ],
