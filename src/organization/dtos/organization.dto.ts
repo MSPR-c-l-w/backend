@@ -1,5 +1,11 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsNotEmpty, IsObject, IsOptional, IsString } from 'class-validator';
+import {
+  IsBoolean,
+  IsNotEmpty,
+  IsObject,
+  IsOptional,
+  IsString,
+} from 'class-validator';
 import type { BrandingConfig } from 'src/utils/types';
 
 export class CreateOrganizationDto {
@@ -12,6 +18,11 @@ export class CreateOrganizationDto {
   @IsString({ message: 'TYPE_MUST_BE_A_STRING' })
   @IsNotEmpty({ message: 'TYPE_IS_REQUIRED' })
   type: string;
+
+  @ApiPropertyOptional({ example: true, default: true })
+  @IsOptional()
+  @IsBoolean({ message: 'IS_ACTIVE_MUST_BE_A_BOOLEAN' })
+  is_active?: boolean;
 
   @ApiProperty({
     example: {
@@ -33,6 +44,11 @@ export class UpdateOrganizationDto {
   @IsString({ message: 'TYPE_MUST_BE_A_STRING' })
   @IsOptional()
   type?: string;
+
+  @ApiPropertyOptional({ example: true })
+  @IsOptional()
+  @IsBoolean({ message: 'IS_ACTIVE_MUST_BE_A_BOOLEAN' })
+  is_active?: boolean;
 
   @ApiPropertyOptional({
     example: {

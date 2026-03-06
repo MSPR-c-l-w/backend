@@ -59,7 +59,7 @@ export class OrganizationService implements IOrganizationService {
         name: organization.name,
         type: organization.type,
         branding_config: organization.branding_config,
-        is_active: true,
+        is_active: organization.is_active ?? true,
         is_deleted: false,
       },
       select: this.selectPublic(),
@@ -77,6 +77,9 @@ export class OrganizationService implements IOrganizationService {
       data: {
         ...(organization.name === undefined ? {} : { name: organization.name }),
         ...(organization.type === undefined ? {} : { type: organization.type }),
+        ...(organization.is_active === undefined
+          ? {}
+          : { is_active: organization.is_active }),
         ...(organization.branding_config === undefined
           ? {}
           : { branding_config: organization.branding_config }),
