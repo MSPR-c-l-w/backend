@@ -1,7 +1,12 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Test, TestingModule } from '@nestjs/testing';
 import { OrganizationService } from './organization.service';
 import { PrismaService } from 'src/prisma/services/prisma/prisma.service';
 import { NotFoundException } from '@nestjs/common';
+import type {
+  CreateOrganizationDto,
+  UpdateOrganizationDto,
+} from 'src/organization/dtos/organization.dto';
 
 describe('OrganizationService', () => {
   let service: OrganizationService;
@@ -64,7 +69,6 @@ describe('OrganizationService', () => {
 
   describe('getOrganizationById', () => {
     it('appelle Prisma avec un id parsé en number', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       const org = { id: 42, is_deleted: false } as any;
       prisma.organization.findUnique.mockResolvedValue(org);
 
@@ -72,6 +76,66 @@ describe('OrganizationService', () => {
       expect(prisma.organization.findUnique).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { id: 42 },
+        }),
+      );
+    });
+  });
+
+  describe('createOrganization', () => {
+    it('met is_active à true par défaut', async () => {
+      const dto: CreateOrganizationDto = {
+        name: 'ACME',
+        type: 'gym',
+        branding_config: { primaryColor: '#000' },
+      };
+      const created = { id: 1 } as any;
+      prisma.organization.create.mockResolvedValue(created);
+
+      await expect(service.createOrganization(dto)).resolves.toEqual(created);
+      expect(prisma.organization.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ is_active: true }),
+        }),
+      );
+    });
+
+    it('permet de créer une org inactive', async () => {
+      const dto: CreateOrganizationDto = {
+        name: 'ACME',
+        type: 'gym',
+        is_active: false,
+        branding_config: { primaryColor: '#000' },
+      };
+      const created = { id: 2 } as any;
+      prisma.organization.create.mockResolvedValue(created);
+
+      await expect(service.createOrganization(dto)).resolves.toEqual(created);
+      expect(prisma.organization.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ is_active: false }),
+        }),
+      );
+    });
+  });
+
+  describe('updateOrganization', () => {
+    it('permet de modifier is_active', async () => {
+      prisma.organization.findUnique.mockResolvedValue({
+        id: 1,
+        is_deleted: false,
+      });
+      const updated = { id: 1, is_active: false } as any;
+      prisma.organization.update.mockResolvedValue(updated);
+
+      const dto: UpdateOrganizationDto = { is_active: false };
+      await expect(service.updateOrganization('1', dto)).resolves.toEqual(
+        updated,
+      );
+
+      expect(prisma.organization.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 1 },
+          data: { is_active: false },
         }),
       );
     });

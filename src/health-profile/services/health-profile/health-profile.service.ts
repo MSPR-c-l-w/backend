@@ -94,19 +94,16 @@ export class HealthProfileService implements IHealthProfileService {
             cleanedData,
           );
 
-          const existing =
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-call
-            await this.prisma.healthProfileStaging.findFirst({
-              where: {
-                cleaned_data: {
-                  path: '$.user_id',
-                  equals: cleanedData.user_id,
-                },
+          const existing = await this.prisma.healthProfileStaging.findFirst({
+            where: {
+              cleaned_data: {
+                path: '$.user_id',
+                equals: cleanedData.user_id,
               },
-            });
+            },
+          });
 
           if (existing) {
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-call
             await this.prisma.healthProfileStaging.update({
               where: { id: existing.id },
               data: {
@@ -120,7 +117,6 @@ export class HealthProfileService implements IHealthProfileService {
               },
             });
           } else {
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-call
             await this.prisma.healthProfileStaging.create({
               data: {
                 cleaned_data: cleanedData,
