@@ -6,6 +6,7 @@ import { HttpService } from '@nestjs/axios';
 import { EtlService } from 'src/etl/services/etl/etl.service';
 import { of } from 'rxjs';
 import { EtlAnomalyDetectorService } from 'src/etl/services/etl-anomaly-detector/etl-anomaly-detector.service';
+import type { UpdateExerciceDto } from 'src/exercice/dtos/update-exercice.dto';
 
 jest.mock('google-translate-api-x', () => ({
   translate: jest.fn((texts: string[] | string) => {
@@ -63,6 +64,8 @@ describe('ExerciceService', () => {
               findUnique: jest.fn(),
               upsert: jest.fn(),
               deleteMany: jest.fn(),
+              update: jest.fn(),
+              delete: jest.fn(),
             },
             exerciseStaging: {
               findFirst: jest.fn(),
@@ -146,6 +149,67 @@ describe('ExerciceService', () => {
         .mockResolvedValueOnce(null);
 
       await expect(service.getExerciceById(999)).rejects.toThrow(
+        'Exercice 999 introuvable',
+      );
+    });
+  });
+
+  describe('updateExercice', () => {
+    it('should update an exercise when it exists', async () => {
+      const findUniqueSpy = jest
+        .spyOn(prismaService.exercise, 'findUnique')
+        .mockResolvedValueOnce(mockExercises[0]);
+      const updateSpy = jest
+        .spyOn(prismaService.exercise, 'update')
+        .mockResolvedValueOnce({ ...mockExercises[0], name: 'Updated' });
+
+      const dto: UpdateExerciceDto = { name: 'Updated' };
+      const result = await service.updateExercice(1, dto);
+
+      expect(result).toEqual({ ...mockExercises[0], name: 'Updated' });
+      expect(findUniqueSpy).toHaveBeenCalledWith({ where: { id: 1 } });
+      expect(updateSpy).toHaveBeenCalledWith({
+        where: { id: 1 },
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- matcher Jest
+        data: expect.objectContaining({ name: 'Updated' }),
+      });
+    });
+
+    it('should throw when exercise does not exist', async () => {
+      jest
+        .spyOn(prismaService.exercise, 'findUnique')
+        .mockResolvedValueOnce(null);
+
+      await expect(
+        service.updateExercice(999, { name: 'Updated' }),
+      ).rejects.toThrow('Exercice 999 introuvable');
+    });
+  });
+
+  describe('deleteExercice', () => {
+    it('should delete an exercise when it exists', async () => {
+      const findUniqueSpy = jest
+        .spyOn(prismaService.exercise, 'findUnique')
+        .mockResolvedValueOnce(mockExercises[0]);
+      const deleteSpy = jest
+        .spyOn(prismaService.exercise, 'delete')
+        .mockResolvedValueOnce(mockExercises[0]);
+
+      const result = await service.deleteExercice(1);
+
+      expect(result).toEqual(mockExercises[0]);
+      expect(findUniqueSpy).toHaveBeenCalledWith({ where: { id: 1 } });
+      expect(deleteSpy).toHaveBeenCalledWith({
+        where: { id: 1 },
+      });
+    });
+
+    it('should throw when exercise does not exist', async () => {
+      jest
+        .spyOn(prismaService.exercise, 'findUnique')
+        .mockResolvedValueOnce(null);
+
+      await expect(service.deleteExercice(999)).rejects.toThrow(
         'Exercice 999 introuvable',
       );
     });
