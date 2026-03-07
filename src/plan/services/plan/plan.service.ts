@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { Plan } from '@prisma/client';
 import { IPlanService } from 'src/plan/interfaces/plan.interface';
 import { PrismaService } from 'src/prisma/services/prisma/prisma.service';

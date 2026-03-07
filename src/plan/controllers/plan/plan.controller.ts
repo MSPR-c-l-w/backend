@@ -72,7 +72,10 @@ export class PlanController implements IPlanController {
   @ApiOkResponse({ description: 'Plan mis à jour' })
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN')
-  updatePlan(@Param('id') id: string, @Body() plan: UpdatePlanDto): Promise<Plan> {
+  updatePlan(
+    @Param('id') id: string,
+    @Body() plan: UpdatePlanDto,
+  ): Promise<Plan> {
     return this.planService.updatePlan(id, plan);
   }
 

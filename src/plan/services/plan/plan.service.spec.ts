@@ -3,6 +3,7 @@ import { NotFoundException } from '@nestjs/common';
 import { PlanService } from './plan.service';
 import { PrismaService } from 'src/prisma/services/prisma/prisma.service';
 import { Plan } from '@prisma/client';
+import type { CreatePlanDto, UpdatePlanDto } from 'src/plan/dtos/plan.dto';
 
 describe('PlanService', () => {
   let service: PlanService;
@@ -139,9 +140,8 @@ describe('PlanService', () => {
     it('devrait créer un plan', async () => {
       prisma.plan.create.mockResolvedValue(mockPlan);
 
-      await expect(
-        service.createPlan({ name: 'Freemium', price: 0, features: [] } as any),
-      ).resolves.toEqual(mockPlan);
+      const dto: CreatePlanDto = { name: 'Freemium', price: 0, features: [] };
+      await expect(service.createPlan(dto)).resolves.toEqual(mockPlan);
 
       expect(prisma.plan.create).toHaveBeenCalledWith({
         data: { name: 'Freemium', price: 0, features: [] },
@@ -154,9 +154,8 @@ describe('PlanService', () => {
       prisma.plan.findUnique.mockResolvedValue(mockPlan);
       prisma.plan.update.mockResolvedValue(mockPlan);
 
-      await expect(service.updatePlan('1', { price: 10 } as any)).resolves.toEqual(
-        mockPlan,
-      );
+      const dto: UpdatePlanDto = { price: 10 };
+      await expect(service.updatePlan('1', dto)).resolves.toEqual(mockPlan);
 
       expect(prisma.plan.update).toHaveBeenCalledWith({
         where: { id: 1 },

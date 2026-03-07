@@ -137,7 +137,9 @@ describe('PlanController', () => {
       const result = await controller.updatePlan('1', { price: 10 });
 
       expect(result).toEqual(mockPlan);
-      expect(planServiceMock.updatePlan).toHaveBeenCalledWith('1', { price: 10 });
+      expect(planServiceMock.updatePlan).toHaveBeenCalledWith('1', {
+        price: 10,
+      });
     });
   });
 
