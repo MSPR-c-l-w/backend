@@ -10,6 +10,9 @@ describe('PlanService', () => {
     plan: {
       findMany: jest.Mock;
       findUnique: jest.Mock;
+      create: jest.Mock;
+      update: jest.Mock;
+      delete: jest.Mock;
     };
   };
 
@@ -26,6 +29,9 @@ describe('PlanService', () => {
       plan: {
         findMany: jest.fn(),
         findUnique: jest.fn(),
+        create: jest.fn(),
+        update: jest.fn(),
+        delete: jest.fn(),
       },
     };
 
@@ -121,13 +127,51 @@ describe('PlanService', () => {
       });
     });
 
-    it('devrait gérer les ids invalides', async () => {
-      prisma.plan.findUnique.mockResolvedValue(null);
+    it('devrait lancer BadRequestException si id invalide', async () => {
+      await expect(service.getPlanById('invalid')).rejects.toThrow(
+        'PLAN_ID_MUST_BE_A_NUMBER',
+      );
+      expect(prisma.plan.findUnique).not.toHaveBeenCalled();
+    });
+  });
 
-      await expect(service.getPlanById('invalid')).rejects.toThrow();
-      expect(prisma.plan.findUnique).toHaveBeenCalledWith({
-        where: { id: NaN },
+  describe('createPlan', () => {
+    it('devrait créer un plan', async () => {
+      prisma.plan.create.mockResolvedValue(mockPlan);
+
+      await expect(
+        service.createPlan({ name: 'Freemium', price: 0, features: [] } as any),
+      ).resolves.toEqual(mockPlan);
+
+      expect(prisma.plan.create).toHaveBeenCalledWith({
+        data: { name: 'Freemium', price: 0, features: [] },
       });
+    });
+  });
+
+  describe('updatePlan', () => {
+    it('devrait mettre à jour un plan', async () => {
+      prisma.plan.findUnique.mockResolvedValue(mockPlan);
+      prisma.plan.update.mockResolvedValue(mockPlan);
+
+      await expect(service.updatePlan('1', { price: 10 } as any)).resolves.toEqual(
+        mockPlan,
+      );
+
+      expect(prisma.plan.update).toHaveBeenCalledWith({
+        where: { id: 1 },
+        data: { price: 10 },
+      });
+    });
+  });
+
+  describe('deletePlan', () => {
+    it('devrait supprimer un plan', async () => {
+      prisma.plan.findUnique.mockResolvedValue(mockPlan);
+      prisma.plan.delete.mockResolvedValue(mockPlan);
+
+      await expect(service.deletePlan('1')).resolves.toEqual(mockPlan);
+      expect(prisma.plan.delete).toHaveBeenCalledWith({ where: { id: 1 } });
     });
   });
 });

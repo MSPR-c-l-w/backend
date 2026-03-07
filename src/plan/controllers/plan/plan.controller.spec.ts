@@ -9,6 +9,9 @@ describe('PlanController', () => {
   const planServiceMock = {
     getPlans: jest.fn(),
     getPlanById: jest.fn(),
+    createPlan: jest.fn(),
+    updatePlan: jest.fn(),
+    deletePlan: jest.fn(),
   };
 
   const mockPlan: Plan = {
@@ -105,6 +108,47 @@ describe('PlanController', () => {
 
       await controller.getPlanById('123');
       expect(planServiceMock.getPlanById).toHaveBeenCalledWith('123');
+    });
+  });
+
+  describe('createPlan', () => {
+    it('devrait créer un plan', async () => {
+      planServiceMock.createPlan.mockResolvedValue(mockPlan);
+
+      const result = await controller.createPlan({
+        name: 'Freemium',
+        price: 0,
+        features: [],
+      });
+
+      expect(result).toEqual(mockPlan);
+      expect(planServiceMock.createPlan).toHaveBeenCalledWith({
+        name: 'Freemium',
+        price: 0,
+        features: [],
+      });
+    });
+  });
+
+  describe('updatePlan', () => {
+    it('devrait mettre à jour un plan', async () => {
+      planServiceMock.updatePlan.mockResolvedValue(mockPlan);
+
+      const result = await controller.updatePlan('1', { price: 10 });
+
+      expect(result).toEqual(mockPlan);
+      expect(planServiceMock.updatePlan).toHaveBeenCalledWith('1', { price: 10 });
+    });
+  });
+
+  describe('deletePlan', () => {
+    it('devrait supprimer un plan', async () => {
+      planServiceMock.deletePlan.mockResolvedValue(mockPlan);
+
+      const result = await controller.deletePlan('1');
+
+      expect(result).toEqual(mockPlan);
+      expect(planServiceMock.deletePlan).toHaveBeenCalledWith('1');
     });
   });
 });
