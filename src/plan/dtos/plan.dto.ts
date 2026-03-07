@@ -6,6 +6,7 @@ import {
   IsOptional,
   IsString,
 } from 'class-validator';
+import type { Prisma } from '@prisma/client';
 
 export class CreatePlanDto {
   @ApiProperty({ example: 'Premium' })
@@ -21,7 +22,7 @@ export class CreatePlanDto {
     example: ['Accès illimité', 'Programmes personnalisés', 'Support coach'],
   })
   @IsDefined({ message: 'FEATURES_IS_REQUIRED' })
-  features: unknown;
+  features: Prisma.InputJsonValue;
 }
 
 export class UpdatePlanDto {
@@ -39,5 +40,5 @@ export class UpdatePlanDto {
     example: ['Accès illimité', 'Programmes personnalisés', 'Support coach'],
   })
   @IsOptional()
-  features?: unknown;
+  features?: Prisma.InputJsonValue;
 }

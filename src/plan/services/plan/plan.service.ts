@@ -3,7 +3,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Plan } from '@prisma/client';
+import { Plan, Prisma } from '@prisma/client';
 import { IPlanService } from 'src/plan/interfaces/plan.interface';
 import { PrismaService } from 'src/prisma/services/prisma/prisma.service';
 import { CreatePlanDto, UpdatePlanDto } from 'src/plan/dtos/plan.dto';
@@ -35,15 +35,11 @@ export class PlanService implements IPlanService {
   }
 
   async createPlan(plan: CreatePlanDto): Promise<Plan> {
-    if (plan.features === null || plan.features === undefined) {
-      throw new BadRequestException('FEATURES_IS_REQUIRED');
-    }
-
     return await this.prisma.plan.create({
       data: {
         name: plan.name,
         price: plan.price,
-        features: plan.features as never,
+        features: plan.features,
       },
     });
   }
@@ -55,11 +51,7 @@ export class PlanService implements IPlanService {
     }
     await this.getPlanById(id);
 
-    const data: {
-      name?: string;
-      price?: number;
-      features?: unknown;
-    } = {};
+    const data: Prisma.PlanUpdateInput = {};
 
     if (plan.name !== undefined) data.name = plan.name;
     if (plan.price !== undefined) data.price = plan.price;
@@ -67,7 +59,7 @@ export class PlanService implements IPlanService {
 
     return await this.prisma.plan.update({
       where: { id: planId },
-      data: data as never,
+      data,
     });
   }
 

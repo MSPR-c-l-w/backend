@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { NotFoundException } from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { PlanService } from './plan.service';
 import { PrismaService } from 'src/prisma/services/prisma/prisma.service';
 import { Plan } from '@prisma/client';
@@ -162,6 +162,29 @@ describe('PlanService', () => {
         data: { price: 10 },
       });
     });
+
+    it('devrait lancer BadRequestException si id invalide', async () => {
+      await expect(
+        service.updatePlan('invalid', { price: 10 }),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      await expect(
+        service.updatePlan('invalid', { price: 10 }),
+      ).rejects.toThrow('PLAN_ID_MUST_BE_A_NUMBER');
+      expect(prisma.plan.findUnique).not.toHaveBeenCalled();
+      expect(prisma.plan.update).not.toHaveBeenCalled();
+    });
+
+    it("devrait lancer NotFoundException si le plan n'existe pas", async () => {
+      prisma.plan.findUnique.mockResolvedValue(null);
+
+      await expect(
+        service.updatePlan('999', { price: 10 }),
+      ).rejects.toBeInstanceOf(NotFoundException);
+      await expect(service.updatePlan('999', { price: 10 })).rejects.toThrow(
+        'Plan with id 999 not found',
+      );
+      expect(prisma.plan.update).not.toHaveBeenCalled();
+    });
   });
 
   describe('deletePlan', () => {
@@ -171,6 +194,29 @@ describe('PlanService', () => {
 
       await expect(service.deletePlan('1')).resolves.toEqual(mockPlan);
       expect(prisma.plan.delete).toHaveBeenCalledWith({ where: { id: 1 } });
+    });
+
+    it('devrait lancer BadRequestException si id invalide', async () => {
+      await expect(service.deletePlan('invalid')).rejects.toBeInstanceOf(
+        BadRequestException,
+      );
+      await expect(service.deletePlan('invalid')).rejects.toThrow(
+        'PLAN_ID_MUST_BE_A_NUMBER',
+      );
+      expect(prisma.plan.findUnique).not.toHaveBeenCalled();
+      expect(prisma.plan.delete).not.toHaveBeenCalled();
+    });
+
+    it("devrait lancer NotFoundException si le plan n'existe pas", async () => {
+      prisma.plan.findUnique.mockResolvedValue(null);
+
+      await expect(service.deletePlan('999')).rejects.toBeInstanceOf(
+        NotFoundException,
+      );
+      await expect(service.deletePlan('999')).rejects.toThrow(
+        'Plan with id 999 not found',
+      );
+      expect(prisma.plan.delete).not.toHaveBeenCalled();
     });
   });
 });

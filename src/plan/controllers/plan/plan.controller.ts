@@ -31,7 +31,6 @@ import type {
 import { ROUTES, SERVICES } from 'src/utils/constants';
 
 @Controller(ROUTES.PLAN)
-@UseGuards(JwtAuthGuard)
 @ApiBearerAuth('access-token')
 @ApiTags(ROUTES.PLAN)
 export class PlanController implements IPlanController {
@@ -42,6 +41,7 @@ export class PlanController implements IPlanController {
   @Get()
   @ApiOperation({ summary: 'Récupérer tous les plans' })
   @ApiOkResponse({ description: 'Liste des plans' })
+  @UseGuards(JwtAuthGuard)
   async getPlans(): Promise<Plan[]> {
     return this.planService.getPlans();
   }
@@ -52,6 +52,7 @@ export class PlanController implements IPlanController {
   @ApiParam({ name: 'id', description: 'ID du plan' })
   @ApiNotFoundResponse({ description: 'Plan non trouvé' })
   @ApiBadRequestResponse({ description: 'ID du plan invalide' })
+  @UseGuards(JwtAuthGuard)
   async getPlanById(@Param('id') id: string): Promise<Plan> {
     return this.planService.getPlanById(id);
   }
