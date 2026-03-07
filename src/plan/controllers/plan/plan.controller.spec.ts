@@ -3,6 +3,8 @@ import { NotFoundException } from '@nestjs/common';
 import { PlanController } from './plan.controller';
 import { SERVICES } from 'src/utils/constants';
 import { Plan } from '@prisma/client';
+import { RolesGuard } from 'src/auth/guards/roles.guard';
+import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 
 describe('PlanController', () => {
   let controller: PlanController;
@@ -31,7 +33,12 @@ describe('PlanController', () => {
           useValue: planServiceMock,
         },
       ],
-    }).compile();
+    })
+      .overrideGuard(RolesGuard)
+      .useValue({ canActivate: () => true })
+      .overrideGuard(JwtAuthGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
 
     controller = module.get<PlanController>(PlanController);
   });
