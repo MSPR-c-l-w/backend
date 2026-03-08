@@ -8,6 +8,7 @@ import {
   Patch,
   Post,
   Put,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
@@ -19,10 +20,12 @@ import { UpdateUserRoleDto } from 'src/users/dtos/update-user-role.dto';
 import type {
   IUsersController,
   IUsersService,
+  PaginatedUsersResponse,
 } from 'src/users/interfaces/users.interface';
 import { ROUTES, SERVICES } from 'src/utils/constants';
 import { User } from 'src/utils/types';
 import { ApiBearerAuth } from '@nestjs/swagger';
+import { GetUsersDto } from 'src/users/dtos/get.users.dto';
 
 @ApiBearerAuth('access-token')
 @Controller(ROUTES.USERS)
@@ -34,13 +37,15 @@ export class UsersController implements IUsersController {
   @Get()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('COACH', 'ADMIN')
-  getUsers(): Promise<User[]> {
-    return this.usersService.getUsers();
+  getUsers(
+    @Query() query: GetUsersDto,
+  ): Promise<User[] | PaginatedUsersResponse> {
+    return this.usersService.getUsers(query);
   }
 
   @Get(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('COACH')
+  @Roles('COACH', 'ADMIN')
   getUserById(@Param('id') id: string): Promise<User> {
     return this.usersService.getUserById(id);
   }

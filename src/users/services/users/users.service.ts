@@ -10,10 +10,11 @@ import type { IRoleService } from 'src/roles/interfaces/role.interface';
 import { CreateUserDto } from 'src/users/dtos/create.user.dto';
 import { UpdateUserDto } from 'src/users/dtos/update.user.dto';
 import { UpdateUserRoleDto } from 'src/users/dtos/update-user-role.dto';
-import { IUsersService } from 'src/users/interfaces/users.interface.js';
+import { IUsersService, PaginatedUsersResponse } from 'src/users/interfaces/users.interface.js';
 import { SERVICES } from 'src/utils/constants';
 import { hashPassword } from 'src/utils/security/password';
 import { User } from 'src/utils/types';
+import { GetUsersDto } from 'src/users/dtos/get.users.dto';
 
 @Injectable()
 export class UsersService implements IUsersService {
@@ -60,16 +61,40 @@ export class UsersService implements IUsersService {
     } as const;
   }
 
-  async getUsers(): Promise<User[]> {
+  async getUsers(query? : GetUsersDto): Promise<User[] | PaginatedUsersResponse> {
+    const usePagination = 
+    query != null &&
+    (query.page !== undefined || query.limit !== undefined);
+    
+    if (!usePagination) {
     const users = (await this.prisma.user.findMany({
+      where: { is_deleted: false },
       select: this.userSelect(),
+      orderBy: { id: 'asc' },
     })) as User[];
-
     if (users.length === 0) {
       throw new NotFoundException('NO_USERS_FOUND');
     }
-
     return users;
+    }
+    const page = Math.max(1, query!.page ?? 1);
+    const limit = Math.max(1, Math.min(100, query!.limit ?? 20));
+    const skip = (page - 1) * limit;
+  
+    const [users, total] = await Promise.all([
+      this.prisma.user.findMany({
+        where: { is_deleted: false },
+        select: this.userSelect(),
+        skip,
+        take: limit,
+        orderBy: { id: 'asc' },
+      }) as Promise<User[]>,
+      this.prisma.user.count({ where: { is_deleted: false } }),
+    ]);
+    if (total === 0) {
+      throw new NotFoundException('NO_USERS_FOUND');
+    }
+    return { data: users, total };
   }
 
   async getUserById(id: string): Promise<User> {

@@ -38,3 +38,8 @@ export type SessionExercise = {
   session_id: number;
   exercise_id: number;
 };
+
+export type PaginatedResponse<T> = {
+  data: T[];
+  total: number;
+};

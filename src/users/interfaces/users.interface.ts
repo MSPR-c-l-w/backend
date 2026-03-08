@@ -2,9 +2,15 @@ import { User } from 'src/utils/types';
 import { CreateUserDto } from '../dtos/create.user.dto';
 import { UpdateUserDto } from '../dtos/update.user.dto';
 import { UpdateUserRoleDto } from '../dtos/update-user-role.dto';
+import { GetUsersDto } from '../dtos/get.users.dto';
+
+export type PaginatedUsersResponse = {
+  data: User[];
+  total: number;
+};
 
 export interface IUsersController {
-  getUsers(): Promise<User[]>;
+  getUsers(query?: GetUsersDto): Promise<User[] | PaginatedUsersResponse>;
   getUserById(id: string): Promise<User>;
   createUser(user: CreateUserDto): Promise<User>;
   updateUser(id: string, user: UpdateUserDto): Promise<User>;
@@ -13,7 +19,7 @@ export interface IUsersController {
 }
 
 export interface IUsersService {
-  getUsers(): Promise<User[]>;
+  getUsers(query?: GetUsersDto): Promise<User[] | PaginatedUsersResponse>;
   getUserById(id: string): Promise<User>;
   createUser(user: CreateUserDto): Promise<User>;
   updateUser(id: string, user: UpdateUserDto): Promise<User>;

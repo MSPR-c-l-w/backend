@@ -32,9 +32,9 @@
     "@nestjs/jwt": "^11.0.0",
     "@nestjs/passport": "^11.0.0",
     "@nestjs/platform-express": "^11.0.1",
-    "@nestjs/platform-socket.io": "^11.0.0",
-    "@nestjs/websockets": "^11.0.0",
+    "@nestjs/platform-socket.io": "^11.1.16",
     "@nestjs/swagger": "^11.2.4",
+    "@nestjs/websockets": "^11.1.16",
     "@prisma/adapter-mariadb": "^7.2.0",
     "@prisma/client": "^7.3.0",
     "adm-zip": "^0.5.16",
@@ -52,7 +52,7 @@
     "prisma": "^7.3.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
-    "socket.io": "^4.8.0"
+    "socket.io": "^4.8.3"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.2.0",
