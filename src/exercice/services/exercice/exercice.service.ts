@@ -13,6 +13,7 @@ import { lastValueFrom } from 'rxjs';
 import { translate } from 'google-translate-api-x';
 import { GetExercisesFilterDto } from 'src/exercice/dtos/et-exercises-filter.dto';
 import { EtlAnomalyDetectorService } from 'src/etl/services/etl-anomaly-detector/etl-anomaly-detector.service';
+import { UpdateExerciceDto } from 'src/exercice/dtos/update-exercice.dto';
 
 @Injectable()
 export class ExerciceService implements IExerciceService {
@@ -94,6 +95,40 @@ export class ExerciceService implements IExerciceService {
     const exercice = await this.prisma.exercise.findUnique({ where: { id } });
     if (!exercice) throw new NotFoundException(`Exercice ${id} introuvable`);
     return exercice;
+  }
+
+  async updateExercice(
+    id: number,
+    exercice: UpdateExerciceDto,
+  ): Promise<Exercise> {
+    await this.getExerciceById(id);
+
+    const data: Record<string, unknown> = {};
+    if (exercice.name !== undefined) data.name = exercice.name;
+    if (exercice.primary_muscles !== undefined)
+      data.primary_muscles = exercice.primary_muscles;
+    if (exercice.secondary_muscles !== undefined)
+      data.secondary_muscles = exercice.secondary_muscles;
+    if (exercice.level !== undefined) data.level = exercice.level;
+    if (exercice.mechanic !== undefined) data.mechanic = exercice.mechanic;
+    if (exercice.equipment !== undefined) data.equipment = exercice.equipment;
+    if (exercice.category !== undefined) data.category = exercice.category;
+    if (exercice.instructions !== undefined)
+      data.instructions = exercice.instructions;
+    if (exercice.image_urls !== undefined)
+      data.image_urls = exercice.image_urls;
+    if (exercice.exercise_type !== undefined)
+      data.exercise_type = exercice.exercise_type;
+
+    return await this.prisma.exercise.update({
+      where: { id },
+      data: data as any,
+    });
+  }
+
+  async deleteExercice(id: number): Promise<Exercise> {
+    await this.getExerciceById(id);
+    return await this.prisma.exercise.delete({ where: { id } });
   }
 
   async runImportPipeline(): Promise<number> {

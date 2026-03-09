@@ -5,6 +5,7 @@ import { ExerciceController } from './exercice.controller';
 import { SERVICES } from 'src/utils/constants';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
+import type { UpdateExerciceDto } from 'src/exercice/dtos/update-exercice.dto';
 
 describe('ExerciceController', () => {
   let controller: ExerciceController;
@@ -14,6 +15,8 @@ describe('ExerciceController', () => {
     runImportPipeline: jest.fn().mockResolvedValue(873),
     getExercices: jest.fn().mockResolvedValue([]),
     getExerciceById: jest.fn().mockResolvedValue({ id: 1, name: 'Push Up' }),
+    updateExercice: jest.fn().mockResolvedValue({ id: 1, name: 'Updated' }),
+    deleteExercice: jest.fn().mockResolvedValue({ id: 1, name: 'Deleted' }),
     findByFilters: jest.fn().mockResolvedValue([]),
   };
 
@@ -63,6 +66,21 @@ describe('ExerciceController', () => {
         equipment: undefined,
         category: undefined,
       });
+    });
+  });
+
+  describe('updateExercice', () => {
+    it('should call updateExercice with id and body', async () => {
+      const dto: UpdateExerciceDto = { name: 'Updated' };
+      await controller.updateExercice(1, dto);
+      expect(service.updateExercice).toHaveBeenCalledWith(1, dto);
+    });
+  });
+
+  describe('deleteExercice', () => {
+    it('should call deleteExercice with id', async () => {
+      await controller.deleteExercice(1);
+      expect(service.deleteExercice).toHaveBeenCalledWith(1);
     });
   });
 });

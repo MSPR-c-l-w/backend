@@ -1,16 +1,20 @@
 import {
+  Body,
   Controller,
+  Delete,
   Get,
   Inject,
   Param,
   ParseIntPipe,
   Post,
+  Put,
   Query,
   UseGuards,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiBadGatewayResponse,
+  ApiBody,
   ApiInternalServerErrorResponse,
   ApiNotFoundResponse,
   ApiOkResponse,
@@ -23,10 +27,9 @@ import { Exercise } from '@prisma/client';
 import { Roles } from 'src/auth/decorators/roles.decorator';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
-import type {
-  IExerciceController,
-  IExerciceService,
-} from 'src/exercice/interfaces/exercice/exercice.interface';
+import { UpdateExerciceDto } from 'src/exercice/dtos/update-exercice.dto';
+import { ExerciceService } from 'src/exercice/services/exercice/exercice.service';
+import type { IExerciceController } from 'src/exercice/interfaces/exercice/exercice.interface';
 import { ROUTES, SERVICES } from 'src/utils/constants';
 
 @Controller(ROUTES.EXERCISE)
@@ -36,7 +39,7 @@ import { ROUTES, SERVICES } from 'src/utils/constants';
 export class ExerciceController implements IExerciceController {
   constructor(
     @Inject(SERVICES.EXERCISE)
-    private readonly exerciceService: IExerciceService,
+    private readonly exerciceService: ExerciceService,
   ) {}
 
   @Post('import')
@@ -97,7 +100,7 @@ export class ExerciceController implements IExerciceController {
     @Query('level') level?: string,
     @Query('equipment') equipment?: string,
     @Query('category') category?: string,
-  ) {
+  ): Promise<Exercise[]> {
     return await this.exerciceService.findByFilters({
       muscle,
       level,
@@ -112,10 +115,33 @@ export class ExerciceController implements IExerciceController {
   @ApiParam({ name: 'id', description: "ID de l'exercice" })
   @ApiNotFoundResponse({ description: 'Exercice non trouvé' })
   @ApiBadGatewayResponse({ description: "Id de l'exercice invalide" })
-  @Get(':id')
   async getExerciceById(
     @Param('id', ParseIntPipe) id: number,
   ): Promise<Exercise> {
     return await this.exerciceService.getExerciceById(id);
+  }
+
+  @Put(':id')
+  @ApiOperation({ summary: 'Mettre à jour un exercice' })
+  @ApiBody({ type: UpdateExerciceDto })
+  @ApiOkResponse({ description: 'Exercice mis à jour' })
+  @ApiParam({ name: 'id', description: "ID de l'exercice" })
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN')
+  updateExercice(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() exercice: UpdateExerciceDto,
+  ): Promise<Exercise> {
+    return this.exerciceService.updateExercice(id, exercice);
+  }
+
+  @Delete(':id')
+  @ApiOperation({ summary: 'Supprimer un exercice' })
+  @ApiOkResponse({ description: 'Exercice supprimé' })
+  @ApiParam({ name: 'id', description: "ID de l'exercice" })
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN')
+  deleteExercice(@Param('id', ParseIntPipe) id: number): Promise<Exercise> {
+    return this.exerciceService.deleteExercice(id);
   }
 }
