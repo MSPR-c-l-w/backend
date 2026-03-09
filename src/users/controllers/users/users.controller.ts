@@ -20,8 +20,8 @@ import { UpdateUserRoleDto } from 'src/users/dtos/update-user-role.dto';
 import type {
   IUsersController,
   IUsersService,
-  PaginatedUsersResponse,
 } from 'src/users/interfaces/users.interface';
+import type { PaginatedUsersResponse } from 'src/users/types';
 import { ROUTES, SERVICES } from 'src/utils/constants';
 import { User } from 'src/utils/types';
 import { ApiBearerAuth } from '@nestjs/swagger';

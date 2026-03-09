@@ -1,13 +1,11 @@
-import { User } from 'src/utils/types';
-import { CreateUserDto } from '../dtos/create.user.dto';
-import { UpdateUserDto } from '../dtos/update.user.dto';
-import { UpdateUserRoleDto } from '../dtos/update-user-role.dto';
-import { GetUsersDto } from '../dtos/get.users.dto';
+import type { User } from 'src/utils/types';
+import type { CreateUserDto } from '../dtos/create.user.dto';
+import type { UpdateUserDto } from '../dtos/update.user.dto';
+import type { UpdateUserRoleDto } from '../dtos/update-user-role.dto';
+import type { GetUsersDto } from '../dtos/get.users.dto';
+import type { PaginatedUsersResponse } from '../types';
 
-export type PaginatedUsersResponse = {
-  data: User[];
-  total: number;
-};
+export type { PaginatedUsersResponse };
 
 export interface IUsersController {
   getUsers(query?: GetUsersDto): Promise<User[] | PaginatedUsersResponse>;

@@ -42,6 +42,7 @@ describe('UsersController', () => {
 
   describe('getUsers', () => {
     it('sans query: appelle le service sans arg et retourne un tableau', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       const users = [{ id: 1 }, { id: 2 }] as any;
       usersServiceMock.getUsers.mockResolvedValue(users);
 
