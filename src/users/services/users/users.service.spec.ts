@@ -19,6 +19,7 @@ describe('UsersService', () => {
       findUnique: jest.Mock;
       create: jest.Mock;
       update: jest.Mock;
+      count: jest.Mock;
     };
     role: {
       findMany: jest.Mock;
@@ -33,6 +34,7 @@ describe('UsersService', () => {
         findUnique: jest.fn(),
         create: jest.fn(),
         update: jest.fn(),
+        count: jest.fn(),
       },
       role: {
         findMany: jest.fn(),
@@ -62,18 +64,83 @@ describe('UsersService', () => {
   });
 
   describe('getUsers', () => {
-    it('retourne les users de Prisma', async () => {
+    it('sans pagination: retourne les users (is_deleted: false)', async () => {
       const users = [{ id: 1 }, { id: 2 }] as any[];
       prisma.user.findMany.mockResolvedValue(users);
 
       await expect(service.getUsers()).resolves.toEqual(users);
       expect(prisma.user.findMany).toHaveBeenCalledTimes(1);
+      expect(prisma.user.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { is_deleted: false },
+          orderBy: { id: 'asc' },
+        }),
+      );
     });
 
-    it('throw NotFoundException si aucun user', async () => {
+    it('sans pagination: throw NotFoundException si aucun user', async () => {
       prisma.user.findMany.mockResolvedValue([]);
       await expect(service.getUsers()).rejects.toBeInstanceOf(
         NotFoundException,
+      );
+    });
+
+    it('avec pagination: retourne { data, total }', async () => {
+      const users = [{ id: 1 }, { id: 2 }] as any[];
+      prisma.user.findMany.mockResolvedValue(users);
+      prisma.user.count.mockResolvedValue(42);
+
+      const result = await service.getUsers({ page: 1, limit: 20 });
+
+      expect(result).toEqual({ data: users, total: 42 });
+      expect(prisma.user.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { is_deleted: false },
+          skip: 0,
+          take: 20,
+          orderBy: { id: 'asc' },
+        }),
+      );
+      expect(prisma.user.count).toHaveBeenCalledWith({
+        where: { is_deleted: false },
+      });
+    });
+
+    it('avec pagination: calcule skip correctement (page 2, limit 10)', async () => {
+      const users = [{ id: 11 }] as any[];
+      prisma.user.findMany.mockResolvedValue(users);
+      prisma.user.count.mockResolvedValue(25);
+
+      await service.getUsers({ page: 2, limit: 10 });
+
+      expect(prisma.user.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          skip: 10,
+          take: 10,
+        }),
+      );
+    });
+
+    it('avec pagination: throw NotFoundException si total 0', async () => {
+      prisma.user.findMany.mockResolvedValue([]);
+      prisma.user.count.mockResolvedValue(0);
+
+      await expect(
+        service.getUsers({ page: 1, limit: 20 }),
+      ).rejects.toBeInstanceOf(NotFoundException);
+    });
+
+    it('avec pagination: plafonne limit à 100', async () => {
+      prisma.user.findMany.mockResolvedValue([]);
+      prisma.user.count.mockResolvedValue(1);
+      prisma.user.findMany.mockResolvedValue([{ id: 1 }]);
+
+      await service.getUsers({ page: 1, limit: 200 });
+
+      expect(prisma.user.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          take: 100,
+        }),
       );
     });
   });
