@@ -25,6 +25,7 @@ import {
   ApiBadRequestResponse,
   ApiBearerAuth,
   ApiBody,
+  ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
   ApiTags,
@@ -183,6 +184,39 @@ export class AuthController {
   })
   confirmPasswordReset(@Body() dto: ConfirmPasswordResetDto) {
     return this.authService.confirmPasswordReset(dto.token, dto.new_password);
+  }
+
+  @Get('dev-accounts')
+  @ApiOperation({
+    summary:
+      '[DEV uniquement] Liste des comptes admin pour pré-remplir le formulaire de connexion.',
+  })
+  @ApiOkResponse({
+    description: 'Liste des admins (uniquement en NODE_ENV=development)',
+    schema: {
+      type: 'object',
+      properties: {
+        admins: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              email: { type: 'string' },
+              first_name: { type: 'string' },
+              last_name: { type: 'string' },
+            },
+          },
+        },
+      },
+    },
+  })
+  @ApiNotFoundResponse({
+    description: 'Endpoint indisponible hors développement',
+  })
+  getDevAccounts() {
+    return this.authService.getDevAdminAccounts().then((admins) => ({
+      admins,
+    }));
   }
 
   @UseGuards(JwtAuthGuard)

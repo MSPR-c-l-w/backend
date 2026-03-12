@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Injectable,
+  NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
@@ -397,5 +398,26 @@ export class AuthService {
     });
 
     return { message: 'ACCOUNT_VERIFIED_OK' };
+  }
+
+  /**
+   * Retourne la liste des comptes admin (email, prénom, nom) pour le back-office en mode développement.
+   * Disponible uniquement quand NODE_ENV === 'development'.
+   */
+  async getDevAdminAccounts(): Promise<
+    Array<{ email: string; first_name: string; last_name: string }>
+  > {
+    if (process.env.NODE_ENV !== 'development') {
+      throw new NotFoundException();
+    }
+    const users = await this.prisma.user.findMany({
+      where: {
+        role: { name: 'ADMIN' },
+        is_deleted: false,
+      },
+      select: { email: true, first_name: true, last_name: true },
+      orderBy: { id: 'asc' },
+    });
+    return users;
   }
 }
