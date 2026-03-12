@@ -30,11 +30,6 @@ export class OrganizationService implements IOrganizationService {
       where: { is_deleted: false },
       select: this.selectPublic(),
     })) as Organization[];
-
-    if (orgs.length === 0) {
-      throw new NotFoundException('NO_ORGANIZATIONS_FOUND');
-    }
-
     return orgs;
   }
 
