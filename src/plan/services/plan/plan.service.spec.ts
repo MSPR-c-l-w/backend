@@ -69,14 +69,11 @@ describe('PlanService', () => {
       expect(prisma.plan.findMany).toHaveBeenCalledWith();
     });
 
-    it('devrait lancer NotFoundException si aucun plan trouvé', async () => {
+    it('devrait retourner un tableau vide si aucun plan trouvé', async () => {
       prisma.plan.findMany.mockResolvedValue([]);
 
-      await expect(service.getPlans()).rejects.toBeInstanceOf(
-        NotFoundException,
-      );
-      await expect(service.getPlans()).rejects.toThrow('NO_PLANS_FOUND');
-      expect(prisma.plan.findMany).toHaveBeenCalledTimes(2);
+      await expect(service.getPlans()).resolves.toEqual([]);
+      expect(prisma.plan.findMany).toHaveBeenCalledTimes(1);
     });
 
     it('devrait retourner un tableau avec un seul plan', async () => {

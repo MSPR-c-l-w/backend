@@ -14,9 +14,6 @@ export class PlanService implements IPlanService {
 
   async getPlans(): Promise<Plan[]> {
     const plans = await this.prisma.plan.findMany();
-    if (plans.length === 0) {
-      throw new NotFoundException('NO_PLANS_FOUND');
-    }
     return plans;
   }
 
