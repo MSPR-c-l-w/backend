@@ -2,7 +2,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { OrganizationService } from './organization.service';
 import { PrismaService } from 'src/prisma/services/prisma/prisma.service';
-import { NotFoundException } from '@nestjs/common';
 import type {
   CreateOrganizationDto,
   UpdateOrganizationDto,
@@ -59,11 +58,9 @@ describe('OrganizationService', () => {
       );
     });
 
-    it('throw NotFoundException si aucune organisation', async () => {
+    it('retourne un tableau vide si aucune organisation', async () => {
       prisma.organization.findMany.mockResolvedValue([]);
-      await expect(service.getOrganizations()).rejects.toBeInstanceOf(
-        NotFoundException,
-      );
+      await expect(service.getOrganizations()).resolves.toEqual([]);
     });
   });
 
