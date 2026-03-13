@@ -4,6 +4,7 @@ import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { RolesModule } from './roles/roles.module';
+import { AnalyticsModule } from './analytics/analytics.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { OrganizationModule } from './organization/organization.module';
 import { ExerciceModule } from './exercice/exercice.module';
@@ -20,6 +21,7 @@ import { EtlModule } from './etl/etl.module';
     AuthModule,
     UsersModule,
     RolesModule,
+    AnalyticsModule,
     PrismaModule,
     OrganizationModule,
     NutritionModule,
