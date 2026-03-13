@@ -390,10 +390,10 @@ const SEED_NUTRITION: Array<{
 /** Nombre d'abonnements à créer. */
 const SEED_SUBSCRIPTION_COUNT = 150;
 /** Nombre de sessions (entraînements) à créer. */
-const SEED_SESSION_COUNT = 100;
+const SEED_SESSION_COUNT = 500;
 /** Nombre d'utilisateurs ayant des repas, et repas par utilisateur. */
 const SEED_MEAL_USERS = 100;
-const SEED_MEALS_PER_USER = 5;
+const SEED_MEALS_PER_USER = 10;
 
 interface SpecialAccountCredential {
   email: string;
@@ -778,6 +778,9 @@ async function seedSessions(userIds: number[]): Promise<number[]> {
   const sessionIds: number[] = [];
   for (let i = 0; i < SEED_SESSION_COUNT; i++) {
     const userId = faker.helpers.arrayElement(userIds);
+    const daysAgo = faker.number.int({ min: 0, max: 59 });
+    const createdAt = new Date();
+    createdAt.setDate(createdAt.getDate() - daysAgo);
     const created = await prisma.session.create({
       data: {
         user_id: userId,
@@ -786,6 +789,7 @@ async function seedSessions(userIds: number[]): Promise<number[]> {
         avg_bpm: faker.number.int({ min: 120, max: 160 }),
         max_bpm: faker.number.int({ min: 150, max: 185 }),
         resting_bpm: faker.number.int({ min: 55, max: 75 }),
+        created_at: createdAt,
       },
       select: { id: true },
     });
@@ -832,10 +836,14 @@ async function seedMeals(
   for (const userId of toUse) {
     for (let m = 0; m < SEED_MEALS_PER_USER; m++) {
       const nutritionId = faker.helpers.arrayElement(nutritionIds);
+      const daysAgo = faker.number.int({ min: 0, max: 59 });
+      const createdAt = new Date();
+      createdAt.setDate(createdAt.getDate() - daysAgo);
       await prisma.meal.create({
         data: {
           user_id: userId,
           nutrition_id: nutritionId,
+          created_at: createdAt,
         },
       });
       created++;
