@@ -55,7 +55,7 @@ export class NutritionController implements INutritionController {
   @ApiQuery({
     name: 'limit',
     required: false,
-    description: 'Nombre d\'éléments par page (défaut: 20)',
+    description: "Nombre d'éléments par page (défaut: 20)",
   })
   async getNutritions(
     @Query('page', new ParseIntPipe({ optional: true })) page: number = 1,
