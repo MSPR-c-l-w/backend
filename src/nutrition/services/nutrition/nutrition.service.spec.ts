@@ -11,6 +11,7 @@ import { Nutrition } from '@prisma/client';
 import { of } from 'rxjs';
 import AdmZip from 'adm-zip';
 import { EtlAnomalyDetectorService } from 'src/etl/services/etl-anomaly-detector/etl-anomaly-detector.service';
+import type { UpdateNutritionDto } from 'src/nutrition/dtos/update-nutrition.dto';
 
 jest.mock('google-translate-api-x', () => ({
   translate: jest.fn((texts: string[] | string) => {
@@ -28,6 +29,9 @@ describe('NutritionService', () => {
       findMany: jest.Mock;
       findUnique: jest.Mock;
       upsert: jest.Mock;
+      update: jest.Mock;
+      delete: jest.Mock;
+      count: jest.Mock;
     };
     nutritionStaging: {
       findFirst: jest.Mock;
@@ -62,6 +66,9 @@ describe('NutritionService', () => {
         findMany: jest.fn(),
         findUnique: jest.fn(),
         upsert: jest.fn(),
+        update: jest.fn(),
+        delete: jest.fn(),
+        count: jest.fn(),
       },
       nutritionStaging: {
         findFirst: jest.fn(),
@@ -113,41 +120,60 @@ describe('NutritionService', () => {
   });
 
   describe('getNutritions', () => {
-    it('devrait retourner la liste des nutriments', async () => {
+    it('devrait retourner la liste paginée des nutriments', async () => {
       const nutritions = [
         mockNutrition,
         { ...mockNutrition, id: 2, name: 'Banane' },
       ];
       prisma.nutrition.findMany.mockResolvedValue(nutritions);
+      prisma.nutrition.count.mockResolvedValue(2);
 
-      const result = await service.getNutritions();
+      const result = await service.getNutritions(1, 20);
 
-      expect(result).toEqual(nutritions);
-      expect(prisma.nutrition.findMany).toHaveBeenCalledTimes(1);
-      expect(prisma.nutrition.findMany).toHaveBeenCalledWith();
+      expect(result).toEqual({ data: nutritions, total: 2 });
+      expect(prisma.nutrition.findMany).toHaveBeenCalledWith({
+        skip: 0,
+        take: 20,
+        orderBy: { name: 'asc' },
+      });
+      expect(prisma.nutrition.count).toHaveBeenCalledTimes(1);
     });
 
     it('devrait lancer NotFoundException si aucun nutriment trouvé', async () => {
       prisma.nutrition.findMany.mockResolvedValue([]);
+      prisma.nutrition.count.mockResolvedValue(0);
 
-      await expect(service.getNutritions()).rejects.toBeInstanceOf(
+      await expect(service.getNutritions(1, 20)).rejects.toBeInstanceOf(
         NotFoundException,
       );
-      await expect(service.getNutritions()).rejects.toThrow(
+      await expect(service.getNutritions(1, 20)).rejects.toThrow(
         'NO_NUTRITIONS_FOUND',
       );
-      expect(prisma.nutrition.findMany).toHaveBeenCalledTimes(2);
     });
 
-    it('devrait retourner un tableau avec un seul nutriment', async () => {
+    it('devrait calculer skip correctement pour la page 2', async () => {
       const nutritions = [mockNutrition];
       prisma.nutrition.findMany.mockResolvedValue(nutritions);
+      prisma.nutrition.count.mockResolvedValue(25);
 
-      const result = await service.getNutritions();
+      await service.getNutritions(2, 10);
 
-      expect(result).toEqual(nutritions);
-      expect(result).toHaveLength(1);
-      expect(prisma.nutrition.findMany).toHaveBeenCalledTimes(1);
+      expect(prisma.nutrition.findMany).toHaveBeenCalledWith({
+        skip: 10,
+        take: 10,
+        orderBy: { name: 'asc' },
+      });
+    });
+
+    it('devrait plafonner limit à 100', async () => {
+      prisma.nutrition.findMany.mockResolvedValue([]);
+      prisma.nutrition.count.mockResolvedValue(1);
+
+      await service.getNutritions(1, 500);
+
+      expect(prisma.nutrition.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ take: 100 }),
+      );
     });
   });
 
@@ -193,6 +219,55 @@ describe('NutritionService', () => {
       expect(prisma.nutrition.findUnique).toHaveBeenCalledWith({
         where: { id: NaN },
       });
+    });
+  });
+
+  describe('updateNutrition', () => {
+    it('devrait update un nutriment existant', async () => {
+      prisma.nutrition.findUnique.mockResolvedValue(mockNutrition);
+      prisma.nutrition.update.mockResolvedValue({
+        ...mockNutrition,
+        name: 'Pomme 2',
+      });
+
+      const dto: UpdateNutritionDto = { name: 'Pomme 2' };
+      const result = await service.updateNutrition('1', dto);
+
+      expect(result).toEqual({ ...mockNutrition, name: 'Pomme 2' });
+      expect(prisma.nutrition.update).toHaveBeenCalledWith({
+        where: { id: 1 },
+        data: expect.objectContaining({ name: 'Pomme 2' }),
+      });
+    });
+
+    it("devrait throw si le nutriment n'existe pas", async () => {
+      prisma.nutrition.findUnique.mockResolvedValue(null);
+      await expect(
+        service.updateNutrition('999', { name: 'X' }),
+      ).rejects.toThrow('Nutrition with id 999 not found');
+      expect(prisma.nutrition.update).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('deleteNutrition', () => {
+    it('devrait delete un nutriment existant', async () => {
+      prisma.nutrition.findUnique.mockResolvedValue(mockNutrition);
+      prisma.nutrition.delete.mockResolvedValue(mockNutrition);
+
+      const result = await service.deleteNutrition('1');
+
+      expect(result).toEqual(mockNutrition);
+      expect(prisma.nutrition.delete).toHaveBeenCalledWith({
+        where: { id: 1 },
+      });
+    });
+
+    it("devrait throw si le nutriment n'existe pas", async () => {
+      prisma.nutrition.findUnique.mockResolvedValue(null);
+      await expect(service.deleteNutrition('999')).rejects.toThrow(
+        'Nutrition with id 999 not found',
+      );
+      expect(prisma.nutrition.delete).not.toHaveBeenCalled();
     });
   });
 
