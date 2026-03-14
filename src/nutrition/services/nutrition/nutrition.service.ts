@@ -51,12 +51,26 @@ export class NutritionService implements INutritionService {
     private readonly anomalyDetector: EtlAnomalyDetectorService,
   ) {}
 
-  async getNutritions(): Promise<Nutrition[]> {
-    const nutritions = await this.prisma.nutrition.findMany();
-    if (nutritions.length === 0) {
+  async getNutritions(
+    page: number = 1,
+    limit: number = 20,
+  ): Promise<{ data: Nutrition[]; total: number }> {
+    const skip = (page - 1) * limit;
+    const limitClamped = Math.max(1, Math.min(100, limit));
+
+    const [nutritions, total] = await Promise.all([
+      this.prisma.nutrition.findMany({
+        skip,
+        take: limitClamped,
+        orderBy: { name: 'asc' },
+      }),
+      this.prisma.nutrition.count(),
+    ]);
+
+    if (total === 0) {
       throw new NotFoundException('NO_NUTRITIONS_FOUND');
     }
-    return nutritions;
+    return { data: nutritions, total };
   }
 
   async getNutritionById(id: string): Promise<Nutrition> {

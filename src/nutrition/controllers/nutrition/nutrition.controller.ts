@@ -5,8 +5,10 @@ import {
   Get,
   Inject,
   Param,
+  ParseIntPipe,
   Post,
   Put,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import {
@@ -18,6 +20,7 @@ import {
   ApiOkResponse,
   ApiOperation,
   ApiParam,
+  ApiQuery,
   ApiTags,
 } from '@nestjs/swagger';
 import { Nutrition } from '@prisma/client';
@@ -33,7 +36,7 @@ import { ROUTES, SERVICES } from 'src/utils/constants';
 
 @Controller(ROUTES.NUTRITION)
 @UseGuards(JwtAuthGuard)
-@ApiTags(ROUTES.NUTRITION)
+@ApiTags('Gestion Nutrition')
 @ApiBearerAuth('access-token')
 export class NutritionController implements INutritionController {
   constructor(
@@ -42,10 +45,23 @@ export class NutritionController implements INutritionController {
   ) {}
 
   @Get()
-  @ApiOperation({ summary: 'Récupérer tout les nutriments' })
-  @ApiOkResponse({ description: 'Liste des nutriments' })
-  async getNutritions(): Promise<Nutrition[]> {
-    return this.nutritionService.getNutritions();
+  @ApiOperation({ summary: 'Récupérer les nutriments avec pagination' })
+  @ApiOkResponse({ description: 'Liste des nutriments paginée' })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    description: 'Numéro de page (défaut: 1)',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    description: 'Nombre d\'éléments par page (défaut: 20)',
+  })
+  async getNutritions(
+    @Query('page', new ParseIntPipe({ optional: true })) page: number = 1,
+    @Query('limit', new ParseIntPipe({ optional: true })) limit: number = 20,
+  ): Promise<{ data: Nutrition[]; total: number }> {
+    return this.nutritionService.getNutritions(page, limit);
   }
 
   @Get(':id')

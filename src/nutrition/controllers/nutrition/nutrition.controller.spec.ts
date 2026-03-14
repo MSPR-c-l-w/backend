@@ -61,26 +61,32 @@ describe('NutritionController', () => {
   });
 
   describe('getNutritions', () => {
-    it('devrait retourner la liste des nutriments', async () => {
+    it('devrait retourner la liste paginée des nutriments', async () => {
       const nutritions = [
         mockNutrition,
         { ...mockNutrition, id: 2, name: 'Banane' },
       ];
-      nutritionServiceMock.getNutritions.mockResolvedValue(nutritions);
+      nutritionServiceMock.getNutritions.mockResolvedValue({
+        data: nutritions,
+        total: 2,
+      });
 
       const result = await controller.getNutritions();
 
-      expect(result).toEqual(nutritions);
+      expect(result).toEqual({ data: nutritions, total: 2 });
       expect(nutritionServiceMock.getNutritions).toHaveBeenCalledTimes(1);
-      expect(nutritionServiceMock.getNutritions).toHaveBeenCalledWith();
+      expect(nutritionServiceMock.getNutritions).toHaveBeenCalledWith(1, 20);
     });
 
-    it('devrait appeler le service avec les bons paramètres', async () => {
-      nutritionServiceMock.getNutritions.mockResolvedValue([mockNutrition]);
+    it('devrait appeler le service avec page et limit', async () => {
+      nutritionServiceMock.getNutritions.mockResolvedValue({
+        data: [mockNutrition],
+        total: 1,
+      });
 
-      await controller.getNutritions();
+      await controller.getNutritions(2, 10);
 
-      expect(nutritionServiceMock.getNutritions).toHaveBeenCalled();
+      expect(nutritionServiceMock.getNutritions).toHaveBeenCalledWith(2, 10);
     });
 
     it('devrait propager NotFoundException du service', async () => {
