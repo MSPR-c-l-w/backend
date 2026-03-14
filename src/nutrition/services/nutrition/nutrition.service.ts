@@ -14,6 +14,7 @@ import { lastValueFrom } from 'rxjs';
 import * as Papa from 'papaparse';
 import { translate } from 'google-translate-api-x';
 import { EtlAnomalyDetectorService } from 'src/etl/services/etl-anomaly-detector/etl-anomaly-detector.service';
+import { UpdateNutritionDto } from 'src/nutrition/dtos/update-nutrition.dto';
 const AdmZipModule = require('adm-zip');
 const AdmZip = AdmZipModule.default ?? AdmZipModule;
 
@@ -66,6 +67,44 @@ export class NutritionService implements INutritionService {
       throw new Error(`Nutrition with id ${id} not found`);
     }
     return nutrition;
+  }
+
+  async updateNutrition(
+    id: string,
+    nutrition: UpdateNutritionDto,
+  ): Promise<Nutrition> {
+    await this.getNutritionById(id);
+
+    const data: Record<string, unknown> = {};
+    if (nutrition.name !== undefined) data.name = nutrition.name;
+    if (nutrition.category !== undefined) data.category = nutrition.category;
+    if (nutrition.calories_kcal !== undefined)
+      data.calories_kcal = nutrition.calories_kcal;
+    if (nutrition.protein_g !== undefined) data.protein_g = nutrition.protein_g;
+    if (nutrition.carbohydrates_g !== undefined)
+      data.carbohydrates_g = nutrition.carbohydrates_g;
+    if (nutrition.fat_g !== undefined) data.fat_g = nutrition.fat_g;
+    if (nutrition.fiber_g !== undefined) data.fiber_g = nutrition.fiber_g;
+    if (nutrition.sugar_g !== undefined) data.sugar_g = nutrition.sugar_g;
+    if (nutrition.sodium_mg !== undefined) data.sodium_mg = nutrition.sodium_mg;
+    if (nutrition.cholesterol_mg !== undefined)
+      data.cholesterol_mg = nutrition.cholesterol_mg;
+    if (nutrition.meal_type_name !== undefined)
+      data.meal_type_name = nutrition.meal_type_name;
+    if (nutrition.water_intake_ml !== undefined)
+      data.water_intake_ml = nutrition.water_intake_ml;
+    if (nutrition.picture_url !== undefined)
+      data.picture_url = nutrition.picture_url;
+
+    return await this.prisma.nutrition.update({
+      where: { id: parseInt(id) },
+      data: data as any,
+    });
+  }
+
+  async deleteNutrition(id: string): Promise<Nutrition> {
+    await this.getNutritionById(id);
+    return await this.prisma.nutrition.delete({ where: { id: parseInt(id) } });
   }
 
   private mapRowToNutrition(row: KaggleNutritionRow): {

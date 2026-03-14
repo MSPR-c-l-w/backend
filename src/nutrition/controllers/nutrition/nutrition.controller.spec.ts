@@ -5,12 +5,15 @@ import { SERVICES } from 'src/utils/constants';
 import { Nutrition } from '@prisma/client';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
+import type { UpdateNutritionDto } from 'src/nutrition/dtos/update-nutrition.dto';
 
 describe('NutritionController', () => {
   let controller: NutritionController;
   const nutritionServiceMock = {
     getNutritions: jest.fn(),
     getNutritionById: jest.fn(),
+    updateNutrition: jest.fn(),
+    deleteNutrition: jest.fn(),
   };
 
   const mockNutrition: Nutrition = {
@@ -124,6 +127,32 @@ describe('NutritionController', () => {
 
       await controller.getNutritionById('123');
       expect(nutritionServiceMock.getNutritionById).toHaveBeenCalledWith('123');
+    });
+  });
+
+  describe('updateNutrition', () => {
+    it('devrait appeler updateNutrition avec id et body', async () => {
+      nutritionServiceMock.updateNutrition.mockResolvedValue(mockNutrition);
+      const dto: UpdateNutritionDto = { name: 'Pomme 2' };
+
+      const result = await controller.updateNutrition('1', dto);
+
+      expect(result).toEqual(mockNutrition);
+      expect(nutritionServiceMock.updateNutrition).toHaveBeenCalledWith(
+        '1',
+        dto,
+      );
+    });
+  });
+
+  describe('deleteNutrition', () => {
+    it('devrait appeler deleteNutrition avec id', async () => {
+      nutritionServiceMock.deleteNutrition.mockResolvedValue(mockNutrition);
+
+      const result = await controller.deleteNutrition('1');
+
+      expect(result).toEqual(mockNutrition);
+      expect(nutritionServiceMock.deleteNutrition).toHaveBeenCalledWith('1');
     });
   });
 });

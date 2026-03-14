@@ -1,14 +1,18 @@
 import {
+  Body,
   Controller,
+  Delete,
   Get,
   Inject,
   Param,
   Post,
+  Put,
   UseGuards,
 } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
   ApiBearerAuth,
+  ApiBody,
   ApiInternalServerErrorResponse,
   ApiNotFoundResponse,
   ApiOkResponse,
@@ -20,6 +24,7 @@ import { Nutrition } from '@prisma/client';
 import { Roles } from 'src/auth/decorators/roles.decorator';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
+import { UpdateNutritionDto } from 'src/nutrition/dtos/update-nutrition.dto';
 import type {
   INutritionController,
   INutritionService,
@@ -51,6 +56,30 @@ export class NutritionController implements INutritionController {
   @ApiBadRequestResponse({ description: 'ID du nutriment invalide' })
   async getNutritionById(@Param('id') id: string): Promise<Nutrition> {
     return this.nutritionService.getNutritionById(id);
+  }
+
+  @Put(':id')
+  @ApiOperation({ summary: 'Mettre à jour un nutriment' })
+  @ApiBody({ type: UpdateNutritionDto })
+  @ApiOkResponse({ description: 'Nutriment mis à jour' })
+  @ApiParam({ name: 'id', description: 'ID du nutriment' })
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN')
+  updateNutrition(
+    @Param('id') id: string,
+    @Body() nutrition: UpdateNutritionDto,
+  ): Promise<Nutrition> {
+    return this.nutritionService.updateNutrition(id, nutrition);
+  }
+
+  @Delete(':id')
+  @ApiOperation({ summary: 'Supprimer un nutriment' })
+  @ApiOkResponse({ description: 'Nutriment supprimé' })
+  @ApiParam({ name: 'id', description: 'ID du nutriment' })
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN')
+  deleteNutrition(@Param('id') id: string): Promise<Nutrition> {
+    return this.nutritionService.deleteNutrition(id);
   }
 
   @Post('import')
