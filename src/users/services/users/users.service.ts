@@ -68,15 +68,25 @@ export class UsersService implements IUsersService {
     const usePagination =
       query != null && (query.page !== undefined || query.limit !== undefined);
 
+      const baseWhere = { is_deleted: false };
+
+      const search = query?.search?.trim() || undefined;
+      const where = search
+        ? {
+            ...baseWhere,
+            OR: [
+              { first_name: { contains: search } },
+              { last_name: { contains: search } },
+            ],
+          }
+        : baseWhere;
+
     if (!usePagination) {
       const users = (await this.prisma.user.findMany({
         where: { is_deleted: false },
         select: this.userSelect(),
         orderBy: { id: 'asc' },
       })) as User[];
-      if (users.length === 0) {
-        throw new NotFoundException('NO_USERS_FOUND');
-      }
       return users;
     }
     const page = Math.max(1, query.page ?? 1);
@@ -85,18 +95,60 @@ export class UsersService implements IUsersService {
 
     const [users, total] = await Promise.all([
       this.prisma.user.findMany({
-        where: { is_deleted: false },
+        where,
         select: this.userSelect(),
         skip,
         take: limit,
         orderBy: { id: 'asc' },
       }) as Promise<User[]>,
-      this.prisma.user.count({ where: { is_deleted: false } }),
+      this.prisma.user.count({ where }),
     ]);
-    if (total === 0) {
-      throw new NotFoundException('NO_USERS_FOUND');
-    }
     return { data: users, total };
+  }
+
+  async getUsersStats(): Promise<{
+    totalUsers: number;
+    activeUsers: number;
+    premiumUsers: number;
+    b2bUsers: number;
+  }> {
+    const [totalUsers, activeUsers, premiumUsers, b2bUsers] = await Promise.all([
+      this.prisma.user.count({
+        where: { is_deleted: false },
+      }),
+      this.prisma.user.count({
+        where: { is_deleted: false, is_active: true },
+      }),
+      this.prisma.user.count({
+        where: {
+          is_deleted: false,
+          subscriptions: {
+            some: {
+              status: 'true',
+              plan: { name: 'Premium' },
+            },
+          },
+        },
+      }),
+      this.prisma.user.count({
+        where: {
+          is_deleted: false,
+          subscriptions: {
+            some: {
+              status: 'true',
+              plan: { name: 'B2B' },
+            },
+          },
+        },
+      }),
+    ]);
+
+    return {
+      totalUsers,
+      activeUsers,
+      premiumUsers,
+      b2bUsers,
+    };
   }
 
   async getUserById(id: string): Promise<User> {
