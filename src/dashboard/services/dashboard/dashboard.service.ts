@@ -1,11 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
+import { IDashboardService } from 'src/dashboard/interfaces/dashboard.interfaces';
 import { PrismaService } from 'src/prisma/services/prisma/prisma.service';
 
 const EMPTY_ANOMALIES: Prisma.JsonArray = [];
 
 @Injectable()
-export class DashboardService {
+export class DashboardService implements IDashboardService {
   constructor(private readonly prisma: PrismaService) {}
 
   async getPilotage() {
@@ -13,7 +14,6 @@ export class DashboardService {
       totalUsers,
       activeUsers,
       premiumCount,
-      b2bCount,
       ageGroups,
       objectivesRaw,
       pipelineSummary,
@@ -27,14 +27,6 @@ export class DashboardService {
           is_deleted: false,
           subscriptions: {
             some: { status: 'true', plan: { name: 'Premium' } },
-          },
-        },
-      }),
-      this.prisma.user.count({
-        where: {
-          is_deleted: false,
-          subscriptions: {
-            some: { status: 'true', plan: { name: 'B2B' } },
           },
         },
       }),
@@ -163,7 +155,6 @@ export class DashboardService {
     return (withoutAnomalies / total) * 100;
   }
 
-  /** Tendance qualité sur 7 jours : pour chaque jour, qualité et erreurs depuis la BDD. */
   private async getDataQualityTrendFromDb(): Promise<
     { date: string; quality: number; errors: number }[]
   > {
@@ -199,7 +190,8 @@ export class DashboardService {
         ]).then(([a, b, c]) => a + b + c),
       ]);
 
-      const quality = total === 0 ? 100 : ((total - withAnomalies) / total) * 100;
+      const quality =
+        total === 0 ? 100 : ((total - withAnomalies) / total) * 100;
       result.push({
         date: dayLabels[i],
         quality: Math.round(quality * 10) / 10,
@@ -250,15 +242,17 @@ export class DashboardService {
   }
 
   /** Alertes construites depuis la BDD : anomalies + dernière sync par pipeline. */
-  private buildAlertsFromDb(
-    summary: {
-      nutrition: { anomalies: number; lastSync: Date | null };
-      exercise: { anomalies: number; lastSync: Date | null };
-      'health-profile': { anomalies: number; lastSync: Date | null };
-    },
-  ): { id: number; type: string; message: string; time: string }[] {
-    const alerts: { id: number; type: string; message: string; time: string }[] =
-      [];
+  private buildAlertsFromDb(summary: {
+    nutrition: { anomalies: number; lastSync: Date | null };
+    exercise: { anomalies: number; lastSync: Date | null };
+    'health-profile': { anomalies: number; lastSync: Date | null };
+  }): { id: number; type: string; message: string; time: string }[] {
+    const alerts: {
+      id: number;
+      type: string;
+      message: string;
+      time: string;
+    }[] = [];
     let id = 1;
 
     const pipelines = [
@@ -315,14 +309,16 @@ export class DashboardService {
     const diffH = Math.floor(diffMin / 60);
     const diffJ = Math.floor(diffH / 24);
 
-    if (diffMin < 1) return 'À l\'instant';
+    if (diffMin < 1) return "À l'instant";
     if (diffMin < 60) return `Il y a ${diffMin} min`;
     if (diffH < 24) return `Il y a ${diffH} h`;
     if (diffJ === 1) return 'Il y a 1 j';
     return `Il y a ${diffJ} j`;
   }
 
-  private async getAgeDistribution(): Promise<{ name: string; value: number }[]> {
+  private async getAgeDistribution(): Promise<
+    { name: string; value: number }[]
+  > {
     const users = await this.prisma.user.findMany({
       where: { is_deleted: false, date_of_birth: { not: null } },
       select: { date_of_birth: true },
@@ -337,8 +333,7 @@ export class DashboardService {
     const today = new Date();
     for (const u of users) {
       if (!u.date_of_birth) continue;
-      const age =
-        today.getFullYear() - new Date(u.date_of_birth).getFullYear();
+      const age = today.getFullYear() - new Date(u.date_of_birth).getFullYear();
       const band = bands.find((b) => age >= b.min && age <= b.max);
       if (band) band.value++;
     }

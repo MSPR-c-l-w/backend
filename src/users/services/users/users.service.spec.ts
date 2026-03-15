@@ -2,9 +2,10 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Test, TestingModule } from '@nestjs/testing';
+import { Prisma } from '@prisma/client';
 import { UsersService } from './users.service';
 import { PrismaService } from 'src/prisma/services/prisma/prisma.service';
-import { NotFoundException } from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { SERVICES } from 'src/utils/constants';
 
 jest.mock('src/utils/security/password', () => ({
@@ -78,11 +79,10 @@ describe('UsersService', () => {
       );
     });
 
-    it('sans pagination: throw NotFoundException si aucun user', async () => {
+    it('sans pagination: retourne un tableau vide si aucun user', async () => {
       prisma.user.findMany.mockResolvedValue([]);
-      await expect(service.getUsers()).rejects.toBeInstanceOf(
-        NotFoundException,
-      );
+      const result = await service.getUsers();
+      expect(result).toEqual([]);
     });
 
     it('avec pagination: retourne { data, total }', async () => {
@@ -121,13 +121,12 @@ describe('UsersService', () => {
       );
     });
 
-    it('avec pagination: throw NotFoundException si total 0', async () => {
+    it('avec pagination: retourne { data: [], total: 0 } si aucun user', async () => {
       prisma.user.findMany.mockResolvedValue([]);
       prisma.user.count.mockResolvedValue(0);
 
-      await expect(
-        service.getUsers({ page: 1, limit: 20 }),
-      ).rejects.toBeInstanceOf(NotFoundException);
+      const result = await service.getUsers({ page: 1, limit: 20 });
+      expect(result).toEqual({ data: [], total: 0 });
     });
 
     it('avec pagination: plafonne limit à 100', async () => {
@@ -142,6 +141,49 @@ describe('UsersService', () => {
           take: 100,
         }),
       );
+    });
+
+    it('avec pagination et search: utilise OR first_name/last_name contains', async () => {
+      const users = [{ id: 1, first_name: 'Jean' }] as any[];
+      prisma.user.findMany.mockResolvedValue(users);
+      prisma.user.count.mockResolvedValue(1);
+
+      await service.getUsers({ page: 1, limit: 20, search: 'Jean' });
+
+      const expectedWhere = {
+        is_deleted: false,
+        OR: [
+          { first_name: { contains: 'Jean' } },
+          { last_name: { contains: 'Jean' } },
+        ],
+      };
+      expect(prisma.user.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: expectedWhere }),
+      );
+      expect(prisma.user.count).toHaveBeenCalledWith({
+        where: expectedWhere,
+      });
+    });
+  });
+
+  describe('getUsersStats', () => {
+    it('retourne totalUsers, activeUsers, premiumUsers, b2bUsers', async () => {
+      prisma.user.count.mockReset();
+      prisma.user.count
+        .mockResolvedValueOnce(100)
+        .mockResolvedValueOnce(60)
+        .mockResolvedValueOnce(20)
+        .mockResolvedValueOnce(10);
+
+      const result = await service.getUsersStats();
+
+      expect(result).toEqual({
+        totalUsers: 100,
+        activeUsers: 60,
+        premiumUsers: 20,
+        b2bUsers: 10,
+      });
+      expect(prisma.user.count).toHaveBeenCalledTimes(4);
     });
   });
 
@@ -159,6 +201,16 @@ describe('UsersService', () => {
 
     it('throw NotFoundException si user introuvable', async () => {
       prisma.user.findUnique.mockResolvedValue(null);
+      await expect(service.getUserById('42')).rejects.toBeInstanceOf(
+        NotFoundException,
+      );
+    });
+
+    it('throw NotFoundException si user soft-deleted', async () => {
+      prisma.user.findUnique.mockResolvedValue({
+        id: 42,
+        is_deleted: true,
+      });
       await expect(service.getUserById('42')).rejects.toBeInstanceOf(
         NotFoundException,
       );
@@ -225,6 +277,53 @@ describe('UsersService', () => {
         select: expect.any(Object),
       });
     });
+
+    it('throw BadRequestException si email déjà utilisé (P2002)', async () => {
+      const dto = {
+        email: 'existing@test.com',
+        password: 'pw',
+        first_name: 'A',
+        last_name: 'B',
+        date_of_birth: '2000-01-01',
+        gender: 'X',
+        height: 180,
+      } as any;
+      const prismaError = new Prisma.PrismaClientKnownRequestError(
+        'Unique constraint failed',
+        { code: 'P2002', meta: { modelName: 'User' }, clientVersion: '7.x' },
+      );
+      prisma.user.create.mockRejectedValue(prismaError);
+
+      const promise = service.createUser(dto);
+      await expect(promise).rejects.toBeInstanceOf(BadRequestException);
+      await expect(promise).rejects.toMatchObject({
+        message: 'EMAIL_ALREADY_USED',
+      });
+    });
+
+    it('throw BadRequestException si organisation introuvable (P2003)', async () => {
+      const dto = {
+        organization_id: 999,
+        email: 'a@b.com',
+        password: 'pw',
+        first_name: 'A',
+        last_name: 'B',
+        date_of_birth: '2000-01-01',
+        gender: 'X',
+        height: 180,
+      } as any;
+      const prismaError = new Prisma.PrismaClientKnownRequestError(
+        'Foreign key constraint failed',
+        { code: 'P2003', meta: { modelName: 'User' }, clientVersion: '7.x' },
+      );
+      prisma.user.create.mockRejectedValue(prismaError);
+
+      const promise = service.createUser(dto);
+      await expect(promise).rejects.toBeInstanceOf(BadRequestException);
+      await expect(promise).rejects.toMatchObject({
+        message: 'ORGANIZATION_NOT_FOUND',
+      });
+    });
   });
 
   describe('updateUser', () => {
@@ -260,6 +359,16 @@ describe('UsersService', () => {
         select: expect.any(Object),
       });
     });
+
+    it('throw NotFoundException si user introuvable', async () => {
+      prisma.user.findUnique.mockResolvedValue(null);
+      const dto = { first_name: 'New' } as any;
+
+      await expect(service.updateUser('1', dto)).rejects.toBeInstanceOf(
+        NotFoundException,
+      );
+      expect(prisma.user.update).not.toHaveBeenCalled();
+    });
   });
 
   describe('updateUserRole', () => {
@@ -293,6 +402,29 @@ describe('UsersService', () => {
         select: expect.any(Object),
       });
     });
+
+    it('throw BadRequestException si role_id est undefined', async () => {
+      prisma.user.findUnique.mockResolvedValue({ id: 1, is_deleted: false });
+
+      const promise = service.updateUserRole('1', {} as any);
+      await expect(promise).rejects.toBeInstanceOf(BadRequestException);
+      await expect(promise).rejects.toMatchObject({
+        message: 'ROLE_ID_IS_REQUIRED',
+      });
+      expect(prisma.user.update).not.toHaveBeenCalled();
+    });
+
+    it('throw NotFoundException si le role n’existe pas', async () => {
+      prisma.user.findUnique.mockResolvedValue({ id: 1, is_deleted: false });
+      prisma.role.findUnique.mockResolvedValue(null);
+
+      const promise = service.updateUserRole('1', { role_id: 999 });
+      await expect(promise).rejects.toBeInstanceOf(NotFoundException);
+      await expect(promise).rejects.toMatchObject({
+        message: 'ROLE_NOT_FOUND',
+      });
+      expect(prisma.user.update).not.toHaveBeenCalled();
+    });
   });
 
   describe('deleteUser', () => {
@@ -311,6 +443,15 @@ describe('UsersService', () => {
         },
         select: expect.any(Object),
       });
+    });
+
+    it('throw NotFoundException si user introuvable', async () => {
+      prisma.user.findUnique.mockResolvedValue(null);
+
+      await expect(service.deleteUser('1')).rejects.toBeInstanceOf(
+        NotFoundException,
+      );
+      expect(prisma.user.update).not.toHaveBeenCalled();
     });
   });
 });

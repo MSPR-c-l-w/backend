@@ -68,18 +68,18 @@ export class UsersService implements IUsersService {
     const usePagination =
       query != null && (query.page !== undefined || query.limit !== undefined);
 
-      const baseWhere = { is_deleted: false };
+    const baseWhere = { is_deleted: false };
 
-      const search = query?.search?.trim() || undefined;
-      const where = search
-        ? {
-            ...baseWhere,
-            OR: [
-              { first_name: { contains: search } },
-              { last_name: { contains: search } },
-            ],
-          }
-        : baseWhere;
+    const search = query?.search?.trim() || undefined;
+    const where = search
+      ? {
+          ...baseWhere,
+          OR: [
+            { first_name: { contains: search } },
+            { last_name: { contains: search } },
+          ],
+        }
+      : baseWhere;
 
     if (!usePagination) {
       const users = (await this.prisma.user.findMany({
@@ -112,36 +112,38 @@ export class UsersService implements IUsersService {
     premiumUsers: number;
     b2bUsers: number;
   }> {
-    const [totalUsers, activeUsers, premiumUsers, b2bUsers] = await Promise.all([
-      this.prisma.user.count({
-        where: { is_deleted: false },
-      }),
-      this.prisma.user.count({
-        where: { is_deleted: false, is_active: true },
-      }),
-      this.prisma.user.count({
-        where: {
-          is_deleted: false,
-          subscriptions: {
-            some: {
-              status: 'true',
-              plan: { name: 'Premium' },
+    const [totalUsers, activeUsers, premiumUsers, b2bUsers] = await Promise.all(
+      [
+        this.prisma.user.count({
+          where: { is_deleted: false },
+        }),
+        this.prisma.user.count({
+          where: { is_deleted: false, is_active: true },
+        }),
+        this.prisma.user.count({
+          where: {
+            is_deleted: false,
+            subscriptions: {
+              some: {
+                status: 'true',
+                plan: { name: 'Premium' },
+              },
             },
           },
-        },
-      }),
-      this.prisma.user.count({
-        where: {
-          is_deleted: false,
-          subscriptions: {
-            some: {
-              status: 'true',
-              plan: { name: 'B2B' },
+        }),
+        this.prisma.user.count({
+          where: {
+            is_deleted: false,
+            subscriptions: {
+              some: {
+                status: 'true',
+                plan: { name: 'B2B' },
+              },
             },
           },
-        },
-      }),
-    ]);
+        }),
+      ],
+    );
 
     return {
       totalUsers,
