@@ -107,47 +107,47 @@ export class UsersService implements IUsersService {
   }
 
   async getUsersStats(): Promise<{
-    total_users: number;
+    totalUsers: number;
     activeUsers: number;
     premiumUsers: number;
-    b2BUsers: number;
+    b2bUsers: number;
   }> {
-    const [totalUsers, activeUsers, premiumUsers, b2BUsers] = await Promise.all([
-    this.prisma.user.count({
-      where: { is_deleted: false },
-    }),
-    this.prisma.user.count({
-      where: { is_deleted: false, is_active: true },
-    }),
-    this.prisma.user.count({
-      where: {
-        is_deleted: false,
-        subscriptions: {
-          some: {
-            status: 'true',
-            plan: { name: 'Premium' },
+    const [totalUsers, activeUsers, premiumUsers, b2bUsers] = await Promise.all([
+      this.prisma.user.count({
+        where: { is_deleted: false },
+      }),
+      this.prisma.user.count({
+        where: { is_deleted: false, is_active: true },
+      }),
+      this.prisma.user.count({
+        where: {
+          is_deleted: false,
+          subscriptions: {
+            some: {
+              status: 'true',
+              plan: { name: 'Premium' },
+            },
           },
         },
-      },
-    }),
-    this.prisma.user.count({
-      where: {
-        is_deleted: false,
-        subscriptions :{
-          some: {
-            status: 'true',
-            plan: { name: 'B2B' },
+      }),
+      this.prisma.user.count({
+        where: {
+          is_deleted: false,
+          subscriptions: {
+            some: {
+              status: 'true',
+              plan: { name: 'B2B' },
+            },
           },
         },
-      },
-    }),
+      }),
     ]);
 
     return {
-      total_users: totalUsers,
-      activeUsers: activeUsers,
-      premiumUsers: premiumUsers,
-      b2BUsers: b2BUsers,
+      totalUsers,
+      activeUsers,
+      premiumUsers,
+      b2bUsers,
     };
   }
 

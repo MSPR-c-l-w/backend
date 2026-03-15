@@ -14,6 +14,7 @@ import { SessionModule } from './session/session.module';
 import { HealthProfileModule } from './health-profile/health-profile.module';
 import { SubscriptionModule } from './subscription/subscription.module';
 import { EtlModule } from './etl/etl.module';
+import { DashboardModule } from './dashboard/dashboard.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { EtlModule } from './etl/etl.module';
     HealthProfileModule,
     SubscriptionModule,
     EtlModule,
+    DashboardModule,
   ],
   controllers: [AppController],
   providers: [AppService],

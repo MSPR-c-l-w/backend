@@ -48,10 +48,10 @@ export class UsersController implements IUsersController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN')
   getUsersStats(): Promise<{
-    total_users: number;
+    totalUsers: number;
     activeUsers: number;
     premiumUsers: number;
-    b2BUsers: number;
+    b2bUsers: number;
   }> {
     return this.usersService.getUsersStats();
   }

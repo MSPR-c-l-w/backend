@@ -17,7 +17,7 @@ export interface IUsersController {
 }
 
 export interface IUsersService {
-  getUsersStats(): Promise<{ total_users: number; activeUsers: number; premiumUsers: number; b2BUsers: number; }>;
+  getUsersStats(): Promise<{ totalUsers: number; activeUsers: number; premiumUsers: number; b2bUsers: number; }>;
   getUsers(query?: GetUsersDto): Promise<User[] | PaginatedUsersResponse>;
   getUserById(id: string): Promise<User>;
   createUser(user: CreateUserDto): Promise<User>;
