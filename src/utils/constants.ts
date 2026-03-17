@@ -32,3 +32,9 @@ export enum SERVICES {
   HEALTH_PROFILE = 'HEALTH_PROFILE',
   SUBSCRIPTION = 'SUBSCRIPTION_SERVICE',
 }
+
+export const ACTIVE_SUBSCRIPTION_STATUSES: string[] = [
+  'ACTIVE',
+  'active',
+  'true',
+];
