@@ -39,3 +39,8 @@ export interface ApiLogsDashboardDto {
   endpoints: ApiLogsEndpointStatDto[];
   server: ApiLogsServerStatusDto;
 }
+
+export interface IApiLogsService {
+  getServerStatus(): ApiLogsServerStatusDto;
+  getDashboard(range: ApiLogsRange): ApiLogsDashboardDto;
+}

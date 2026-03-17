@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import {
+  IApiLogsService,
   type ApiLogsDashboardDto,
   type ApiLogsRange,
   type ApiLogsServerStatusDto,
@@ -62,7 +63,7 @@ function rangeToBucket(range: ApiLogsRange): {
 }
 
 @Injectable()
-export class ApiLogsService {
+export class ApiLogsService implements IApiLogsService {
   constructor(
     private readonly metrics: ApiMetricsService,
     private readonly machine: MachineStatsService,

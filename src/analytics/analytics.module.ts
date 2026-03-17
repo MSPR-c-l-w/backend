@@ -9,6 +9,9 @@ import { MachineStatsService } from 'src/analytics/services/machine-stats/machin
 @Module({
   providers: [
     { provide: SERVICES.ANALYTICS, useClass: AnalyticsService },
+    { provide: SERVICES.API_METRICS, useClass: ApiMetricsService },
+    { provide: SERVICES.MACHINE_STATS, useClass: MachineStatsService },
+    { provide: SERVICES.API_LOGS, useClass: ApiLogsService },
     AnalyticsService,
     ApiMetricsService,
     MachineStatsService,
@@ -17,8 +20,12 @@ import { MachineStatsService } from 'src/analytics/services/machine-stats/machin
   controllers: [AnalyticsController],
   exports: [
     { provide: SERVICES.ANALYTICS, useClass: AnalyticsService },
+    { provide: SERVICES.API_METRICS, useClass: ApiMetricsService },
+    { provide: SERVICES.MACHINE_STATS, useClass: MachineStatsService },
+    { provide: SERVICES.API_LOGS, useClass: ApiLogsService },
     AnalyticsService,
     ApiMetricsService,
+    MachineStatsService,
     ApiLogsService,
   ],
 })

@@ -10,6 +10,7 @@ import {
   type IAnalyticsService,
 } from 'src/analytics/interfaces/analytics.interface';
 import {
+  type IApiLogsService,
   type ApiLogsDashboardDto,
   type ApiLogsRange,
 } from 'src/analytics/interfaces/api-logs.interface';
@@ -21,7 +22,6 @@ import {
   ApiQuery,
   ApiTags,
 } from '@nestjs/swagger';
-import { ApiLogsService } from 'src/analytics/services/api-logs/api-logs.service';
 
 @ApiBearerAuth('access-token')
 @ApiTags(ROUTES.ANALYTICS)
@@ -31,7 +31,9 @@ export class AnalyticsController implements IAnalyticsController {
   constructor(
     @Inject(SERVICES.ANALYTICS)
     private readonly analyticsService: IAnalyticsService,
-    private readonly apiLogsService: ApiLogsService,
+
+    @Inject(SERVICES.API_LOGS)
+    private readonly apiLogsService: IApiLogsService,
   ) {}
 
   @Get('engagement/summary')
