@@ -11,7 +11,10 @@ describe('EtlController', () => {
     updateStatus: jest.Mock;
     updateCleanedDataAndRecheck: jest.Mock;
   };
-  let etlService: { getAllPipelineStatuses: jest.Mock };
+  let etlService: {
+    getAllPipelineStatuses: jest.Mock;
+    getRecentLogs: jest.Mock;
+  };
   let prisma: {
     nutrition: { findMany: jest.Mock };
     exercise: { findMany: jest.Mock };
@@ -32,6 +35,7 @@ describe('EtlController', () => {
     };
     etlService = {
       getAllPipelineStatuses: jest.fn(),
+      getRecentLogs: jest.fn(),
     };
     prisma = {
       nutrition: { findMany: jest.fn() },
@@ -61,6 +65,31 @@ describe('EtlController', () => {
       nutrition: false,
       exercise: true,
       'health-profile': false,
+    });
+  });
+
+  it('should return recent logs with parsed limit', () => {
+    etlService.getRecentLogs.mockReturnValue([
+      {
+        pipelineId: 'nutrition',
+        level: 'ERROR',
+        message: 'boom',
+        timestamp: '2026-01-01T00:00:00.000Z',
+      },
+    ]);
+
+    const result = controller.getRecentLogs('nutrition', 'error', '20');
+
+    expect(etlService.getRecentLogs).toHaveBeenCalledWith({
+      pipelineId: 'nutrition',
+      level: 'error',
+      limit: 20,
+    });
+    expect(result.items).toHaveLength(1);
+    expect(result.items[0]).toMatchObject({
+      pipelineId: 'nutrition',
+      level: 'ERROR',
+      message: 'boom',
     });
   });
 

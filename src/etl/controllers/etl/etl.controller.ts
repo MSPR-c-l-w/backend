@@ -80,6 +80,39 @@ export class EtlController {
     return this.etlService.getAllPipelineStatuses();
   }
 
+  @Get('logs/recent')
+  @ApiOperation({
+    summary: 'Retourne les logs ETL récents (in-memory)',
+  })
+  @ApiQuery({
+    name: 'pipeline',
+    required: false,
+    enum: ['nutrition', 'exercise', 'health-profile'],
+  })
+  @ApiQuery({ name: 'level', required: false, type: String })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  @ApiOkResponse({ description: 'Liste de logs ETL (plus récents en premier)' })
+  getRecentLogs(
+    @Query('pipeline') pipeline?: PipelineId,
+    @Query('level') level?: string,
+    @Query('limit') limit?: string,
+  ): {
+    items: {
+      pipelineId: PipelineId;
+      level: string;
+      message: string;
+      timestamp: string;
+    }[];
+  } {
+    const parsedLimit = limit ? Number.parseInt(limit, 10) : undefined;
+    const items = this.etlService.getRecentLogs({
+      pipelineId: pipeline,
+      level,
+      limit: parsedLimit,
+    });
+    return { items };
+  }
+
   @Get('pipelines/summary')
   @ApiOperation({
     summary:
