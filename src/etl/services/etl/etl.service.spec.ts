@@ -83,4 +83,28 @@ describe('EtlService', () => {
 
     await promise;
   });
+
+  it('should keep and return recent logs (most recent first) with filters', () => {
+    service.emit('nutrition', 'ERROR', 'e1');
+    service.emit('exercise', 'INFO', 'i1');
+    service.emit('nutrition', 'error', 'e2');
+
+    const all = service.getRecentLogs({ limit: 10 });
+    expect(all[0]).toEqual(
+      expect.objectContaining({ pipelineId: 'nutrition', message: 'e2' }),
+    );
+    expect(all).toHaveLength(3);
+
+    const onlyNutrition = service.getRecentLogs({ pipelineId: 'nutrition' });
+    expect(onlyNutrition).toHaveLength(2);
+
+    const onlyError = service.getRecentLogs({ level: 'ERROR' });
+    expect(onlyError).toHaveLength(2);
+
+    const limited = service.getRecentLogs({ limit: 1 });
+    expect(limited).toHaveLength(1);
+    expect(limited[0]).toEqual(
+      expect.objectContaining({ pipelineId: 'nutrition', message: 'e2' }),
+    );
+  });
 });
