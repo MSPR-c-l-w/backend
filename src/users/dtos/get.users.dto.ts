@@ -1,6 +1,7 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
+  IsIn,
   IsNumber,
   IsOptional,
   IsString,
@@ -37,4 +38,14 @@ export class GetUsersDto {
   @IsString()
   @MaxLength(100)
   search?: string;
+
+  @ApiPropertyOptional({
+    description: "Filtre par plan d'abonnement",
+    example: 'Premium',
+    enum: ['Freemium', 'Premium', 'Premium+', 'B2B'],
+  })
+  @IsOptional()
+  @IsString()
+  @IsIn(['Freemium', 'Premium', 'Premium+', 'B2B'])
+  plan?: 'Freemium' | 'Premium' | 'Premium+' | 'B2B';
 }

@@ -5,7 +5,7 @@ import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from 'src/prisma/services/prisma/prisma.service';
-import { SERVICES } from 'src/utils/constants';
+import { ACTIVE_SUBSCRIPTION_STATUSES, SERVICES } from 'src/utils/constants';
 import { UsersService } from './users.service';
 
 jest.mock('src/utils/security/password', () => ({
@@ -98,7 +98,7 @@ describe('UsersService', () => {
             daily_calories_target: 2200,
           },
           sessions: [{ created_at: new Date('2024-01-03') }],
-          subscriptions: [{ status: 'true', plan: { name: 'Premium' } }],
+          subscriptions: [{ status: 'ACTIVE', plan: { name: 'Premium+' } }],
         }),
       ];
       prisma.user.findMany.mockResolvedValue(users);
@@ -122,7 +122,11 @@ describe('UsersService', () => {
               select: { created_at: true },
             },
             subscriptions: {
-              where: { status: 'true' },
+              where: {
+                status: {
+                  in: [...ACTIVE_SUBSCRIPTION_STATUSES],
+                },
+              },
               orderBy: { end_date: 'desc' },
               take: 1,
               select: {
@@ -220,6 +224,104 @@ describe('UsersService', () => {
         where: expectedWhere,
       });
     });
+
+    it('avec filtre Premium: applique le filtre sur les abonnements actifs premium', async () => {
+      prisma.user.findMany.mockResolvedValue([createUserEntity()]);
+      prisma.user.count.mockResolvedValue(1);
+
+      await service.getUsers({ page: 1, limit: 20, plan: 'Premium' });
+
+      const expectedWhere = {
+        is_deleted: false,
+        subscriptions: {
+          some: {
+            status: {
+              in: [...ACTIVE_SUBSCRIPTION_STATUSES],
+            },
+            plan: { name: { equals: 'Premium' } },
+          },
+        },
+      };
+
+      expect(prisma.user.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expectedWhere,
+        }),
+      );
+      expect(prisma.user.count).toHaveBeenCalledWith({
+        where: expectedWhere,
+      });
+    });
+
+    it('avec filtre Freemium: exclut les abonnements actifs premium et B2B', async () => {
+      prisma.user.findMany.mockResolvedValue([createUserEntity()]);
+      prisma.user.count.mockResolvedValue(1);
+
+      await service.getUsers({ page: 1, limit: 20, plan: 'Freemium' });
+
+      const expectedWhere = {
+        is_deleted: false,
+        NOT: [
+          {
+            subscriptions: {
+              some: {
+                status: {
+                  in: [...ACTIVE_SUBSCRIPTION_STATUSES],
+                },
+                plan: { name: { contains: 'Premium' } },
+              },
+            },
+          },
+          {
+            subscriptions: {
+              some: {
+                status: {
+                  in: [...ACTIVE_SUBSCRIPTION_STATUSES],
+                },
+                plan: { name: { contains: 'B2B' } },
+              },
+            },
+          },
+        ],
+      };
+
+      expect(prisma.user.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expectedWhere,
+        }),
+      );
+      expect(prisma.user.count).toHaveBeenCalledWith({
+        where: expectedWhere,
+      });
+    });
+
+    it('avec filtre Premium+: applique le filtre sur les abonnements actifs premium plus', async () => {
+      prisma.user.findMany.mockResolvedValue([createUserEntity()]);
+      prisma.user.count.mockResolvedValue(1);
+
+      await service.getUsers({ page: 1, limit: 20, plan: 'Premium+' });
+
+      const expectedWhere = {
+        is_deleted: false,
+        subscriptions: {
+          some: {
+            status: {
+              in: [...ACTIVE_SUBSCRIPTION_STATUSES],
+            },
+            plan: { name: { equals: 'Premium+' } },
+          },
+        },
+      };
+
+      expect(prisma.user.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expectedWhere,
+        }),
+      );
+      expect(prisma.user.count).toHaveBeenCalledWith({
+        where: expectedWhere,
+      });
+    });
   });
 
   describe('getUsersStats', () => {
@@ -248,8 +350,10 @@ describe('UsersService', () => {
           is_deleted: false,
           subscriptions: {
             some: {
-              status: 'true',
-              plan: { name: 'Premium' },
+              status: {
+                in: [...ACTIVE_SUBSCRIPTION_STATUSES],
+              },
+              plan: { name: { equals: 'Premium' } },
             },
           },
         },
@@ -259,8 +363,10 @@ describe('UsersService', () => {
           is_deleted: false,
           subscriptions: {
             some: {
-              status: 'true',
-              plan: { name: 'B2B' },
+              status: {
+                in: [...ACTIVE_SUBSCRIPTION_STATUSES],
+              },
+              plan: { name: { contains: 'B2B' } },
             },
           },
         },
