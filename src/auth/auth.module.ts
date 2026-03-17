@@ -8,6 +8,7 @@ import { PassportModule } from '@nestjs/passport';
 import { JwtStrategy } from 'src/auth/strategies/jwt.strategy';
 import { PrismaModule } from 'src/prisma/prisma.module';
 import { MailerService } from 'src/auth/services/mailer/mailer.service';
+import { CsrfService } from 'src/auth/services/csrf/csrf.service';
 
 const jwtSecret =
   process.env.JWT_SECRET ??
@@ -39,6 +40,7 @@ if (!jwtSecret) {
     },
     JwtStrategy,
     MailerService,
+    CsrfService,
   ],
   controllers: [AuthController],
   exports: [
@@ -47,6 +49,7 @@ if (!jwtSecret) {
       provide: SERVICES.AUTH,
       useClass: AuthService,
     },
+    CsrfService,
   ],
 })
 export class AuthModule {}
