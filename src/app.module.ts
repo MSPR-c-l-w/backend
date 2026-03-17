@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
+import { ScheduleModule } from '@nestjs/schedule';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
@@ -19,9 +20,11 @@ import { EtlModule } from './etl/etl.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { ApiMetricsInterceptor } from 'src/analytics/interceptors/api-metrics.interceptor';
 import { CsrfGuard } from 'src/auth/guards/csrf.guard';
+import { EtlWeeklySchedulerService } from 'src/etl/services/etl-weekly-scheduler/etl-weekly-scheduler.service';
 
 @Module({
   imports: [
+    ScheduleModule.forRoot(),
     AuthModule,
     UsersModule,
     RolesModule,
@@ -41,6 +44,7 @@ import { CsrfGuard } from 'src/auth/guards/csrf.guard';
   controllers: [AppController],
   providers: [
     AppService,
+    EtlWeeklySchedulerService,
     {
       provide: APP_INTERCEPTOR,
       useClass: ApiMetricsInterceptor,
