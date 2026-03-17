@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { DashboardService } from './dashboard.service';
 import { PrismaService } from 'src/prisma/services/prisma/prisma.service';
+import { ACTIVE_SUBSCRIPTION_STATUSES } from 'src/utils/constants';
 
 describe('DashboardService', () => {
   let service: DashboardService;
@@ -171,12 +172,23 @@ describe('DashboardService', () => {
       await service.getPilotage();
 
       expect(prisma.user.count).toHaveBeenCalledTimes(3);
-      expect(prisma.user.count).toHaveBeenCalledWith(
-        expect.objectContaining({
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- expect.objectContaining retourne un matcher Jest
-          where: expect.objectContaining({ is_deleted: false }),
-        }),
-      );
+      expect(prisma.user.count).toHaveBeenNthCalledWith(1, {
+        where: { is_deleted: false },
+      });
+      expect(prisma.user.count).toHaveBeenNthCalledWith(2, {
+        where: { is_deleted: false, is_active: true },
+      });
+      expect(prisma.user.count).toHaveBeenNthCalledWith(3, {
+        where: {
+          is_deleted: false,
+          subscriptions: {
+            some: {
+              status: { in: [...ACTIVE_SUBSCRIPTION_STATUSES] },
+              plan: { name: { equals: 'Premium' } },
+            },
+          },
+        },
+      });
     });
 
     it('appelle user.findMany pour la répartition par âge', async () => {

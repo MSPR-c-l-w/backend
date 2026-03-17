@@ -2,12 +2,33 @@ import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { IDashboardService } from 'src/dashboard/interfaces/dashboard.interfaces';
 import { PrismaService } from 'src/prisma/services/prisma/prisma.service';
+import { ACTIVE_SUBSCRIPTION_STATUSES } from 'src/utils/constants';
 
 const EMPTY_ANOMALIES: Prisma.JsonArray = [];
 
 @Injectable()
 export class DashboardService implements IDashboardService {
   constructor(private readonly prisma: PrismaService) {}
+
+  private activeSubscriptionWhere(
+    planName?: string,
+    matchMode: 'exact' | 'contains' = 'contains',
+  ): Prisma.SubscriptionWhereInput {
+    return {
+      status: { in: ACTIVE_SUBSCRIPTION_STATUSES },
+      ...(planName
+        ? {
+            plan: {
+              name: {
+                ...(matchMode === 'exact'
+                  ? { equals: planName }
+                  : { contains: planName }),
+              },
+            },
+          }
+        : {}),
+    };
+  }
 
   async getPilotage() {
     const [
@@ -26,7 +47,7 @@ export class DashboardService implements IDashboardService {
         where: {
           is_deleted: false,
           subscriptions: {
-            some: { status: 'true', plan: { name: 'Premium' } },
+            some: this.activeSubscriptionWhere('Premium', 'exact'),
           },
         },
       }),

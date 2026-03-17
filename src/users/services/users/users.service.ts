@@ -12,7 +12,7 @@ import { UpdateUserDto } from 'src/users/dtos/update.user.dto';
 import { UpdateUserRoleDto } from 'src/users/dtos/update-user-role.dto';
 import type { IUsersService } from 'src/users/interfaces/users.interface.js';
 import type { PaginatedUsersResponse } from 'src/users/types';
-import { SERVICES } from 'src/utils/constants';
+import { ACTIVE_SUBSCRIPTION_STATUSES, SERVICES } from 'src/utils/constants';
 import { hashPassword } from 'src/utils/security/password';
 import { User } from 'src/utils/types';
 import { GetUsersDto } from 'src/users/dtos/get.users.dto';
@@ -24,7 +24,68 @@ export class UsersService implements IUsersService {
     @Inject(SERVICES.ROLES) private readonly rolesService: IRoleService,
   ) {}
 
-  private userSelect() {
+  private activeSubscriptionWhere(
+    planName?: string,
+    matchMode: 'exact' | 'contains' = 'contains',
+  ): Prisma.SubscriptionWhereInput {
+    return {
+      status: { in: [...ACTIVE_SUBSCRIPTION_STATUSES] },
+      ...(planName
+        ? {
+            plan: {
+              name: {
+                ...(matchMode === 'exact'
+                  ? { equals: planName }
+                  : { contains: planName }),
+              },
+            },
+          }
+        : {}),
+    };
+  }
+
+  private planFilterWhere(
+    plan?: GetUsersDto['plan'],
+  ): Prisma.UserWhereInput | undefined {
+    if (!plan) return undefined;
+    if (plan === 'Premium') {
+      return {
+        subscriptions: {
+          some: this.activeSubscriptionWhere('Premium', 'exact'),
+        },
+      };
+    }
+    if (plan === 'Premium+') {
+      return {
+        subscriptions: {
+          some: this.activeSubscriptionWhere('Premium+', 'exact'),
+        },
+      };
+    }
+    if (plan === 'B2B') {
+      return {
+        subscriptions: {
+          some: this.activeSubscriptionWhere('B2B'),
+        },
+      };
+    }
+    return {
+      NOT: [
+        {
+          subscriptions: {
+            some: this.activeSubscriptionWhere('Premium'),
+          },
+        },
+        {
+          subscriptions: {
+            some: this.activeSubscriptionWhere('B2B'),
+          },
+        },
+      ],
+    };
+  }
+
+  private userSelect(): Prisma.UserSelect {
     return {
       id: true,
       organization_id: true,
@@ -71,7 +132,7 @@ export class UsersService implements IUsersService {
       },
       subscriptions: {
         where: {
-          status: 'true',
+          status: { in: ACTIVE_SUBSCRIPTION_STATUSES },
         },
         orderBy: {
           end_date: 'desc',
@@ -91,7 +152,7 @@ export class UsersService implements IUsersService {
       deleted_at: true,
       is_active: true,
       is_deleted: true,
-    } as const;
+    };
   }
 
   async getUsers(
@@ -100,22 +161,24 @@ export class UsersService implements IUsersService {
     const usePagination =
       query != null && (query.page !== undefined || query.limit !== undefined);
 
-    const baseWhere = { is_deleted: false };
-
+    const planWhere = this.planFilterWhere(query?.plan);
     const search = query?.search?.trim() || undefined;
-    const where = search
-      ? {
-          ...baseWhere,
-          OR: [
-            { first_name: { contains: search } },
-            { last_name: { contains: search } },
-          ],
-        }
-      : baseWhere;
+    const where: Prisma.UserWhereInput = {
+      is_deleted: false,
+      ...(search
+        ? {
+            OR: [
+              { first_name: { contains: search } },
+              { last_name: { contains: search } },
+            ],
+          }
+        : {}),
+      ...(planWhere ?? {}),
+    };
 
     if (!usePagination) {
       const users = (await this.prisma.user.findMany({
-        where: { is_deleted: false },
+        where,
         select: this.userSelect(),
         orderBy: { id: 'asc' },
       })) as User[];
@@ -156,10 +219,7 @@ export class UsersService implements IUsersService {
           where: {
             is_deleted: false,
             subscriptions: {
-              some: {
-                status: 'true',
-                plan: { name: 'Premium' },
-              },
+              some: this.activeSubscriptionWhere('Premium', 'exact'),
             },
           },
         }),
@@ -167,10 +227,7 @@ export class UsersService implements IUsersService {
           where: {
             is_deleted: false,
             subscriptions: {
-              some: {
-                status: 'true',
-                plan: { name: 'B2B' },
-              },
+              some: this.activeSubscriptionWhere('B2B'),
             },
           },
         }),
