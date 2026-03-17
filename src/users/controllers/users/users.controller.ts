@@ -56,7 +56,6 @@ export class UsersController implements IUsersController {
     return this.usersService.getUsersStats();
   }
 
-
   @Get(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('COACH', 'ADMIN')
