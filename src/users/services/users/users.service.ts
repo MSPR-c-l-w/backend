@@ -54,6 +54,38 @@ export class UsersService implements IUsersService {
       date_of_birth: true,
       gender: true,
       height: true,
+      healthProfile: {
+        select: {
+          physical_activity_level: true,
+          daily_calories_target: true,
+        },
+      },
+      sessions: {
+        orderBy: {
+          created_at: 'desc',
+        },
+        take: 1,
+        select: {
+          created_at: true,
+        },
+      },
+      subscriptions: {
+        where: {
+          status: 'true',
+        },
+        orderBy: {
+          end_date: 'desc',
+        },
+        take: 1,
+        select: {
+          status: true,
+          plan: {
+            select: {
+              name: true,
+            },
+          },
+        },
+      },
       created_at: true,
       updated_at: true,
       deleted_at: true,
