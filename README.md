@@ -38,8 +38,39 @@ $ npm install
 Créez un fichier `.env` à la racine du projet avec les variables suivantes :
 
 ```env
-DATABASE_URL="mysql://root:rootpassword@localhost:3306/backend_db"
+# Base
+NODE_ENV=development
 PORT=3000
+
+# Exemple MariaDB/MySQL:
+DATABASE_URL="mysql://root:rootpassword@localhost:3306/backend_db"
+
+# JWT
+JWT_SECRET="change-me-in-production"
+JWT_EXPIRES_IN=900
+
+# Refresh token (en secondes)
+REFRESH_TOKEN_EXPIRES_IN=604800
+
+# Vérification email (en secondes)
+EMAIL_VERIFY_EXPIRES_IN=86400
+
+# URLs utilisées dans les emails (liens)
+# APP_URL est prioritaire, sinon FRONTEND_URL
+APP_URL="http://localhost:3000"
+FRONTEND_URL="http://localhost:3000"
+
+# SMTP (optionnel en dev; requis si tu veux réellement envoyer des emails)
+SMTP_HOST=""
+SMTP_PORT=587
+SMTP_USER=""
+SMTP_PASS=""
+SMTP_FROM="no-reply@example.com"
+
+# Kaggle API (pour import des datasets : nutrition, exercise_log, etc.)
+# Créer un token sur https://www.kaggle.com/settings (section API)
+KAGGLE_USER=""
+KAGGLE_KEY=""
 ```
 
 **Note** : Le fichier `.env` est ignoré par git pour des raisons de sécurité. Assurez-vous de ne jamais commiter vos variables d'environnement.
