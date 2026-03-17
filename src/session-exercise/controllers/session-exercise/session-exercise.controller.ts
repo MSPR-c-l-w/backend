@@ -9,6 +9,7 @@ import {
   Req,
 } from '@nestjs/common';
 import {
+  ApiBearerAuth,
   ApiTags,
   ApiOperation,
   ApiOkResponse,
@@ -28,6 +29,7 @@ import { ROUTES, SERVICES } from 'src/utils/constants';
 
 @Controller(ROUTES.SESSION_EXERCISE)
 @ApiTags(ROUTES.SESSION_EXERCISE)
+@ApiBearerAuth('access-token')
 @UseGuards(JwtAuthGuard)
 export class SessionExerciseController implements ISessionExerciseController {
   constructor(

@@ -5,12 +5,15 @@ import { SERVICES } from 'src/utils/constants';
 import { Nutrition } from '@prisma/client';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
+import type { UpdateNutritionDto } from 'src/nutrition/dtos/update-nutrition.dto';
 
 describe('NutritionController', () => {
   let controller: NutritionController;
   const nutritionServiceMock = {
     getNutritions: jest.fn(),
     getNutritionById: jest.fn(),
+    updateNutrition: jest.fn(),
+    deleteNutrition: jest.fn(),
   };
 
   const mockNutrition: Nutrition = {
@@ -58,26 +61,32 @@ describe('NutritionController', () => {
   });
 
   describe('getNutritions', () => {
-    it('devrait retourner la liste des nutriments', async () => {
+    it('devrait retourner la liste paginée des nutriments', async () => {
       const nutritions = [
         mockNutrition,
         { ...mockNutrition, id: 2, name: 'Banane' },
       ];
-      nutritionServiceMock.getNutritions.mockResolvedValue(nutritions);
+      nutritionServiceMock.getNutritions.mockResolvedValue({
+        data: nutritions,
+        total: 2,
+      });
 
       const result = await controller.getNutritions();
 
-      expect(result).toEqual(nutritions);
+      expect(result).toEqual({ data: nutritions, total: 2 });
       expect(nutritionServiceMock.getNutritions).toHaveBeenCalledTimes(1);
-      expect(nutritionServiceMock.getNutritions).toHaveBeenCalledWith();
+      expect(nutritionServiceMock.getNutritions).toHaveBeenCalledWith(1, 20);
     });
 
-    it('devrait appeler le service avec les bons paramètres', async () => {
-      nutritionServiceMock.getNutritions.mockResolvedValue([mockNutrition]);
+    it('devrait appeler le service avec page et limit', async () => {
+      nutritionServiceMock.getNutritions.mockResolvedValue({
+        data: [mockNutrition],
+        total: 1,
+      });
 
-      await controller.getNutritions();
+      await controller.getNutritions(2, 10);
 
-      expect(nutritionServiceMock.getNutritions).toHaveBeenCalled();
+      expect(nutritionServiceMock.getNutritions).toHaveBeenCalledWith(2, 10);
     });
 
     it('devrait propager NotFoundException du service', async () => {
@@ -124,6 +133,32 @@ describe('NutritionController', () => {
 
       await controller.getNutritionById('123');
       expect(nutritionServiceMock.getNutritionById).toHaveBeenCalledWith('123');
+    });
+  });
+
+  describe('updateNutrition', () => {
+    it('devrait appeler updateNutrition avec id et body', async () => {
+      nutritionServiceMock.updateNutrition.mockResolvedValue(mockNutrition);
+      const dto: UpdateNutritionDto = { name: 'Pomme 2' };
+
+      const result = await controller.updateNutrition('1', dto);
+
+      expect(result).toEqual(mockNutrition);
+      expect(nutritionServiceMock.updateNutrition).toHaveBeenCalledWith(
+        '1',
+        dto,
+      );
+    });
+  });
+
+  describe('deleteNutrition', () => {
+    it('devrait appeler deleteNutrition avec id', async () => {
+      nutritionServiceMock.deleteNutrition.mockResolvedValue(mockNutrition);
+
+      const result = await controller.deleteNutrition('1');
+
+      expect(result).toEqual(mockNutrition);
+      expect(nutritionServiceMock.deleteNutrition).toHaveBeenCalledWith('1');
     });
   });
 });

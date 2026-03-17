@@ -1,6 +1,6 @@
 import { Role } from '@prisma/client';
 
-export const DEFAULT_ROLE_NAMES = ['ADMIN', 'COACH'] as const;
+export const DEFAULT_ROLE_NAMES = ['ADMIN', 'COACH', 'CLIENT'] as const;
 export type DefaultRoleName = (typeof DEFAULT_ROLE_NAMES)[number];
 
 export interface IRoleController {

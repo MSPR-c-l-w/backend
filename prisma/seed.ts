@@ -20,64 +20,61 @@ const SEED_PASSWORD = 'SeedPassword123!';
 /** Comptes spéciaux à créer (5 coach + 5 admin) avec identifiants à afficher */
 const SPECIAL_COACH_COUNT = 5;
 const SPECIAL_ADMIN_COUNT = 5;
-const TOTAL_SPECIAL = SPECIAL_COACH_COUNT + SPECIAL_ADMIN_COUNT;
+const SPECIAL_CLIENT_COUNT = 5;
+const TOTAL_SPECIAL =
+  SPECIAL_COACH_COUNT + SPECIAL_ADMIN_COUNT + SPECIAL_CLIENT_COUNT;
 const TOTAL_USERS = 1000;
 
-/** Nombre d'utilisateurs Faker à rattacher à une organisation (répartis entre les salles) */
+/** Nombre d'utilisateurs Faker à rattacher à une organisation (répartis entre salles, mutuelles, entreprises) */
 const USERS_WITH_ORGANIZATION = 200;
 
 /**
- * Plans payants — offres d'abonnement type salle de sport.
+ * Plans — offres d'abonnement de la plateforme (Freemium, Premium, Premium+, B2B).
  */
 const PAID_PLANS: Array<{ name: string; price: number; features: string[] }> = [
   {
-    name: 'Essentiel',
-    price: 9.99,
+    name: 'Freemium',
+    price: 0,
     features: [
-      'Accès salle 24h/24 et 7j/7',
-      'Vestiaires et douches',
-      'Espace musculation',
-      'Espace cardio',
-    ],
-  },
-  {
-    name: 'Standard',
-    price: 19.99,
-    features: [
-      'Tout Essentiel',
-      'Cours collectifs illimités',
-      'Suivi d’activité basique',
-      'Application mobile',
+      'Journal alimentaire',
+      "Suivi d'activité",
+      "Calcul d'IMC",
+      'Tableaux de progression simples',
     ],
   },
   {
     name: 'Premium',
-    price: 29.99,
+    price: 9.99,
     features: [
-      'Tout Standard',
-      '1 séance coaching personnel / mois',
-      'Programme d’entraînement sur mesure',
-      'Conseils nutritionnels',
+      'Recommandations personnalisées générées par IA',
+      'Plans nutritionnels et sportifs détaillés',
+      'Suivi plus fin des objectifs',
     ],
   },
   {
-    name: 'Famille',
-    price: 39.99,
+    name: 'Premium+',
+    price: 19.99,
     features: [
-      'Tout Premium',
-      '2 adultes + 2 enfants inclus',
-      'Accès multi-clubs',
-      'Réduction sur stages',
+      'Intégration de données biométriques via objets connectés',
+      'Consultations en ligne avec des nutritionnistes partenaires',
+    ],
+  },
+  {
+    name: 'B2B - Distribution en marque blanche',
+    price: 0,
+    features: [
+      'Offre destinée aux salles de sport, mutuelles et entreprises',
+      "Intégration de la plateforme sous leur propre marque",
+      "Enrichissement de l'offre de services auprès des adhérents, collaborateurs ou clients",
     ],
   },
 ];
 
 /**
- * Salles de sport réelles — noms, type et branding (couleurs + logo).
- * Couleurs issues des identités de marque officielles.
- * Logos : Wikimedia Commons (Basic-Fit) ou service Google Favicon (icône du site officiel).
+ * Organisations — salles de sport, mutuelles et entreprises.
+ * Types : salle_de_sport, mutuelle, entreprise.
  */
-const REAL_GYMS: Array<{
+const ORGANIZATIONS: Array<{
   name: string;
   type: string;
   branding_config: {
@@ -86,6 +83,7 @@ const REAL_GYMS: Array<{
     logoUrl: string;
   };
 }> = [
+  // Salles de sport
   {
     name: 'Basic-Fit',
     type: 'salle_de_sport',
@@ -132,6 +130,105 @@ const REAL_GYMS: Array<{
       secondaryColor: '#111827',
       logoUrl:
         'https://www.google.com/s2/favicons?domain=lappartfitness.com&sz=128',
+    },
+  },
+  // Mutuelles
+  {
+    name: 'Harmonie Mutuelle',
+    type: 'mutuelle',
+    branding_config: {
+      primaryColor: '#0066B3',
+      secondaryColor: '#00A3E0',
+      logoUrl:
+        'https://www.google.com/s2/favicons?domain=harmonie-mutuelle.fr&sz=128',
+    },
+  },
+  {
+    name: 'MGEN',
+    type: 'mutuelle',
+    branding_config: {
+      primaryColor: '#E30613',
+      secondaryColor: '#1a1a1a',
+      logoUrl: 'https://www.google.com/s2/favicons?domain=mgen.fr&sz=128',
+    },
+  },
+  {
+    name: 'Alan',
+    type: 'mutuelle',
+    branding_config: {
+      primaryColor: '#00D9A5',
+      secondaryColor: '#0B0B0B',
+      logoUrl: 'https://www.google.com/s2/favicons?domain=alan.com&sz=128',
+    },
+  },
+  {
+    name: 'Mutuelle Générale',
+    type: 'mutuelle',
+    branding_config: {
+      primaryColor: '#003366',
+      secondaryColor: '#00A3E0',
+      logoUrl:
+        'https://www.google.com/s2/favicons?domain=mutuelle-generale.fr&sz=128',
+    },
+  },
+  {
+    name: 'Henner',
+    type: 'mutuelle',
+    branding_config: {
+      primaryColor: '#E31837',
+      secondaryColor: '#2D2D2D',
+      logoUrl: 'https://www.google.com/s2/favicons?domain=henner.com&sz=128',
+    },
+  },
+  // Entreprises (logos générés via UI Avatars — domaines fictifs)
+  {
+    name: 'TechCorp France',
+    type: 'entreprise',
+    branding_config: {
+      primaryColor: '#6366F1',
+      secondaryColor: '#0F172A',
+      logoUrl:
+        'https://ui-avatars.com/api/?name=TechCorp&size=128&background=6366F1&color=fff',
+    },
+  },
+  {
+    name: 'Innovate SA',
+    type: 'entreprise',
+    branding_config: {
+      primaryColor: '#059669',
+      secondaryColor: '#064E3B',
+      logoUrl:
+        'https://ui-avatars.com/api/?name=Innovate&size=128&background=059669&color=fff',
+    },
+  },
+  {
+    name: 'Groupe Santé Plus',
+    type: 'entreprise',
+    branding_config: {
+      primaryColor: '#0EA5E9',
+      secondaryColor: '#0C4A6E',
+      logoUrl:
+        'https://ui-avatars.com/api/?name=Groupe+Sante&size=128&background=0EA5E9&color=fff',
+    },
+  },
+  {
+    name: 'Digital Solutions',
+    type: 'entreprise',
+    branding_config: {
+      primaryColor: '#F59E0B',
+      secondaryColor: '#78350F',
+      logoUrl:
+        'https://ui-avatars.com/api/?name=Digital&size=128&background=F59E0B&color=fff',
+    },
+  },
+  {
+    name: 'Wellness Pro',
+    type: 'entreprise',
+    branding_config: {
+      primaryColor: '#EC4899',
+      secondaryColor: '#831843',
+      logoUrl:
+        'https://ui-avatars.com/api/?name=Wellness&size=128&background=EC4899&color=fff',
     },
   },
 ];
@@ -387,18 +484,24 @@ const SEED_NUTRITION: Array<{
   },
 ];
 
-/** Nombre d'abonnements à créer. */
-const SEED_SUBSCRIPTION_COUNT = 150;
+/** Nombre d'abonnements à créer (répartis sur plusieurs plans). */
+const SEED_SUBSCRIPTION_COUNT = 800;
+
+/**
+ * Répartition cible des plans (Freemium majoritaire, puis Premium, Premium+, B2B).
+ * Index 0 = Freemium, 1 = Premium, 2 = Premium+, 3 = B2B.
+ */
+const PLAN_DISTRIBUTION_WEIGHTS = [50, 30, 15, 5];
 /** Nombre de sessions (entraînements) à créer. */
-const SEED_SESSION_COUNT = 100;
+const SEED_SESSION_COUNT = 2500;
 /** Nombre d'utilisateurs ayant des repas, et repas par utilisateur. */
 const SEED_MEAL_USERS = 100;
-const SEED_MEALS_PER_USER = 5;
+const SEED_MEALS_PER_USER = 10;
 
 interface SpecialAccountCredential {
   email: string;
   password: string;
-  role: 'COACH' | 'ADMIN';
+  role: 'COACH' | 'ADMIN' | 'CLIENT';
   firstName: string;
   lastName: string;
 }
@@ -446,12 +549,13 @@ function logSection(title: string, emoji: string): void {
 function logCredentials(credentials: SpecialAccountCredential[]): void {
   const coaches = credentials.filter((c) => c.role === 'COACH');
   const admins = credentials.filter((c) => c.role === 'ADMIN');
+  const clients = credentials.filter((c) => c.role === 'CLIENT');
 
   console.log('');
   console.log('  📋  IDENTIFIANTS DE CONNEXION — Comptes spéciaux');
   console.log('  ─────────────────────────────────────────────────');
   console.log('');
-  console.log('  🏋️  COACHS (5 comptes)');
+  console.log(`  🏋️  COACHS (${SPECIAL_COACH_COUNT} comptes)`);
   console.log('  ─────────────────────────────────────────────────');
   coaches.forEach((c, i) => {
     console.log(`     ${i + 1}. ${c.email}`);
@@ -459,7 +563,7 @@ function logCredentials(credentials: SpecialAccountCredential[]): void {
     console.log(`        Nom : ${c.firstName} ${c.lastName}`);
     console.log('');
   });
-  console.log('  👑  ADMINS (5 comptes)');
+  console.log(`  👑  ADMINS (${SPECIAL_ADMIN_COUNT} comptes)`);
   console.log('  ─────────────────────────────────────────────────');
   admins.forEach((c, i) => {
     console.log(`     ${i + 1}. ${c.email}`);
@@ -467,8 +571,18 @@ function logCredentials(credentials: SpecialAccountCredential[]): void {
     console.log(`        Nom : ${c.firstName} ${c.lastName}`);
     console.log('');
   });
+  console.log(`  👤  CLIENTS (${SPECIAL_CLIENT_COUNT} comptes)`);
+  console.log('  ─────────────────────────────────────────────────');
+  clients.forEach((c, i) => {
+    console.log(`     ${i + 1}. ${c.email}`);
+    console.log(`        Mot de passe : ${c.password}`);
+    console.log(`        Nom : ${c.firstName} ${c.lastName}`);
+    console.log('');
+  });
   console.log('  ═══════════════════════════════════════════════════');
-  console.log('  💡  Les 990 autres utilisateurs ont le même mot de passe :');
+  console.log(
+    `  💡  Les ${TOTAL_USERS - TOTAL_SPECIAL} autres utilisateurs ont le même mot de passe :`,
+  );
   console.log(`      ${SEED_PASSWORD}`);
   console.log('      (emails du type prenom.nom@example.com)');
   console.log('  ═══════════════════════════════════════════════════');
@@ -515,19 +629,19 @@ function logPlans(planIds: number[]): void {
 
 async function seedOrganizations(): Promise<number[]> {
   const ids: number[] = [];
-  for (const gym of REAL_GYMS) {
+  for (const org of ORGANIZATIONS) {
     const created = await prisma.organization.upsert({
-      where: { name: gym.name },
+      where: { name: org.name },
       create: {
-        name: gym.name,
-        type: gym.type,
-        branding_config: gym.branding_config as object,
+        name: org.name,
+        type: org.type,
+        branding_config: org.branding_config as object,
         is_active: true,
         is_deleted: false,
       },
       update: {
-        type: gym.type,
-        branding_config: gym.branding_config as object,
+        type: org.type,
+        branding_config: org.branding_config as object,
         is_active: true,
       },
       select: { id: true },
@@ -539,10 +653,10 @@ async function seedOrganizations(): Promise<number[]> {
 
 function logOrganizations(orgIds: number[]): void {
   console.log('');
-  REAL_GYMS.forEach((gym, i) => {
+  ORGANIZATIONS.forEach((org, i) => {
     const id = orgIds[i];
-    const c = gym.branding_config;
-    console.log(`     ${i + 1}. ${gym.name} (id ${id})`);
+    const c = org.branding_config;
+    console.log(`     ${i + 1}. ${org.name} (id ${id}) — ${org.type}`);
     console.log(`        Couleur principale : ${c.primaryColor}`);
     if (c.secondaryColor) {
       console.log(`        Couleur secondaire : ${c.secondaryColor}`);
@@ -552,26 +666,32 @@ function logOrganizations(orgIds: number[]): void {
   });
 }
 
-async function ensureRoles(): Promise<{ adminId: number; coachId: number }> {
+async function ensureRoles(): Promise<{
+  adminId: number;
+  coachId: number;
+  clientId: number;
+}> {
   await prisma.role.createMany({
     data: DEFAULT_ROLE_NAMES.map((name) => ({ name })),
     skipDuplicates: true,
   });
   const roles = await prisma.role.findMany({
-    where: { name: { in: ['ADMIN', 'COACH'] } },
+    where: { name: { in: ['ADMIN', 'COACH', 'CLIENT'] } },
     select: { id: true, name: true },
   });
   const adminId = roles.find((r) => r.name === 'ADMIN')?.id;
   const coachId = roles.find((r) => r.name === 'COACH')?.id;
-  if (adminId == null || coachId == null) {
-    throw new Error('Rôles ADMIN ou COACH introuvables après seed');
+  const clientId = roles.find((r) => r.name === 'CLIENT')?.id;
+  if (adminId == null || coachId == null || clientId == null) {
+    throw new Error('Rôles ADMIN, COACH ou CLIENT introuvables après seed');
   }
-  return { adminId, coachId };
+  return { adminId, coachId, clientId };
 }
 
 async function createSpecialAccounts(
   adminId: number,
   coachId: number,
+  clientId: number,
   passwordHash: string,
   usedEmails: Set<string>,
   organizationIds: number[],
@@ -640,6 +760,39 @@ async function createSpecialAccounts(
       email,
       password: SEED_PASSWORD,
       role: 'ADMIN',
+      firstName,
+      lastName,
+    });
+  }
+
+  for (let i = 1; i <= SPECIAL_CLIENT_COUNT; i++) {
+    const firstName = faker.person.firstName();
+    const lastName = faker.person.lastName();
+    const email = makeUniqueEmail(firstName, lastName, usedEmails);
+    const orgId =
+      organizationIds.length > 0
+        ? organizationIds[(i - 1) % organizationIds.length]
+        : undefined;
+    await prisma.user.create({
+      data: {
+        email,
+        password_hash: passwordHash,
+        first_name: firstName,
+        last_name: lastName,
+        date_of_birth: faker.date.birthdate({ min: 18, max: 70, mode: 'age' }),
+        gender: faker.helpers.arrayElement(['Homme', 'Femme', 'Non spécifié']),
+        height: faker.number.float({ min: 150, max: 200, fractionDigits: 1 }),
+        role_id: clientId,
+        organization_id: orgId,
+        is_active: true,
+        is_deleted: false,
+        email_verified_at: now,
+      },
+    });
+    credentials.push({
+      email,
+      password: SEED_PASSWORD,
+      role: 'CLIENT',
       firstName,
       lastName,
     });
@@ -742,6 +895,22 @@ async function seedNutrition(): Promise<number[]> {
   return ids;
 }
 
+/** Sélectionne un plan selon la distribution pondérée (évite que tout le monde soit en Freemium). */
+function pickPlanByDistribution(
+  planIds: number[],
+  weights: number[],
+  roll: number,
+): number {
+  const total = weights.reduce((a, b) => a + b, 0);
+  const normalized = weights.map((w) => w / total);
+  let acc = 0;
+  for (let i = 0; i < normalized.length; i++) {
+    acc += normalized[i];
+    if (roll < acc) return planIds[i] ?? planIds[0];
+  }
+  return planIds[planIds.length - 1] ?? planIds[0];
+}
+
 async function seedSubscriptions(
   userIds: number[],
   planIds: number[],
@@ -758,7 +927,12 @@ async function seedSubscriptions(
       : pool;
   let created = 0;
   for (const userId of toUse) {
-    const planId = faker.helpers.arrayElement(planIds);
+    const roll = faker.number.float({ min: 0, max: 0.999, fractionDigits: 3 });
+    const planId = pickPlanByDistribution(
+      planIds,
+      PLAN_DISTRIBUTION_WEIGHTS,
+      roll,
+    );
     await prisma.subscription.create({
       data: {
         user_id: userId,
@@ -778,14 +952,18 @@ async function seedSessions(userIds: number[]): Promise<number[]> {
   const sessionIds: number[] = [];
   for (let i = 0; i < SEED_SESSION_COUNT; i++) {
     const userId = faker.helpers.arrayElement(userIds);
+    const daysAgo = faker.number.int({ min: 0, max: 14 });
+    const createdAt = new Date();
+    createdAt.setDate(createdAt.getDate() - daysAgo);
     const created = await prisma.session.create({
       data: {
         user_id: userId,
-        duration_h: faker.number.float({ min: 0.5, max: 2, fractionDigits: 2 }),
-        calories_total: faker.number.int({ min: 200, max: 800 }),
+        duration_h: faker.number.float({ min: 0.75, max: 2.5, fractionDigits: 2 }),
+        calories_total: faker.number.int({ min: 300, max: 900 }),
         avg_bpm: faker.number.int({ min: 120, max: 160 }),
         max_bpm: faker.number.int({ min: 150, max: 185 }),
         resting_bpm: faker.number.int({ min: 55, max: 75 }),
+        created_at: createdAt,
       },
       select: { id: true },
     });
@@ -832,10 +1010,14 @@ async function seedMeals(
   for (const userId of toUse) {
     for (let m = 0; m < SEED_MEALS_PER_USER; m++) {
       const nutritionId = faker.helpers.arrayElement(nutritionIds);
+      const daysAgo = faker.number.int({ min: 0, max: 59 });
+      const createdAt = new Date();
+      createdAt.setDate(createdAt.getDate() - daysAgo);
       await prisma.meal.create({
         data: {
           user_id: userId,
           nutrition_id: nutritionId,
+          created_at: createdAt,
         },
       });
       created++;
@@ -849,12 +1031,16 @@ async function main() {
 
   console.log('');
   console.log('  📌  Étapes :');
-  console.log('      1. S’assurer que les rôles ADMIN et COACH existent');
+  console.log('      1. S’assurer que les rôles ADMIN, COACH et CLIENT existent');
   console.log('      2. Créer les plans payants (si aucun plan existant)');
-  console.log('      3. Créer les organisations (salles de sport réelles)');
-  console.log('      4. Créer les comptes spéciaux (5 coach + 5 admin)');
   console.log(
-    '      5. Créer 990 utilisateurs avec Faker (dont certains rattachés aux salles)',
+    '      3. Créer les organisations (salles de sport, mutuelles, entreprises)',
+  );
+  console.log(
+    `      4. Créer les comptes spéciaux (${SPECIAL_COACH_COUNT} coach + ${SPECIAL_ADMIN_COUNT} admin + ${SPECIAL_CLIENT_COUNT} client)`,
+  );
+  console.log(
+    `      5. Créer ${TOTAL_USERS - TOTAL_SPECIAL} utilisateurs avec Faker (dont ${USERS_WITH_ORGANIZATION} rattachés à une organisation)`,
   );
   console.log(
     '      6. Créer exercices, nutrition, abonnements, sessions, repas',
@@ -864,16 +1050,16 @@ async function main() {
   const passwordHash = await hashPassword(SEED_PASSWORD);
 
   logSection('Rôles', '🔐');
-  const { adminId, coachId } = await ensureRoles();
+  const { adminId, coachId, clientId } = await ensureRoles();
   console.log(
-    `  ✅  Rôles prêts — ADMIN (id ${adminId}), COACH (id ${coachId})`,
+    `  ✅  Rôles prêts — ADMIN (id ${adminId}), COACH (id ${coachId}), CLIENT (id ${clientId})`,
   );
 
   logSection('Plans payants', '💳');
   const { planIds, createdCount } = await seedPlans();
   if (createdCount > 0) {
     console.log(
-      `  ✅  ${createdCount} plans créés (Essentiel, Standard, Premium, Famille)`,
+      `  ✅  ${createdCount} plans créés (Freemium, Premium, Premium+, B2B)`,
     );
     logPlans(planIds);
   } else {
@@ -886,7 +1072,7 @@ async function main() {
   await prisma.user.deleteMany({});
   console.log('  ✅  Table user vidée');
 
-  logSection('Organisations — Salles de sport réelles', '🏢');
+  logSection('Organisations — Salles, mutuelles, entreprises', '🏢');
   console.log(
     '  📍  Création / mise à jour des enseignes (branding officiel : couleurs, logo)',
   );
@@ -897,11 +1083,15 @@ async function main() {
   );
   logOrganizations(organizationIds);
 
-  logSection('Comptes spéciaux (5 coach + 5 admin)', '⭐');
+  logSection(
+    `Comptes spéciaux (${SPECIAL_COACH_COUNT} coach + ${SPECIAL_ADMIN_COUNT} admin + ${SPECIAL_CLIENT_COUNT} client)`,
+    '⭐',
+  );
   const usedEmails = new Set<string>();
   const specialCredentials = await createSpecialAccounts(
     adminId,
     coachId,
+    clientId,
     passwordHash,
     usedEmails,
     organizationIds,
@@ -910,10 +1100,13 @@ async function main() {
     `  ✅  ${TOTAL_SPECIAL} comptes spéciaux créés (emails prenom.nom@example.com)`,
   );
   console.log(
-    '  📎  Chaque coach et chaque admin est rattaché à une salle (1 par organisation)',
+    '  📎  Chaque coach, admin et client est rattaché à une salle (1 par organisation)',
   );
 
-  logSection('Utilisateurs Faker (990 comptes)', '👥');
+  logSection(
+    `Utilisateurs Faker (${TOTAL_USERS - TOTAL_SPECIAL} comptes)`,
+    '👥',
+  );
   console.log(
     '  ⏳  Création en cours (noms français, dates de naissance, genre, taille)…',
   );
@@ -925,10 +1118,10 @@ async function main() {
   );
   console.log(`  ✅  ${TOTAL_USERS - TOTAL_SPECIAL} utilisateurs créés`);
   console.log(
-    `  📎  ${USERS_WITH_ORGANIZATION} utilisateurs (adhérents) rattachés à une salle`,
+    `  📎  ${USERS_WITH_ORGANIZATION} utilisateurs rattachés à une organisation`,
   );
   console.log(
-    `      Répartition : ~${Math.round(USERS_WITH_ORGANIZATION / organizationIds.length)} adhérents par organisation`,
+    `      Répartition : ~${Math.round(USERS_WITH_ORGANIZATION / organizationIds.length)} utilisateurs par organisation`,
   );
 
   const userIds = (
@@ -960,7 +1153,7 @@ async function main() {
   console.log(`  📈  Total : ${TOTAL_USERS} utilisateurs`);
   console.log(`  💳  Plans payants : ${planIds.length} offres`);
   console.log(
-    `  🏢  Organisations : ${organizationIds.length} salles de sport`,
+    `  🏢  Organisations : ${organizationIds.length} (salles, mutuelles, entreprises)`,
   );
   console.log(`  💪  Exercices : ${exerciseIds.length}`);
   console.log(`  🥗  Aliments (nutrition) : ${nutritionIds.length}`);
@@ -969,8 +1162,9 @@ async function main() {
   console.log(`  🍽️  Repas : ${mealsCreated}`);
   console.log(`  🏋️  Coaches : ${SPECIAL_COACH_COUNT}`);
   console.log(`  👑  Admins : ${SPECIAL_ADMIN_COUNT}`);
+  console.log(`  👤  Clients : ${SPECIAL_CLIENT_COUNT}`);
   console.log(
-    `  👤  Utilisateurs classiques : ${TOTAL_USERS - TOTAL_SPECIAL} (dont ${USERS_WITH_ORGANIZATION} adhérents en salle)`,
+    `  👤  Utilisateurs classiques : ${TOTAL_USERS - TOTAL_SPECIAL} (dont ${USERS_WITH_ORGANIZATION} rattachés à une organisation)`,
   );
   console.log(
     `  📎  Au total : ${TOTAL_SPECIAL + USERS_WITH_ORGANIZATION} utilisateurs rattachés à une organisation`,
