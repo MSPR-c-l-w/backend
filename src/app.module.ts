@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { APP_INTERCEPTOR } from '@nestjs/core';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
@@ -16,6 +17,7 @@ import { HealthProfileModule } from './health-profile/health-profile.module';
 import { SubscriptionModule } from './subscription/subscription.module';
 import { EtlModule } from './etl/etl.module';
 import { DashboardModule } from './dashboard/dashboard.module';
+import { ApiMetricsInterceptor } from 'src/analytics/interceptors/api-metrics.interceptor';
 
 @Module({
   imports: [
@@ -36,6 +38,12 @@ import { DashboardModule } from './dashboard/dashboard.module';
     DashboardModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: ApiMetricsInterceptor,
+    },
+  ],
 })
 export class AppModule {}

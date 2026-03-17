@@ -1,4 +1,4 @@
-import { Controller, Get, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Inject, Query, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import {
   IAnalyticsController,
@@ -7,9 +7,13 @@ import {
   ProgressionPoint,
   DemographicsConversion,
   NutritionTrendItem,
+  type IAnalyticsService,
 } from 'src/analytics/interfaces/analytics.interface';
-import { AnalyticsService } from 'src/analytics/services/analytics/analytics.service';
-import { ROUTES } from 'src/utils/constants';
+import {
+  type ApiLogsDashboardDto,
+  type ApiLogsRange,
+} from 'src/analytics/interfaces/api-logs.interface';
+import { ROUTES, SERVICES } from 'src/utils/constants';
 import {
   ApiBearerAuth,
   ApiOkResponse,
@@ -17,13 +21,18 @@ import {
   ApiQuery,
   ApiTags,
 } from '@nestjs/swagger';
+import { ApiLogsService } from 'src/analytics/services/api-logs/api-logs.service';
 
 @ApiBearerAuth('access-token')
 @ApiTags(ROUTES.ANALYTICS)
 @UseGuards(JwtAuthGuard)
 @Controller(ROUTES.ANALYTICS)
 export class AnalyticsController implements IAnalyticsController {
-  constructor(private readonly analyticsService: AnalyticsService) {}
+  constructor(
+    @Inject(SERVICES.ANALYTICS)
+    private readonly analyticsService: IAnalyticsService,
+    private readonly apiLogsService: ApiLogsService,
+  ) {}
 
   @Get('engagement/summary')
   @ApiOperation({ summary: "Résumé d'engagement global" })
@@ -71,5 +80,36 @@ export class AnalyticsController implements IAnalyticsController {
   @ApiOkResponse({ description: 'Profils nutritionnels agrégés' })
   getNutritionTrends(): Promise<NutritionTrendItem[]> {
     return this.analyticsService.getNutritionTrends();
+  }
+
+  @Get('api-logs/dashboard')
+  @ApiOperation({
+    summary:
+      'Données consolidées pour la page API & Logs (KPI, chart, endpoints, serveur)',
+  })
+  @ApiOkResponse({ description: 'Dashboard API & Logs' })
+  @ApiQuery({
+    name: 'range',
+    required: false,
+    enum: ['1h', '24h', '7j', '30j'],
+    description: "Fenêtre d'analyse",
+  })
+  getApiLogsDashboard(
+    @Query('range') range?: ApiLogsRange,
+  ): ApiLogsDashboardDto {
+    const normalized: ApiLogsRange =
+      range === '1h' || range === '24h' || range === '7j' || range === '30j'
+        ? range
+        : '24h';
+    return this.apiLogsService.getDashboard(normalized);
+  }
+
+  @Get('api-logs/server-status')
+  @ApiOperation({
+    summary: 'Statut machine temps réel (CPU/RAM/uptime/charge/requêtes-h)',
+  })
+  @ApiOkResponse({ description: 'Statut serveur (valeurs machine réelles)' })
+  getApiLogsServerStatus(): ApiLogsDashboardDto['server'] {
+    return this.apiLogsService.getServerStatus();
   }
 }

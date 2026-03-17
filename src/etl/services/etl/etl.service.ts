@@ -13,6 +13,8 @@ export interface EtlLogEntry {
 @Injectable()
 export class EtlService {
   private readonly logSubject = new Subject<EtlLogEntry>();
+  private readonly recentLogs: EtlLogEntry[] = [];
+  private readonly RECENT_LOGS_LIMIT = 200;
   private readonly runningPipelines: Record<PipelineId, boolean> = {
     nutrition: false,
     exercise: false,
@@ -20,16 +22,42 @@ export class EtlService {
   };
 
   emit(pipelineId: PipelineId, level: string, message: string): void {
-    this.logSubject.next({
+    const entry: EtlLogEntry = {
       pipelineId,
       level,
       message,
       timestamp: new Date().toISOString(),
-    });
+    };
+    this.recentLogs.push(entry);
+    if (this.recentLogs.length > this.RECENT_LOGS_LIMIT) {
+      this.recentLogs.splice(
+        0,
+        this.recentLogs.length - this.RECENT_LOGS_LIMIT,
+      );
+    }
+    this.logSubject.next(entry);
   }
 
   getStream(): Subject<EtlLogEntry> {
     return this.logSubject;
+  }
+
+  getRecentLogs(options?: {
+    pipelineId?: PipelineId;
+    level?: string;
+    limit?: number;
+  }): EtlLogEntry[] {
+    const limit = Math.min(200, Math.max(1, options?.limit ?? 50));
+    const level = options?.level?.toLowerCase();
+    const pipelineId = options?.pipelineId;
+
+    const filtered = this.recentLogs.filter((l) => {
+      if (pipelineId && l.pipelineId !== pipelineId) return false;
+      if (level && l.level.toLowerCase() !== level) return false;
+      return true;
+    });
+
+    return filtered.slice(-limit).reverse();
   }
 
   isPipelineRunning(pipelineId: PipelineId): boolean {
