@@ -12,6 +12,7 @@ export enum ROUTES {
   SESSION = 'session',
   HEALTH_PROFILE = 'health-profile',
   SUBSCRIPTION = 'subscription',
+  DASHBOARD = 'dashboard',
 }
 
 export enum SERVICES {

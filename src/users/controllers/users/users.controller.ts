@@ -43,6 +43,19 @@ export class UsersController implements IUsersController {
     return this.usersService.getUsers(query);
   }
 
+  @ApiBearerAuth('access-token')
+  @Get('stats')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN')
+  getUsersStats(): Promise<{
+    totalUsers: number;
+    activeUsers: number;
+    premiumUsers: number;
+    b2bUsers: number;
+  }> {
+    return this.usersService.getUsersStats();
+  }
+
   @Get(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('COACH', 'ADMIN')
