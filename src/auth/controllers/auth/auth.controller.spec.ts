@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AuthController } from './auth.controller';
 import { SERVICES } from 'src/utils/constants';
+import { CsrfService } from 'src/auth/services/csrf/csrf.service';
 
 describe('AuthController', () => {
   let controller: AuthController;
@@ -24,6 +25,7 @@ describe('AuthController', () => {
           provide: SERVICES.AUTH,
           useValue: authServiceMock,
         },
+        CsrfService,
       ],
     }).compile();
 

@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { APP_INTERCEPTOR } from '@nestjs/core';
+import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
@@ -18,6 +18,7 @@ import { SubscriptionModule } from './subscription/subscription.module';
 import { EtlModule } from './etl/etl.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { ApiMetricsInterceptor } from 'src/analytics/interceptors/api-metrics.interceptor';
+import { CsrfGuard } from 'src/auth/guards/csrf.guard';
 
 @Module({
   imports: [
@@ -43,6 +44,10 @@ import { ApiMetricsInterceptor } from 'src/analytics/interceptors/api-metrics.in
     {
       provide: APP_INTERCEPTOR,
       useClass: ApiMetricsInterceptor,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: CsrfGuard,
     },
   ],
 })

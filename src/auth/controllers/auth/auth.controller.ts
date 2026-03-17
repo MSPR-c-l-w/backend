@@ -31,12 +31,14 @@ import {
   ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
+import { CsrfService } from 'src/auth/services/csrf/csrf.service';
 
 @Controller(ROUTES.AUTH)
 @ApiTags('Auth')
 export class AuthController {
   constructor(
     @Inject(SERVICES.AUTH) private readonly authService: AuthService,
+    private readonly csrfService: CsrfService,
   ) {}
 
   @Post('register')
@@ -230,5 +232,27 @@ export class AuthController {
   me(@Req() req: Request) {
     const payload = req.user as JwtPayload;
     return this.authService.getProfile(payload.sub);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('csrf')
+  @ApiBearerAuth('access-token')
+  @ApiOperation({
+    summary: 'Retourne un token CSRF lié au JWT courant',
+  })
+  @ApiOkResponse({
+    description: 'Token CSRF à envoyer dans le header X-CSRF-Token',
+    schema: {
+      type: 'object',
+      properties: {
+        token: { type: 'string' },
+      },
+    },
+  })
+  @ApiUnauthorizedResponse({ description: 'JWT invalide/expiré' })
+  getCsrfToken(@Req() req: Request) {
+    const payload = req.user as JwtPayload;
+    const token = this.csrfService.issue(payload.sub);
+    return { token };
   }
 }
