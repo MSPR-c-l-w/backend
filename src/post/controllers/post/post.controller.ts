@@ -39,7 +39,7 @@ import { ROUTES, SERVICES } from 'src/utils/constants';
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(...DEFAULT_ROLE_NAMES)
 @ApiBearerAuth('access-token')
-@ApiTags('Posts')
+@ApiTags(ROUTES.POST)
 @ApiForbiddenResponse({
   description: 'Rôle non autorisé (ADMIN, COACH ou CLIENT requis)',
 })

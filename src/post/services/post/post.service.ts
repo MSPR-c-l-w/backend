@@ -28,7 +28,7 @@ export class PostService implements IPostService {
       where: { id: postId },
     });
     if (!post) {
-      throw new NotFoundException(`Post avec l'id ${id} introuvable`);
+      throw new NotFoundException(`POST_${id}_NOT_FOUND`);
     }
     return post;
   }
