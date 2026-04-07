@@ -6,7 +6,7 @@
 
 # Want to help us make this template better? Share your feedback here: https://forms.gle/ybq9Krt8jtBL3iCk7
 
-ARG NODE_VERSION=22.20.0
+ARG NODE_VERSION=24.13.0
 
 ################################################################################
 # Use node image for base image for all stages.
@@ -42,6 +42,8 @@ RUN --mount=type=bind,source=package.json,target=package.json \
 
 # Copy the rest of the source files into the image.
 COPY . .
+# Generate Prisma client after schema is copied.
+RUN npm run prisma:generate
 # Run the build script.
 RUN npm run build
 
@@ -59,14 +61,14 @@ USER node
 # Copy package.json so that package manager commands can be used.
 COPY package.json .
 
-# Copy the production dependencies from the deps stage and also
-# the built application from the build stage into the image.
-COPY --from=deps /usr/src/app/node_modules ./node_modules
-COPY --from=build /usr/src/app/dist/ ./dist/
+# Copy the dependencies from the build stage (contains generated Prisma client)
+# and also the built application.
+COPY --from=build /usr/src/app/node_modules ./node_modules
+COPY --from=build /usr/src/app/dist ./dist
 
 
 # Expose the port that the application listens on.
-EXPOSE 3000
+EXPOSE 3001
 
 # Run the application.
-CMD npm start
+CMD npm run start:prod
