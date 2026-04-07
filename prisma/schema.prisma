@@ -41,6 +41,7 @@ model User {
   sessions                            Session[]
   meals                               Meal[]
   subscriptions                       Subscription[]
+  posts                               Post[]
 }
 
 model Organization {
@@ -54,6 +55,7 @@ model Organization {
   is_active       Boolean   @default(true)
   is_deleted      Boolean   @default(false)
   users           User[]
+  posts           Post[]
 }
 
 model Session {
@@ -156,6 +158,20 @@ model Subscription {
   status     String
   user       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
   plan       Plan     @relation(fields: [plan_id], references: [id], onDelete: Cascade)
+}
+
+model Post {
+  id              Int           @id @default(autoincrement())
+  author_id       Int
+  organization_id Int?
+  title           String
+  content         String        @db.LongText
+  media_url       String?       @db.VarChar(2048)
+  is_published    Boolean       @default(false)
+  created_at      DateTime      @default(now())
+  updated_at      DateTime      @updatedAt
+  author          User          @relation(fields: [author_id], references: [id], onDelete: Cascade)
+  organization    Organization? @relation(fields: [organization_id], references: [id], onDelete: SetNull)
 }
 
 // --- Staging ETL (validation humaine avant insertion en base finale) ---
