@@ -13,6 +13,7 @@ export enum ROUTES {
   HEALTH_PROFILE = 'health-profile',
   SUBSCRIPTION = 'subscription',
   DASHBOARD = 'dashboard',
+  POST = 'posts',
 }
 
 export enum SERVICES {
@@ -31,6 +32,7 @@ export enum SERVICES {
   SESSION = 'SESSION_SERVICE',
   HEALTH_PROFILE = 'HEALTH_PROFILE',
   SUBSCRIPTION = 'SUBSCRIPTION_SERVICE',
+  POST = 'POST_SERVICE',
 }
 
 export const ACTIVE_SUBSCRIPTION_STATUSES: string[] = [
