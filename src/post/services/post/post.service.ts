@@ -90,15 +90,29 @@ export class PostService implements IPostService {
     id: string,
     content: string,
     userId: number,
+    parentId?: number,
   ): Promise<PostCommentWithAuthor> {
     const postId = this.parsePostId(id);
     await this.ensurePostExists(postId);
+
+    if (parentId !== undefined && parentId !== null) {
+      const parent = await this.prisma.postComment.findFirst({
+        where: { id: parentId, post_id: postId },
+        select: { id: true },
+      });
+      if (!parent) {
+        throw new BadRequestException(
+          'POST_COMMENT_PARENT_NOT_FOUND_OR_WRONG_POST',
+        );
+      }
+    }
 
     return this.prisma.postComment.create({
       data: {
         post_id: postId,
         user_id: userId,
         content,
+        parent_id: parentId ?? null,
       },
       include: {
         user: { select: { id: true, first_name: true, last_name: true } },

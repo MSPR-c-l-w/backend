@@ -40,6 +40,7 @@ export interface IPostService {
     id: string,
     content: string,
     userId: number,
+    parentId?: number,
   ): Promise<PostCommentWithAuthor>;
   likePost(
     id: string,

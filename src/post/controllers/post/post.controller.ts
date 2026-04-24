@@ -75,18 +75,31 @@ export class PostController implements IPostController {
   }
 
   @PostMethod(':id/comments')
-  @ApiOperation({ summary: 'Ajouter un commentaire à un post' })
+  @ApiOperation({
+    summary: 'Ajouter un commentaire à un post',
+    description:
+      'Commentaire racine si `parent_id` est omis ; réponse à un autre commentaire du même post si `parent_id` est renseigné.',
+  })
   @ApiParam({ name: 'id', description: 'ID du post' })
   @ApiBody({ type: CreatePostCommentDto })
   @ApiOkResponse({ description: 'Commentaire créé' })
   @ApiNotFoundResponse({ description: 'Post introuvable' })
+  @ApiBadRequestResponse({
+    description:
+      'parent_id invalide ou commentaire parent sur un autre post (POST_COMMENT_PARENT_NOT_FOUND_OR_WRONG_POST)',
+  })
   createPostComment(
     @Param('id') id: string,
     @Body() dto: CreatePostCommentDto,
     @Req() req: Request,
   ) {
     const payload = req.user as JwtPayload;
-    return this.postService.createPostComment(id, dto.content, payload.sub);
+    return this.postService.createPostComment(
+      id,
+      dto.content,
+      payload.sub,
+      dto.parent_id,
+    );
   }
 
   @PostMethod(':id/like')

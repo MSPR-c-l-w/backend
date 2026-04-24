@@ -179,16 +179,20 @@ model Post {
 }
 
 model PostComment {
-  id         Int      @id @default(autoincrement())
+  id         Int           @id @default(autoincrement())
   post_id    Int
   user_id    Int
-  content    String   @db.VarChar(4000)
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
-  post       Post     @relation(fields: [post_id], references: [id], onDelete: Cascade)
-  user       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  parent_id  Int?
+  content    String        @db.VarChar(4000)
+  created_at DateTime      @default(now())
+  updated_at DateTime      @updatedAt
+  post       Post          @relation(fields: [post_id], references: [id], onDelete: Cascade)
+  user       User          @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  parent     PostComment?  @relation("CommentReplies", fields: [parent_id], references: [id], onDelete: Cascade)
+  replies    PostComment[] @relation("CommentReplies")
 
   @@index([post_id])
+  @@index([parent_id])
 }
 
 model PostLike {

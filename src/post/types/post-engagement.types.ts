@@ -10,6 +10,7 @@ export type PostCommentWithAuthor = {
   id: number;
   post_id: number;
   user_id: number;
+  parent_id: number | null;
   content: string;
   created_at: Date;
   updated_at: Date;
