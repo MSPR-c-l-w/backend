@@ -67,41 +67,74 @@ describe('PostService', () => {
     expect(service).toBeDefined();
   });
 
+  const rowWithEngagement = {
+    ...mockPost,
+    _count: { likes: 2, comments: 3 },
+    likes: [] as { id: number }[],
+  };
+
   describe('getPosts', () => {
-    it('devrait retourner la liste des posts', async () => {
-      prisma.post.findMany.mockResolvedValue([mockPost]);
+    it('devrait retourner la liste des posts avec engagement', async () => {
+      prisma.post.findMany.mockResolvedValue([rowWithEngagement]);
 
-      const result = await service.getPosts();
+      const result = await service.getPosts(9);
 
-      expect(result).toEqual([mockPost]);
-      expect(prisma.post.findMany).toHaveBeenCalledWith({
-        orderBy: { created_at: 'desc' },
-      });
+      expect(result).toEqual([
+        {
+          ...mockPost,
+          likes_count: 2,
+          comments_count: 3,
+          liked_by_me: false,
+        },
+      ]);
+      expect(prisma.post.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          orderBy: { created_at: 'desc' },
+          include: {
+            _count: { select: { likes: true, comments: true } },
+            likes: { where: { user_id: 9 }, select: { id: true }, take: 1 },
+          },
+        }),
+      );
     });
   });
 
   describe('getPostById', () => {
-    it('devrait retourner un post par id', async () => {
-      prisma.post.findUnique.mockResolvedValue(mockPost);
-
-      const result = await service.getPostById('1');
-
-      expect(result).toEqual(mockPost);
-      expect(prisma.post.findUnique).toHaveBeenCalledWith({
-        where: { id: 1 },
+    it('devrait retourner un post par id avec engagement', async () => {
+      prisma.post.findUnique.mockResolvedValue({
+        ...rowWithEngagement,
+        likes: [{ id: 1 }],
       });
+
+      const result = await service.getPostById('1', 9);
+
+      expect(result).toEqual({
+        ...mockPost,
+        likes_count: 2,
+        comments_count: 3,
+        liked_by_me: true,
+      });
+      expect(prisma.post.findUnique).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 1 },
+          include: {
+            _count: { select: { likes: true, comments: true } },
+            likes: { where: { user_id: 9 }, select: { id: true }, take: 1 },
+          },
+        }),
+      );
     });
 
     it("devrait lancer NotFoundException si le post n'existe pas", async () => {
       prisma.post.findUnique.mockResolvedValue(null);
 
-      await expect(service.getPostById('999')).rejects.toBeInstanceOf(
+      await expect(service.getPostById('999', 1)).rejects.toBeInstanceOf(
         NotFoundException,
       );
     });
 
     it('devrait lancer BadRequestException si id invalide', async () => {
-      await expect(service.getPostById('bad')).rejects.toThrow(
+      await expect(service.getPostById('bad', 1)).rejects.toThrow(
         'POST_ID_MUST_BE_A_NUMBER',
       );
       expect(prisma.post.findUnique).not.toHaveBeenCalled();

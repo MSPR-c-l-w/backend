@@ -86,3 +86,14 @@ export class UpdatePostDto {
   @IsOptional()
   organization_id?: number | null;
 }
+
+export class CreatePostCommentDto {
+  @ApiProperty({
+    example: 'Bravo pour cette séance !',
+    description: 'Texte du commentaire',
+  })
+  @IsString({ message: 'COMMENT_CONTENT_MUST_BE_A_STRING' })
+  @IsNotEmpty({ message: 'COMMENT_CONTENT_IS_REQUIRED' })
+  @MaxLength(4000, { message: 'COMMENT_CONTENT_TOO_LONG' })
+  content: string;
+}
