@@ -2,6 +2,7 @@ import { NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { Post } from '@prisma/client';
 import type { Request } from 'express';
+import type { PostWithEngagement } from 'src/post/types/post-engagement.types';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { PostController } from './post.controller';
@@ -28,6 +29,17 @@ describe('PostController', () => {
     created_at: new Date(),
     updated_at: new Date(),
   };
+
+  const mockPostEngagement: PostWithEngagement = {
+    ...mockPost,
+    likes_count: 0,
+    comments_count: 0,
+    liked_by_me: false,
+  };
+
+  const authReq = {
+    user: { sub: 1, email: 'a@b.c' },
+  } as unknown as Request;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -58,23 +70,23 @@ describe('PostController', () => {
 
   describe('getPosts', () => {
     it('devrait retourner la liste', async () => {
-      postServiceMock.getPosts.mockResolvedValue([mockPost]);
+      postServiceMock.getPosts.mockResolvedValue([mockPostEngagement]);
 
-      const result = await controller.getPosts();
+      const result = await controller.getPosts(authReq);
 
-      expect(result).toEqual([mockPost]);
-      expect(postServiceMock.getPosts).toHaveBeenCalledTimes(1);
+      expect(result).toEqual([mockPostEngagement]);
+      expect(postServiceMock.getPosts).toHaveBeenCalledWith(1);
     });
   });
 
   describe('getPostById', () => {
     it('devrait retourner un post', async () => {
-      postServiceMock.getPostById.mockResolvedValue(mockPost);
+      postServiceMock.getPostById.mockResolvedValue(mockPostEngagement);
 
-      const result = await controller.getPostById('1');
+      const result = await controller.getPostById('1', authReq);
 
-      expect(result).toEqual(mockPost);
-      expect(postServiceMock.getPostById).toHaveBeenCalledWith('1');
+      expect(result).toEqual(mockPostEngagement);
+      expect(postServiceMock.getPostById).toHaveBeenCalledWith('1', 1);
     });
 
     it('devrait propager les erreurs du service', async () => {
@@ -82,7 +94,7 @@ describe('PostController', () => {
         new NotFoundException('Post introuvable'),
       );
 
-      await expect(controller.getPostById('999')).rejects.toThrow(
+      await expect(controller.getPostById('999', authReq)).rejects.toThrow(
         NotFoundException,
       );
     });

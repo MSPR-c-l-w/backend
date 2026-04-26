@@ -6,6 +6,7 @@ import {
 import { Test, TestingModule } from '@nestjs/testing';
 import { Post, Prisma } from '@prisma/client';
 import type { CreatePostDto, UpdatePostDto } from 'src/post/dtos/post.dto';
+import type { PostCommentWithAuthor } from 'src/post/types/post-engagement.types';
 import { PrismaService } from 'src/prisma/services/prisma/prisma.service';
 import { PostService } from './post.service';
 
@@ -20,6 +21,7 @@ describe('PostService', () => {
       delete: jest.Mock;
     };
     user: { findUnique: jest.Mock };
+    postComment: { findFirst: jest.Mock; create: jest.Mock };
   };
 
   const mockPost: Post = {
@@ -44,6 +46,7 @@ describe('PostService', () => {
         delete: jest.fn(),
       },
       user: { findUnique: jest.fn() },
+      postComment: { findFirst: jest.fn(), create: jest.fn() },
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -67,44 +70,157 @@ describe('PostService', () => {
     expect(service).toBeDefined();
   });
 
+  const rowWithEngagement = {
+    ...mockPost,
+    _count: { likes: 2, comments: 3 },
+    likes: [] as { id: number }[],
+  };
+
   describe('getPosts', () => {
-    it('devrait retourner la liste des posts', async () => {
-      prisma.post.findMany.mockResolvedValue([mockPost]);
+    it('devrait retourner la liste des posts avec engagement', async () => {
+      prisma.post.findMany.mockResolvedValue([rowWithEngagement]);
 
-      const result = await service.getPosts();
+      const result = await service.getPosts(9);
 
-      expect(result).toEqual([mockPost]);
-      expect(prisma.post.findMany).toHaveBeenCalledWith({
-        orderBy: { created_at: 'desc' },
-      });
+      expect(result).toEqual([
+        {
+          ...mockPost,
+          likes_count: 2,
+          comments_count: 3,
+          liked_by_me: false,
+        },
+      ]);
+      expect(prisma.post.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          orderBy: { created_at: 'desc' },
+          include: {
+            _count: { select: { likes: true, comments: true } },
+            likes: { where: { user_id: 9 }, select: { id: true }, take: 1 },
+          },
+        }),
+      );
     });
   });
 
   describe('getPostById', () => {
-    it('devrait retourner un post par id', async () => {
-      prisma.post.findUnique.mockResolvedValue(mockPost);
-
-      const result = await service.getPostById('1');
-
-      expect(result).toEqual(mockPost);
-      expect(prisma.post.findUnique).toHaveBeenCalledWith({
-        where: { id: 1 },
+    it('devrait retourner un post par id avec engagement', async () => {
+      prisma.post.findUnique.mockResolvedValue({
+        ...rowWithEngagement,
+        likes: [{ id: 1 }],
       });
+
+      const result = await service.getPostById('1', 9);
+
+      expect(result).toEqual({
+        ...mockPost,
+        likes_count: 2,
+        comments_count: 3,
+        liked_by_me: true,
+      });
+      expect(prisma.post.findUnique).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 1 },
+          include: {
+            _count: { select: { likes: true, comments: true } },
+            likes: { where: { user_id: 9 }, select: { id: true }, take: 1 },
+          },
+        }),
+      );
     });
 
     it("devrait lancer NotFoundException si le post n'existe pas", async () => {
       prisma.post.findUnique.mockResolvedValue(null);
 
-      await expect(service.getPostById('999')).rejects.toBeInstanceOf(
+      await expect(service.getPostById('999', 1)).rejects.toBeInstanceOf(
         NotFoundException,
       );
     });
 
     it('devrait lancer BadRequestException si id invalide', async () => {
-      await expect(service.getPostById('bad')).rejects.toThrow(
+      await expect(service.getPostById('bad', 1)).rejects.toThrow(
         'POST_ID_MUST_BE_A_NUMBER',
       );
       expect(prisma.post.findUnique).not.toHaveBeenCalled();
+    });
+  });
+
+  const mockCommentAuthor: PostCommentWithAuthor = {
+    id: 2,
+    post_id: 1,
+    user_id: 3,
+    parent_id: null,
+    content: 'Racine',
+    created_at: new Date('2025-01-01'),
+    updated_at: new Date('2025-01-01'),
+    user: { id: 3, first_name: 'A', last_name: 'B' },
+  };
+
+  describe('createPostComment', () => {
+    beforeEach(() => {
+      prisma.post.findUnique.mockResolvedValue({ id: 1 });
+    });
+
+    it('devrait créer un commentaire sans parent', async () => {
+      prisma.postComment.create.mockResolvedValue(mockCommentAuthor);
+
+      await expect(
+        service.createPostComment('1', 'Racine', 3),
+      ).resolves.toEqual(mockCommentAuthor);
+
+      expect(prisma.postComment.findFirst).not.toHaveBeenCalled();
+      expect(prisma.postComment.create).toHaveBeenCalledWith({
+        data: {
+          post_id: 1,
+          user_id: 3,
+          content: 'Racine',
+          parent_id: null,
+        },
+        include: {
+          user: { select: { id: true, first_name: true, last_name: true } },
+        },
+      });
+    });
+
+    it('devrait créer une réponse si le parent existe sur le même post', async () => {
+      prisma.postComment.findFirst.mockResolvedValue({ id: 10 });
+      prisma.postComment.create.mockResolvedValue({
+        ...mockCommentAuthor,
+        id: 11,
+        parent_id: 10,
+        content: 'Réponse',
+      });
+
+      await expect(
+        service.createPostComment('1', 'Réponse', 3, 10),
+      ).resolves.toMatchObject({ parent_id: 10, content: 'Réponse' });
+
+      expect(prisma.postComment.findFirst).toHaveBeenCalledWith({
+        where: { id: 10, post_id: 1 },
+        select: { id: true },
+      });
+      expect(prisma.postComment.create).toHaveBeenCalledWith({
+        data: {
+          post_id: 1,
+          user_id: 3,
+          content: 'Réponse',
+          parent_id: 10,
+        },
+        include: {
+          user: { select: { id: true, first_name: true, last_name: true } },
+        },
+      });
+    });
+
+    it('devrait refuser un parent absent ou sur un autre post', async () => {
+      prisma.postComment.findFirst.mockResolvedValue(null);
+
+      await expect(
+        service.createPostComment('1', 'x', 3, 999),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      await expect(service.createPostComment('1', 'x', 3, 999)).rejects.toThrow(
+        'POST_COMMENT_PARENT_NOT_FOUND_OR_WRONG_POST',
+      );
+      expect(prisma.postComment.create).not.toHaveBeenCalled();
     });
   });
 
