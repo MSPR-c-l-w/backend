@@ -2,11 +2,20 @@ name: CI
 
 on:
   push:
+    branches: [main, master]
   pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   quality:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
 
     steps:
       - name: Checkout
@@ -19,11 +28,20 @@ jobs:
           cache: npm
           cache-dependency-path: package-lock.json
 
-      - name: Install dependencies (npm ci)
+      - name: Install dependencies
         run: npm ci
 
       - name: Generate Prisma client
-        run: npx prisma generate --schema prisma/schema.prisma
+        run: npm run prisma:generate
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Format check
+        run: npm run format
+
+      - name: Build
+        run: npm run build
 
       - name: Unit tests with coverage
         run: npm run test:cov
@@ -35,13 +53,62 @@ jobs:
           name: coverage-report
           path: coverage
 
-      - name: Lint
+      - name: Discord CI notification
+        if: ${{ always() }}
+        env:
+          DISCORD_WEBHOOK_URL: ${{ vars.DISCORD_WEBHOOK_URL }}
+          JOB_STATUS: ${{ job.status }}
+          REPO: ${{ github.repository }}
+          BRANCH: ${{ github.ref_name }}
+          ACTOR: ${{ github.actor }}
+          EVENT_NAME: ${{ github.event_name }}
+          RUN_NUMBER: ${{ github.run_number }}
+          SHA: ${{ github.sha }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
-          npm run lint
-          git diff --exit-code
+          if [ -z "${DISCORD_WEBHOOK_URL:-}" ]; then
+            echo "DISCORD_WEBHOOK_URL is not set, skipping Discord notification."
+            exit 0
+          fi
 
-      - name: Format (must not change files)
-        run: |
-          npm run format
-          git diff --exit-code
+          short_sha="$(echo "$SHA" | cut -c1-7)"
+
+          if [ "$JOB_STATUS" = "success" ]; then
+            color=5763719
+            title="✅ CI réussie"
+          elif [ "$JOB_STATUS" = "failure" ]; then
+            color=15548997
+            title="❌ CI en échec"
+          else
+            color=16705372
+            title="⚠️ CI terminée avec statut: $JOB_STATUS"
+          fi
+
+          payload="$(cat <<EOF
+          {
+            "embeds": [
+              {
+                "title": "$title",
+                "description": "Pipeline CI du backend.",
+                "color": $color,
+                "fields": [
+                  { "name": "Status", "value": "$JOB_STATUS", "inline": true },
+                  { "name": "Branche", "value": "$BRANCH", "inline": true },
+                  { "name": "Event", "value": "$EVENT_NAME", "inline": true },
+                  { "name": "Repository", "value": "$REPO", "inline": true },
+                  { "name": "Commit", "value": "$short_sha", "inline": true },
+                  { "name": "Actor", "value": "$ACTOR", "inline": true },
+                  { "name": "Run #", "value": "$RUN_NUMBER", "inline": true },
+                  { "name": "Logs", "value": "[Voir le workflow]($RUN_URL)", "inline": true }
+                ],
+                "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+              }
+            ]
+          }
+          EOF
+          )"
+
+          curl -sS -X POST "$DISCORD_WEBHOOK_URL" \
+            -H "Content-Type: application/json" \
+            -d "$payload"
 
