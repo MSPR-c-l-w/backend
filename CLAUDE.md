@@ -39,7 +39,7 @@ After any code modification, run in order: `lint` → `format` → `build` → `
 
 ## Architecture
 
-**Stack:** NestJS v11 + TypeScript, MariaDB via Prisma ORM, JWT auth, Socket.IO, Swagger at `/api`.
+**Stack:** NestJS v11 + TypeScript, MariaDB via Prisma ORM v7, JWT auth, Socket.IO, Swagger at `/api`.
 
 **Module pattern:** Each domain lives in `src/<domain>/` with a controller, service, DTOs, and interfaces subfolder. The data flow is always: Controller → Service → PrismaService.
 
@@ -48,7 +48,7 @@ After any code modification, run in order: `lint` → `format` → `build` → `
 - `users/`, `roles/`, `organization/` — User management and RBAC
 - `health-profile/`, `nutrition/`, `exercice/`, `session/`, `session-exercise/` — Core health/fitness domain
 - `plan/`, `subscription/` — Subscription management
-- `post/` — Social posts, comments (with nested replies via `parent_id`), likes
+- `post/` — Social posts with nested comments (via `parent_id`) and likes
 - `analytics/`, `dashboard/` — API metrics and admin dashboard endpoints
 - `etl/` — ETL pipeline orchestration with a WebSocket gateway for real-time updates
 - `prisma/` — Shared `PrismaService` wrapper
@@ -66,3 +66,13 @@ After any code modification, run in order: `lint` → `format` → `build` → `
 ## Environment
 
 Copy `env.template` to `.env`. Required variables include `DATABASE_URL` (MariaDB), `JWT_SECRET`, JWT/token expiry values, SMTP settings, and `KAGGLE_USER`/`KAGGLE_KEY` for dataset imports.
+
+## Documentation
+
+Full project documentation is in the `documentation/` folder. Key files:
+
+@documentation/architecture.md
+@documentation/database.md
+@documentation/security.md
+@documentation/testing.md
+@documentation/api-reference.md
