@@ -1,0 +1,78 @@
+name: CI — Quality (Lint & Format)
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-quality-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Lint & Format
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma client
+        run: npm run prisma:generate
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Format check
+        run: npm run format
+
+      - name: Discord notification
+        if: always()
+        env:
+          DISCORD_WEBHOOK_URL: ${{ vars.DISCORD_WEBHOOK_URL }}
+          JOB_STATUS: ${{ job.status }}
+          REPO: ${{ github.repository }}
+          BRANCH: ${{ github.ref_name }}
+          ACTOR: ${{ github.actor }}
+          EVENT_NAME: ${{ github.event_name }}
+          RUN_NUMBER: ${{ github.run_number }}
+          SHA: ${{ github.sha }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          if [ -z "${DISCORD_WEBHOOK_URL:-}" ]; then exit 0; fi
+          short_sha="$(echo "$SHA" | cut -c1-7)"
+          if [ "$JOB_STATUS" = "success" ]; then
+            color=5763719; title="✅ Lint & Format OK"
+          elif [ "$JOB_STATUS" = "failure" ]; then
+            color=15548997; title="❌ Lint & Format en échec"
+          else
+            color=16705372; title="⚠️ Lint & Format — statut: $JOB_STATUS"
+          fi
+          curl -sS -X POST "$DISCORD_WEBHOOK_URL" -H "Content-Type: application/json" -d "{
+            \"embeds\": [{
+              \"title\": \"$title\",
+              \"color\": $color,
+              \"fields\": [
+                {\"name\": \"Branche\", \"value\": \"$BRANCH\", \"inline\": true},
+                {\"name\": \"Commit\", \"value\": \"$short_sha\", \"inline\": true},
+                {\"name\": \"Actor\", \"value\": \"$ACTOR\", \"inline\": true},
+                {\"name\": \"Logs\", \"value\": \"[Voir le workflow]($RUN_URL)\", \"inline\": false}
+              ],
+              \"timestamp\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"
+            }]
+          }"
