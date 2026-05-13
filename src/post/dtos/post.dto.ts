@@ -86,3 +86,24 @@ export class UpdatePostDto {
   @IsOptional()
   organization_id?: number | null;
 }
+
+export class CreatePostCommentDto {
+  @ApiProperty({
+    example: 'Bravo pour cette séance !',
+    description: 'Texte du commentaire',
+  })
+  @IsString({ message: 'COMMENT_CONTENT_MUST_BE_A_STRING' })
+  @IsNotEmpty({ message: 'COMMENT_CONTENT_IS_REQUIRED' })
+  @MaxLength(4000, { message: 'COMMENT_CONTENT_TOO_LONG' })
+  content: string;
+
+  @ApiPropertyOptional({
+    example: 12,
+    description:
+      'ID du commentaire parent (réponse à un commentaire du même post). Omis = commentaire racine.',
+  })
+  @IsInt({ message: 'COMMENT_PARENT_ID_MUST_BE_AN_INTEGER' })
+  @Min(1, { message: 'COMMENT_PARENT_ID_MUST_BE_POSITIVE' })
+  @IsOptional()
+  parent_id?: number;
+}

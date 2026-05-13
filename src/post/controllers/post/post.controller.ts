@@ -27,7 +27,11 @@ import { Roles } from 'src/auth/decorators/roles.decorator';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
 import type { JwtPayload } from 'src/auth/strategies/jwt.strategy';
-import { CreatePostDto, UpdatePostDto } from 'src/post/dtos/post.dto';
+import {
+  CreatePostCommentDto,
+  CreatePostDto,
+  UpdatePostDto,
+} from 'src/post/dtos/post.dto';
 import type {
   IPostController,
   IPostService,
@@ -49,20 +53,91 @@ export class PostController implements IPostController {
   ) {}
 
   @Get()
-  @ApiOperation({ summary: 'Lister les posts' })
-  @ApiOkResponse({ description: 'Liste des posts' })
-  getPosts(): Promise<Post[]> {
-    return this.postService.getPosts();
+  @ApiOperation({
+    summary: 'Lister les posts',
+    description:
+      'Chaque post inclut likes_count, comments_count et liked_by_me (utilisateur du JWT).',
+  })
+  @ApiOkResponse({ description: 'Liste des posts avec engagement' })
+  getPosts(@Req() req: Request) {
+    const payload = req.user as JwtPayload;
+    return this.postService.getPosts(payload.sub);
+  }
+
+  @Get(':id/comments')
+  @ApiOperation({ summary: 'Lister les commentaires d’un post' })
+  @ApiParam({ name: 'id', description: 'ID du post' })
+  @ApiOkResponse({ description: 'Liste des commentaires' })
+  @ApiNotFoundResponse({ description: 'Post introuvable' })
+  @ApiBadRequestResponse({ description: 'ID du post invalide' })
+  getPostComments(@Param('id') id: string) {
+    return this.postService.getPostComments(id);
+  }
+
+  @PostMethod(':id/comments')
+  @ApiOperation({
+    summary: 'Ajouter un commentaire à un post',
+    description:
+      'Commentaire racine si `parent_id` est omis ; réponse à un autre commentaire du même post si `parent_id` est renseigné.',
+  })
+  @ApiParam({ name: 'id', description: 'ID du post' })
+  @ApiBody({ type: CreatePostCommentDto })
+  @ApiOkResponse({ description: 'Commentaire créé' })
+  @ApiNotFoundResponse({ description: 'Post introuvable' })
+  @ApiBadRequestResponse({
+    description:
+      'parent_id invalide ou commentaire parent sur un autre post (POST_COMMENT_PARENT_NOT_FOUND_OR_WRONG_POST)',
+  })
+  createPostComment(
+    @Param('id') id: string,
+    @Body() dto: CreatePostCommentDto,
+    @Req() req: Request,
+  ) {
+    const payload = req.user as JwtPayload;
+    return this.postService.createPostComment(
+      id,
+      dto.content,
+      payload.sub,
+      dto.parent_id,
+    );
+  }
+
+  @PostMethod(':id/like')
+  @ApiOperation({
+    summary: 'Liker un post',
+    description: 'Idempotent : un second like ne change pas l’état.',
+  })
+  @ApiParam({ name: 'id', description: 'ID du post' })
+  @ApiOkResponse({ description: 'Résumé des likes' })
+  @ApiNotFoundResponse({ description: 'Post introuvable' })
+  likePost(@Param('id') id: string, @Req() req: Request) {
+    const payload = req.user as JwtPayload;
+    return this.postService.likePost(id, payload.sub);
+  }
+
+  @Delete(':id/like')
+  @ApiOperation({ summary: 'Retirer son like d’un post' })
+  @ApiParam({ name: 'id', description: 'ID du post' })
+  @ApiOkResponse({ description: 'Résumé des likes' })
+  @ApiNotFoundResponse({ description: 'Post introuvable' })
+  unlikePost(@Param('id') id: string, @Req() req: Request) {
+    const payload = req.user as JwtPayload;
+    return this.postService.unlikePost(id, payload.sub);
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Récupérer un post par id' })
-  @ApiOkResponse({ description: 'Post' })
+  @ApiOperation({
+    summary: 'Récupérer un post par id',
+    description:
+      'Inclut likes_count, comments_count et liked_by_me (utilisateur du JWT).',
+  })
+  @ApiOkResponse({ description: 'Post avec engagement' })
   @ApiParam({ name: 'id', description: 'ID du post' })
   @ApiNotFoundResponse({ description: 'Post introuvable' })
   @ApiBadRequestResponse({ description: 'ID du post invalide' })
-  getPostById(@Param('id') id: string): Promise<Post> {
-    return this.postService.getPostById(id);
+  getPostById(@Param('id') id: string, @Req() req: Request) {
+    const payload = req.user as JwtPayload;
+    return this.postService.getPostById(id, payload.sub);
   }
 
   @PostMethod()
