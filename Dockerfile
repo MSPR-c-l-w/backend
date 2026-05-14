@@ -4,22 +4,23 @@ ARG NODE_VERSION=24.13.0
 
 FROM node:${NODE_VERSION}-alpine AS base
 WORKDIR /usr/src/app
+RUN corepack enable pnpm
 
 FROM base AS deps
 RUN --mount=type=bind,source=package.json,target=package.json \
-    --mount=type=bind,source=package-lock.json,target=package-lock.json \
-    --mount=type=cache,target=/root/.npm \
-    npm ci --omit=dev
+    --mount=type=bind,source=pnpm-lock.yaml,target=pnpm-lock.yaml \
+    --mount=type=cache,target=/root/.local/share/pnpm/store \
+    pnpm install --prod --frozen-lockfile
 
-FROM deps AS build
+FROM base AS build
 RUN --mount=type=bind,source=package.json,target=package.json \
-    --mount=type=bind,source=package-lock.json,target=package-lock.json \
-    --mount=type=cache,target=/root/.npm \
-    npm ci
+    --mount=type=bind,source=pnpm-lock.yaml,target=pnpm-lock.yaml \
+    --mount=type=cache,target=/root/.local/share/pnpm/store \
+    pnpm install --frozen-lockfile
 
 COPY . .
-RUN npm run prisma:generate
-RUN npm run build
+RUN pnpm run prisma:generate
+RUN pnpm run build
 
 FROM base AS final
 
@@ -33,4 +34,4 @@ COPY --from=build /usr/src/app/dist ./dist
 
 EXPOSE 3001
 
-CMD npm run start:prod
+CMD node dist/main.js
