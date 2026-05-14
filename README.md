@@ -1,165 +1,129 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# Backend API — Fitness & Santé
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+Backend NestJS pour une plateforme de suivi fitness et santé.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+**Stack :** NestJS v11, TypeScript, MariaDB via Prisma ORM, JWT, Socket.IO  
+**Documentation complète :** [`documentation/`](documentation/README.md)
 
-## Description
+---
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## Prérequis
 
-## Project setup
+| Outil   | Version                | Installation                                       |
+| ------- | ---------------------- | -------------------------------------------------- |
+| Node.js | 22 LTS (voir `.nvmrc`) | [nodejs.org](https://nodejs.org/) ou `nvm install` |
+| pnpm    | 10+                    | `corepack enable`                                  |
+| Docker  | —                      | [docker.com](https://www.docker.com/)              |
 
 ```bash
-$ npm install
+# Activer la bonne version de Node avec nvm
+nvm install && nvm use
+
+# Activer pnpm via Corepack (inclus avec Node.js 22)
+corepack enable
 ```
 
-## Configuration
+---
 
-### Variables d'environnement
-
-Créez un fichier `.env` à la racine du projet avec les variables suivantes :
-
-```env
-# Base
-NODE_ENV=development
-PORT=3000
-
-# Exemple MariaDB/MySQL:
-DATABASE_URL="mysql://root:rootpassword@localhost:3306/backend_db"
-
-# JWT
-JWT_SECRET="change-me-in-production"
-JWT_EXPIRES_IN=900
-
-# Refresh token (en secondes)
-REFRESH_TOKEN_EXPIRES_IN=604800
-
-# Vérification email (en secondes)
-EMAIL_VERIFY_EXPIRES_IN=86400
-
-# URLs utilisées dans les emails (liens)
-# APP_URL est prioritaire, sinon FRONTEND_URL
-APP_URL="http://localhost:3000"
-FRONTEND_URL="http://localhost:3000"
-
-# SMTP (optionnel en dev; requis si tu veux réellement envoyer des emails)
-SMTP_HOST=""
-SMTP_PORT=587
-SMTP_USER=""
-SMTP_PASS=""
-SMTP_FROM="no-reply@example.com"
-
-# Kaggle API (pour import des datasets : nutrition, exercise_log, etc.)
-# Créer un token sur https://www.kaggle.com/settings (section API)
-KAGGLE_USER=""
-KAGGLE_KEY=""
-```
-
-**Note** : Le fichier `.env` est ignoré par git pour des raisons de sécurité. Assurez-vous de ne jamais commiter vos variables d'environnement.
-
-### Base de données
-
-Pour démarrer la base de données MariaDB et phpMyAdmin avec Docker :
+## Installation
 
 ```bash
+# 1. Installer les dépendances
+pnpm install
+
+# 2. Configurer l'environnement
+cp env.template .env
+# Éditer .env (DATABASE_URL, JWT_SECRET, SMTP, KAGGLE…)
+
+# 3. Démarrer l'infrastructure locale (MariaDB + phpMyAdmin)
 docker-compose up -d
+
+# 4. Migrations et client Prisma
+pnpm run prisma:migrate
+pnpm run prisma:generate
+
+# 5. Données initiales
+pnpm run prisma:seed
+
+# 6. Démarrer en mode développement
+pnpm run start:dev
 ```
 
-Accès :
+Swagger disponible sur `http://localhost:3000/api`.  
+phpMyAdmin disponible sur `http://localhost:8080` (user: `root` / pass: `rootpassword`).
 
-- **phpMyAdmin** : http://localhost:8080
-  - Utilisateur : `root`
-  - Mot de passe : `rootpassword`
-- **MariaDB** : `localhost:3306`
+---
 
-### Migrations Prisma
-
-Pour créer et appliquer les migrations :
+## Commandes
 
 ```bash
-npm run migrate
+pnpm run start:dev        # Démarrage en mode watch
+pnpm run build            # Compilation TypeScript → dist/
+pnpm run lint             # Vérification ESLint
+pnpm run lint:fix         # Auto-correction ESLint
+pnpm run format:write     # Formatage Prettier
+pnpm run test             # Tests unitaires
+pnpm run test:cov         # Tests avec couverture
+pnpm run test:e2e         # Tests end-to-end
 ```
 
-## Compile and run the project
+### Vérifications obligatoires après chaque modification
 
 ```bash
-# development
-$ npm run start
-
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
+pnpm run lint && pnpm run format && pnpm run build && pnpm run test
 ```
 
-## Run tests
+---
+
+## Workflow Git
+
+### Commits avec Commitizen
+
+Ce projet utilise les [Conventional Commits](https://www.conventionalcommits.org/fr/). **Ne jamais utiliser `git commit -m "..."` directement.** Utilisez toujours l'assistant interactif :
 
 ```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+git cz
 ```
 
-## Deployment
+L'assistant vous guide pour choisir le type, la portée et le message. Les commits alimentent le `CHANGELOG.md` et les releases automatisées.
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+**Types disponibles :**
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+| Type       | Quand l'utiliser                            |
+| ---------- | ------------------------------------------- |
+| `feat`     | Nouvelle fonctionnalité                     |
+| `fix`      | Correction de bug                           |
+| `perf`     | Amélioration de performance                 |
+| `refactor` | Refactorisation sans changement fonctionnel |
+| `docs`     | Documentation uniquement                    |
+| `test`     | Ajout ou correction de tests                |
+| `build`    | Build, dépendances, CI                      |
+| `chore`    | Tâches de maintenance                       |
+
+Guide complet : [`documentation/contributing.md`](documentation/contributing.md)
+
+### Releases
 
 ```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+pnpm run release          # Mode interactif (recommandé)
+pnpm run release:patch    # 1.0.0 → 1.0.1  (bug fix)
+pnpm run release:minor    # 1.0.0 → 1.1.0  (nouvelle fonctionnalité)
+pnpm run release:major    # 1.0.0 → 2.0.0  (breaking change)
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+---
 
-## Resources
+## Variables d'environnement
 
-Check out a few resources that may come in handy when working with NestJS:
+Copier `env.template` vers `.env`. Ne jamais commiter `.env`.
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+| Variable                     | Requis | Description                                       |
+| ---------------------------- | ------ | ------------------------------------------------- |
+| `DATABASE_URL`               | Oui    | URL de connexion MariaDB                          |
+| `JWT_SECRET`                 | Oui    | Clé de signature des JWT                          |
+| `JWT_EXPIRES_IN`             | Non    | Durée access token en secondes (défaut : 900)     |
+| `REFRESH_TOKEN_EXPIRES_IN`   | Non    | Durée refresh token en secondes (défaut : 604800) |
+| `SMTP_HOST`                  | Prod   | Serveur SMTP pour les emails                      |
+| `KAGGLE_USER` / `KAGGLE_KEY` | ETL    | Credentials Kaggle pour les pipelines             |
 
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+Référence complète : [`documentation/environment.md`](documentation/environment.md)
