@@ -238,7 +238,7 @@ export class AuthService {
       throw new UnauthorizedException('USER_NOT_FOUND');
     }
 
-    return user as User;
+    return user;
   }
 
   async requestPasswordReset(
