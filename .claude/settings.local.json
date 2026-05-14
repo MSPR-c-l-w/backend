@@ -57,7 +57,10 @@
       "Bash(node -e \"const p = require\\('./package.json'\\); console.log\\(p.scripts.test\\)\")",
       "Bash(node -e \"require\\('bcrypt'\\); console.log\\('bcrypt OK'\\)\")",
       "Bash(pnpm install *)",
-      "Bash(pnpm approve-builds *)"
+      "Bash(pnpm approve-builds *)",
+      "Bash(pnpm list *)",
+      "Bash(pnpm why *)",
+      "Bash(docker build *)"
     ],
     "additionalDirectories": ["\\mnt\\c\\Users\\tcarr\\Documents\\dev\\backend"]
   }
