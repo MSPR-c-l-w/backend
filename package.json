@@ -127,6 +127,14 @@
       "path": "cz-conventional-changelog"
     }
   },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@nestjs/core",
+      "@prisma/engines",
+      "@scarf/scarf",
+      "bcrypt"
+    ]
+  },
   "lint-staged": {
     "*.{ts,js}": [
       "eslint --fix",
