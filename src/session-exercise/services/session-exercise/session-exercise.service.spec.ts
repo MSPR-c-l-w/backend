@@ -75,7 +75,7 @@ describe('ExerciseLogService', () => {
               findMany: jest.fn(),
               findUnique: jest.fn(),
             },
-          } as PrismaMock,
+          },
         },
       ],
     }).compile();

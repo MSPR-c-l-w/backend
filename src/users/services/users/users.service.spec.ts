@@ -626,7 +626,7 @@ describe('UsersService', () => {
     it('throw BadRequestException si role_id est undefined', async () => {
       prisma.user.findUnique.mockResolvedValue({ id: 1, is_deleted: false });
 
-      const promise = service.updateUserRole('1', {} as any);
+      const promise = service.updateUserRole('1', {});
       await expect(promise).rejects.toBeInstanceOf(BadRequestException);
       await expect(promise).rejects.toMatchObject({
         message: 'ROLE_ID_IS_REQUIRED',
