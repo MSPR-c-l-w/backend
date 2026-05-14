@@ -1,6 +1,5 @@
 import { AnalyticsController } from './analytics.controller';
 import type { IAnalyticsService } from 'src/analytics/interfaces/analytics.interface';
-import { ApiLogsService } from 'src/analytics/services/api-logs/api-logs.service';
 
 describe('AnalyticsController (API & Logs endpoints)', () => {
   let controller: AnalyticsController;
@@ -21,7 +20,7 @@ describe('AnalyticsController (API & Logs endpoints)', () => {
     };
     controller = new AnalyticsController(
       analyticsService as IAnalyticsService,
-      apiLogsService as unknown as ApiLogsService,
+      apiLogsService,
     );
   });
 
@@ -53,7 +52,7 @@ describe('AnalyticsController (API & Logs endpoints)', () => {
   });
 
   it('should forward range to dashboard', () => {
-    apiLogsService.getDashboard.mockReturnValue({} as never);
+    apiLogsService.getDashboard.mockReturnValue({});
 
     controller.getApiLogsDashboard('7j');
 
