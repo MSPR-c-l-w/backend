@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 import { BadRequestException } from '@nestjs/common';
-import { PrismaService } from 'src/prisma/services/prisma/prisma.service';
 import { EtlStagingService } from './etl-staging.service';
 import { EtlAnomalyDetectorService } from '../etl-anomaly-detector/etl-anomaly-detector.service';
 
@@ -37,7 +36,7 @@ describe('EtlStagingService', () => {
       detectForPipeline: jest.fn(() => []),
     };
     service = new EtlStagingService(
-      prisma as unknown as PrismaService,
+      prisma,
       anomalyDetector as unknown as EtlAnomalyDetectorService,
     );
   });

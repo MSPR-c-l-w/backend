@@ -5,6 +5,7 @@
   "author": "",
   "private": true,
   "license": "UNLICENSED",
+  "packageManager": "pnpm@10.29.3",
   "scripts": {
     "build": "nest build",
     "format": "prettier --check \"src/**/*.ts\" \"test/**/*.ts\"",
@@ -26,7 +27,12 @@
     "prisma:seed": "ts-node prisma/seed.ts",
     "prepare": "husky",
     "precommit:verify": "lint-staged",
-    "prepush:verify": "npm run lint && npm run format && npm run build && npm run test"
+    "prepush:verify": "npm run lint && npm run format && npm run build && npm run test",
+    "commit": "cz",
+    "release": "release-it",
+    "release:patch": "release-it patch --ci",
+    "release:minor": "release-it minor --ci",
+    "release:major": "release-it major --ci"
   },
   "dependencies": {
     "@nestjs/axios": "^4.0.1",
@@ -48,6 +54,7 @@
     "class-validator": "^0.14.3",
     "dotenv": "^17.3.1",
     "google-translate-api-x": "^10.7.2",
+    "jsonwebtoken": "^9.0.3",
     "mariadb": "^3.4.5",
     "nodemailer": "^8.0.5",
     "papaparse": "^5.5.3",
@@ -66,14 +73,18 @@
     "@nestjs/cli": "^11.0.21",
     "@nestjs/schematics": "^11.1.0",
     "@nestjs/testing": "^11.1.19",
+    "@release-it/conventional-changelog": "^11.0.0",
     "@types/bcrypt": "^5.0.2",
     "@types/express": "^5.0.0",
     "@types/jest": "^30.0.0",
+    "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^22.10.7",
     "@types/nodemailer": "^6.4.17",
     "@types/papaparse": "^5.5.2",
     "@types/passport-jwt": "^4.0.1",
     "@types/supertest": "^6.0.2",
+    "commitizen": "^4.3.1",
+    "cz-conventional-changelog": "^3.3.0",
     "eslint": "^9.18.0",
     "eslint-config-prettier": "^10.0.1",
     "eslint-plugin-prettier": "^5.5.5",
@@ -83,6 +94,7 @@
     "lint-staged": "^16.4.0",
     "prettier": "^3.4.2",
     "prisma": "^7.8.0",
+    "release-it": "^20.0.1",
     "source-map-support": "^0.5.21",
     "supertest": "^7.0.0",
     "ts-jest": "^29.2.5",
@@ -111,6 +123,19 @@
     ],
     "coverageDirectory": "../coverage",
     "testEnvironment": "node"
+  },
+  "config": {
+    "commitizen": {
+      "path": "cz-conventional-changelog"
+    }
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@nestjs/core",
+      "@prisma/engines",
+      "@scarf/scarf",
+      "bcrypt"
+    ]
   },
   "lint-staged": {
     "*.{ts,js}": [
