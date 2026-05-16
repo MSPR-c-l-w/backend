@@ -45,6 +45,7 @@ model User {
   postComments                        PostComment[]
   postLikes                           PostLike[]
   aiPreferences                       UserAiPreferences?
+  aiNutritionRecommendations          AiNutritionRecommendation[]
 }
 
 model Organization {
@@ -146,6 +147,11 @@ model HealthProfile {
   user                    User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
 }
 
+enum AiRecommendationType {
+  ANALYSIS
+  MEAL_PLAN
+}
+
 model UserAiPreferences {
   id                      Int      @id @default(autoincrement())
   user_id                 Int      @unique
@@ -156,6 +162,22 @@ model UserAiPreferences {
   contraintes_materielles Json
   updated_at              DateTime @updatedAt
   user                    User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+}
+
+model AiNutritionRecommendation {
+  id                Int                  @id @default(autoincrement())
+  user_id           Int
+  type              AiRecommendationType
+  input_image_url   String?
+  aliments_detectes Json?
+  macros            Json?
+  suggestions       Json?
+  meal_plan         Json?
+  created_at        DateTime             @default(now())
+  user              User                 @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@index([created_at])
 }
 
 model Role {
