@@ -16,6 +16,8 @@ import { ACTIVE_SUBSCRIPTION_STATUSES, SERVICES } from 'src/utils/constants';
 import { hashPassword } from 'src/utils/security/password';
 import { User } from 'src/utils/types';
 import { GetUsersDto } from 'src/users/dtos/get.users.dto';
+import { UpdateAiPreferencesDto } from 'src/users/dtos/update-ai-preferences.dto';
+import type { UserAiPreferencesRecord } from 'src/users/interfaces/user-ai-preferences.interface';
 
 @Injectable()
 export class UsersService implements IUsersService {
@@ -388,6 +390,35 @@ export class UsersService implements IUsersService {
         is_active: false,
       },
       select: this.userSelect(),
+    });
+  }
+
+  async updateMyAiPreferences(
+    userId: string,
+    preferences: UpdateAiPreferencesDto,
+  ): Promise<UserAiPreferencesRecord> {
+    const id = parseInt(userId, 10);
+    if (Number.isNaN(id)) {
+      throw new BadRequestException('INVALID_USER_ID');
+    }
+
+    await this.getUserById(userId);
+
+    const data = {
+      allergies: preferences.allergies,
+      regime: preferences.regime ?? null,
+      budget: preferences.budget ?? null,
+      objectif_ia: preferences.objectif_ia,
+      contraintes_materielles: preferences.contraintes_materielles,
+    };
+
+    return this.prisma.userAiPreferences.upsert({
+      where: { user_id: id },
+      create: {
+        user_id: id,
+        ...data,
+      },
+      update: data,
     });
   }
 }

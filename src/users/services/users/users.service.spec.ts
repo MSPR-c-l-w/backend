@@ -26,6 +26,9 @@ describe('UsersService', () => {
       findMany: jest.Mock;
       findUnique: jest.Mock;
     };
+    userAiPreferences: {
+      upsert: jest.Mock;
+    };
   };
 
   const createUserEntity = (overrides: Record<string, unknown> = {}) => ({
@@ -63,6 +66,9 @@ describe('UsersService', () => {
       role: {
         findMany: jest.fn(),
         findUnique: jest.fn(),
+      },
+      userAiPreferences: {
+        upsert: jest.fn(),
       },
     };
 
@@ -673,6 +679,63 @@ describe('UsersService', () => {
         NotFoundException,
       );
       expect(prisma.user.update).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('updateMyAiPreferences', () => {
+    const dto = {
+      allergies: ['lactose'],
+      regime: 'vegetarien',
+      budget: 120,
+      objectif_ia: 'prise_de_masse',
+      contraintes_materielles: ['haltères'],
+    };
+
+    it('upsert les préférences IA pour un utilisateur existant', async () => {
+      const record = {
+        id: 1,
+        user_id: 1,
+        allergies: dto.allergies,
+        regime: dto.regime,
+        budget: dto.budget,
+        objectif_ia: dto.objectif_ia,
+        contraintes_materielles: dto.contraintes_materielles,
+        updated_at: new Date(),
+      };
+      prisma.user.findUnique.mockResolvedValue(createUserEntity());
+      prisma.userAiPreferences.upsert.mockResolvedValue(record);
+
+      await expect(service.updateMyAiPreferences('1', dto)).resolves.toEqual(
+        record,
+      );
+
+      expect(prisma.userAiPreferences.upsert).toHaveBeenCalledWith({
+        where: { user_id: 1 },
+        create: { user_id: 1, ...dto, regime: dto.regime, budget: dto.budget },
+        update: {
+          allergies: dto.allergies,
+          regime: dto.regime,
+          budget: dto.budget,
+          objectif_ia: dto.objectif_ia,
+          contraintes_materielles: dto.contraintes_materielles,
+        },
+      });
+    });
+
+    it('throw BadRequestException si userId invalide', async () => {
+      await expect(
+        service.updateMyAiPreferences('abc', dto),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(prisma.userAiPreferences.upsert).not.toHaveBeenCalled();
+    });
+
+    it('throw NotFoundException si user introuvable', async () => {
+      prisma.user.findUnique.mockResolvedValue(null);
+
+      await expect(
+        service.updateMyAiPreferences('1', dto),
+      ).rejects.toBeInstanceOf(NotFoundException);
+      expect(prisma.userAiPreferences.upsert).not.toHaveBeenCalled();
     });
   });
 });
