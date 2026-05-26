@@ -58,7 +58,12 @@ Requis uniquement pour déclencher les pipelines d'import de données.
 
 ## Docker
 
-En production (compose.yaml), les variables sont passées dans la section `environment`. Ne jamais committer le fichier `.env` — il est dans `.gitignore`.
+- **Dev** : `docker-compose.yml` (MariaDB, phpMyAdmin, optionnellement l’API).
+- **Prod (image seule)** : `compose.yaml`.
+
+Hardening conteneurs (non-root, limites, `no-new-privileges`, scan Trivy) : voir [README.Docker.md](../README.Docker.md).
+
+En production, les variables sont passées dans la section `environment`. Ne jamais committer le fichier `.env` — il est dans `.gitignore`.
 
 Exemple minimal pour Docker :
 ```yaml
