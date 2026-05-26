@@ -14,6 +14,7 @@ describe('UsersController', () => {
     updateUser: jest.fn(),
     updateUserRole: jest.fn(),
     deleteUser: jest.fn(),
+    updateMyAiPreferences: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -158,6 +159,27 @@ describe('UsersController', () => {
 
       expect(result).toEqual(deleted);
       expect(usersServiceMock.deleteUser).toHaveBeenCalledWith('1');
+    });
+  });
+
+  describe('updateMyAiPreferences', () => {
+    it('passe le sub JWT et le body au service', async () => {
+      const dto = {
+        allergies: [],
+        objectif_ia: 'maintien',
+        contraintes_materielles: [],
+      };
+      const record = { id: 1, user_id: 42, ...dto, updated_at: new Date() };
+      usersServiceMock.updateMyAiPreferences.mockResolvedValue(record);
+
+      const req = { user: { sub: 42 } } as never;
+      const result = await controller.updateMyAiPreferences(req, dto);
+
+      expect(result).toEqual(record);
+      expect(usersServiceMock.updateMyAiPreferences).toHaveBeenCalledWith(
+        '42',
+        dto,
+      );
     });
   });
 });

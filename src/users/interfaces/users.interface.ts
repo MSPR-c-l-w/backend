@@ -1,8 +1,11 @@
+import type { Request } from 'express';
 import type { User } from 'src/utils/types';
 import type { CreateUserDto } from '../dtos/create.user.dto';
 import type { UpdateUserDto } from '../dtos/update.user.dto';
 import type { UpdateUserRoleDto } from '../dtos/update-user-role.dto';
 import type { GetUsersDto } from '../dtos/get.users.dto';
+import type { UpdateAiPreferencesDto } from '../dtos/update-ai-preferences.dto';
+import type { UserAiPreferencesRecord } from './user-ai-preferences.interface';
 import type { PaginatedUsersResponse } from '../types';
 
 export type { PaginatedUsersResponse };
@@ -14,6 +17,10 @@ export interface IUsersController {
   updateUser(id: string, user: UpdateUserDto): Promise<User>;
   updateUserRole(id: string, userRole: UpdateUserRoleDto): Promise<User>;
   deleteUser(id: string): Promise<User>;
+  updateMyAiPreferences(
+    req: Request,
+    preferences: UpdateAiPreferencesDto,
+  ): Promise<UserAiPreferencesRecord>;
 }
 
 export interface IUsersService {
@@ -29,4 +36,8 @@ export interface IUsersService {
   updateUser(id: string, user: UpdateUserDto): Promise<User>;
   updateUserRole(id: string, userRole: UpdateUserRoleDto): Promise<User>;
   deleteUser(id: string): Promise<User>;
+  updateMyAiPreferences(
+    userId: string,
+    preferences: UpdateAiPreferencesDto,
+  ): Promise<UserAiPreferencesRecord>;
 }

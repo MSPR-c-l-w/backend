@@ -44,6 +44,7 @@ model User {
   posts                               Post[]
   postComments                        PostComment[]
   postLikes                           PostLike[]
+  aiPreferences                       UserAiPreferences?
 }
 
 model Organization {
@@ -141,6 +142,18 @@ model HealthProfile {
   bmi                     Float?
   physical_activity_level String?
   daily_calories_target   Int?
+  updated_at              DateTime @updatedAt
+  user                    User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+}
+
+model UserAiPreferences {
+  id                      Int      @id @default(autoincrement())
+  user_id                 Int      @unique
+  allergies               Json
+  regime                  String?
+  budget                  Float?
+  objectif_ia             String
+  contraintes_materielles Json
   updated_at              DateTime @updatedAt
   user                    User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
 }
