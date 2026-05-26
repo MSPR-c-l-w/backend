@@ -9,14 +9,19 @@ import {
   Post,
   Put,
   Query,
+  Req,
   UseGuards,
 } from '@nestjs/common';
+import type { Request } from 'express';
+import type { JwtPayload } from 'src/auth/strategies/jwt.strategy';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { Roles } from 'src/auth/decorators/roles.decorator';
 import { CreateUserDto } from 'src/users/dtos/create.user.dto';
 import { UpdateUserDto } from 'src/users/dtos/update.user.dto';
 import { UpdateUserRoleDto } from 'src/users/dtos/update-user-role.dto';
+import { UpdateAiPreferencesDto } from 'src/users/dtos/update-ai-preferences.dto';
+import type { UserAiPreferencesRecord } from 'src/users/interfaces/user-ai-preferences.interface';
 import type {
   IUsersController,
   IUsersService,
@@ -24,10 +29,17 @@ import type {
 import type { PaginatedUsersResponse } from 'src/users/types';
 import { ROUTES, SERVICES } from 'src/utils/constants';
 import { User } from 'src/utils/types';
-import { ApiBearerAuth } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+  ApiUnauthorizedResponse,
+} from '@nestjs/swagger';
 import { GetUsersDto } from 'src/users/dtos/get.users.dto';
 
 @ApiBearerAuth('access-token')
+@ApiTags(ROUTES.USERS)
 @Controller(ROUTES.USERS)
 export class UsersController implements IUsersController {
   constructor(
@@ -54,6 +66,25 @@ export class UsersController implements IUsersController {
     b2bUsers: number;
   }> {
     return this.usersService.getUsersStats();
+  }
+
+  @Put('me/ai-preferences')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({
+    summary: 'Mettre à jour mes préférences IA (utilisateur connecté)',
+  })
+  @ApiOkResponse({ description: 'Préférences IA enregistrées' })
+  @ApiUnauthorizedResponse({ description: 'JWT invalide ou expiré' })
+  updateMyAiPreferences(
+    @Req() req: Request,
+    @Body() preferences: UpdateAiPreferencesDto,
+  ): Promise<UserAiPreferencesRecord> {
+    const payload = req.user as JwtPayload;
+
+    return this.usersService.updateMyAiPreferences(
+      payload.sub.toString(),
+      preferences,
+    );
   }
 
   @Get(':id')
