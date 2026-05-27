@@ -35,6 +35,7 @@ describe('PostController', () => {
     likes_count: 0,
     comments_count: 0,
     liked_by_me: false,
+    author: { id: 1, first_name: 'Jean', last_name: 'Dupont' },
   };
 
   const authReq = {
@@ -69,13 +70,21 @@ describe('PostController', () => {
   });
 
   describe('getPosts', () => {
-    it('devrait retourner la liste', async () => {
+    it('devrait retourner la liste sans curseur', async () => {
       postServiceMock.getPosts.mockResolvedValue([mockPostEngagement]);
 
-      const result = await controller.getPosts(authReq);
+      const result = await controller.getPosts(authReq, {});
 
       expect(result).toEqual([mockPostEngagement]);
-      expect(postServiceMock.getPosts).toHaveBeenCalledWith(1);
+      expect(postServiceMock.getPosts).toHaveBeenCalledWith(1, undefined, undefined);
+    });
+
+    it('devrait passer cursor et limit au service', async () => {
+      postServiceMock.getPosts.mockResolvedValue([mockPostEngagement]);
+
+      await controller.getPosts(authReq, { cursor: 5, limit: 10 });
+
+      expect(postServiceMock.getPosts).toHaveBeenCalledWith(1, 5, 10);
     });
   });
 

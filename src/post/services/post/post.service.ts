@@ -13,6 +13,10 @@ import type {
 } from 'src/post/types/post-engagement.types';
 import { PrismaService } from 'src/prisma/services/prisma/prisma.service';
 
+const authorSelect = {
+  select: { id: true, first_name: true, last_name: true },
+};
+
 const postEngagementInclude = (userId: number) =>
   ({
     _count: { select: { likes: true, comments: true } },
@@ -21,12 +25,14 @@ const postEngagementInclude = (userId: number) =>
       select: { id: true },
       take: 1,
     },
+    author: authorSelect,
   }) satisfies Prisma.PostInclude;
 
 function mapPostRowToEngagement(
   row: Post & {
     _count: { likes: number; comments: number };
     likes: { id: number }[];
+    author: { id: number; first_name: string; last_name: string };
   },
 ): PostWithEngagement {
   const { _count, likes, ...post } = row;
@@ -50,8 +56,14 @@ export class PostService implements IPostService {
     return postId;
   }
 
-  async getPosts(currentUserId: number): Promise<PostWithEngagement[]> {
+  async getPosts(
+    currentUserId: number,
+    cursor?: number,
+    limit = 20,
+  ): Promise<PostWithEngagement[]> {
     const rows = await this.prisma.post.findMany({
+      take: limit,
+      ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
       orderBy: { created_at: 'desc' },
       include: postEngagementInclude(currentUserId),
     });

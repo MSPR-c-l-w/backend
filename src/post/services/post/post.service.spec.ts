@@ -70,14 +70,23 @@ describe('PostService', () => {
     expect(service).toBeDefined();
   });
 
+  const mockAuthor = { id: 1, first_name: 'Jean', last_name: 'Dupont' };
+
   const rowWithEngagement = {
     ...mockPost,
     _count: { likes: 2, comments: 3 },
     likes: [] as { id: number }[],
+    author: mockAuthor,
   };
 
+  const expectedEngagementInclude = (userId: number) => ({
+    _count: { select: { likes: true, comments: true } },
+    likes: { where: { user_id: userId }, select: { id: true }, take: 1 },
+    author: { select: { id: true, first_name: true, last_name: true } },
+  });
+
   describe('getPosts', () => {
-    it('devrait retourner la liste des posts avec engagement', async () => {
+    it('devrait retourner la première page sans curseur (limit 20 par défaut)', async () => {
       prisma.post.findMany.mockResolvedValue([rowWithEngagement]);
 
       const result = await service.getPosts(9);
@@ -85,6 +94,7 @@ describe('PostService', () => {
       expect(result).toEqual([
         {
           ...mockPost,
+          author: mockAuthor,
           likes_count: 2,
           comments_count: 3,
           liked_by_me: false,
@@ -92,18 +102,50 @@ describe('PostService', () => {
       ]);
       expect(prisma.post.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
+          take: 20,
           orderBy: { created_at: 'desc' },
-          include: {
-            _count: { select: { likes: true, comments: true } },
-            likes: { where: { user_id: 9 }, select: { id: true }, take: 1 },
-          },
+          include: expectedEngagementInclude(9),
         }),
       );
+    });
+
+    it('devrait appliquer le curseur pour la pagination', async () => {
+      prisma.post.findMany.mockResolvedValue([rowWithEngagement]);
+
+      await service.getPosts(9, 5, 10);
+
+      expect(prisma.post.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          take: 10,
+          cursor: { id: 5 },
+          skip: 1,
+          orderBy: { created_at: 'desc' },
+          include: expectedEngagementInclude(9),
+        }),
+      );
+    });
+
+    it('ne doit pas passer cursor/skip si cursor est absent', async () => {
+      prisma.post.findMany.mockResolvedValue([]);
+
+      await service.getPosts(9, undefined, 5);
+
+      expect(prisma.post.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ take: 5 }),
+      );
+      /* eslint-disable @typescript-eslint/no-unsafe-assignment */
+      expect(prisma.post.findMany).not.toHaveBeenCalledWith(
+        expect.objectContaining({ cursor: expect.anything() }),
+      );
+      expect(prisma.post.findMany).not.toHaveBeenCalledWith(
+        expect.objectContaining({ skip: expect.anything() }),
+      );
+      /* eslint-enable @typescript-eslint/no-unsafe-assignment */
     });
   });
 
   describe('getPostById', () => {
-    it('devrait retourner un post par id avec engagement', async () => {
+    it('devrait retourner un post par id avec engagement et auteur', async () => {
       prisma.post.findUnique.mockResolvedValue({
         ...rowWithEngagement,
         likes: [{ id: 1 }],
@@ -113,6 +155,7 @@ describe('PostService', () => {
 
       expect(result).toEqual({
         ...mockPost,
+        author: mockAuthor,
         likes_count: 2,
         comments_count: 3,
         liked_by_me: true,
@@ -120,10 +163,7 @@ describe('PostService', () => {
       expect(prisma.post.findUnique).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { id: 1 },
-          include: {
-            _count: { select: { likes: true, comments: true } },
-            likes: { where: { user_id: 9 }, select: { id: true }, take: 1 },
-          },
+          include: expectedEngagementInclude(9),
         }),
       );
     });
