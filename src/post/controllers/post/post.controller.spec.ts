@@ -76,7 +76,11 @@ describe('PostController', () => {
       const result = await controller.getPosts(authReq, {});
 
       expect(result).toEqual([mockPostEngagement]);
-      expect(postServiceMock.getPosts).toHaveBeenCalledWith(1, undefined, undefined);
+      expect(postServiceMock.getPosts).toHaveBeenCalledWith(
+        1,
+        undefined,
+        undefined,
+      );
     });
 
     it('devrait passer cursor et limit au service', async () => {
