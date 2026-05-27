@@ -7,6 +7,7 @@ import {
   Param,
   Post as PostMethod,
   Put,
+  Query,
   Req,
   UseGuards,
 } from '@nestjs/common';
@@ -30,6 +31,7 @@ import type { JwtPayload } from 'src/auth/strategies/jwt.strategy';
 import {
   CreatePostCommentDto,
   CreatePostDto,
+  GetPostsQueryDto,
   UpdatePostDto,
 } from 'src/post/dtos/post.dto';
 import type {
@@ -56,12 +58,13 @@ export class PostController implements IPostController {
   @ApiOperation({
     summary: 'Lister les posts',
     description:
-      'Chaque post inclut likes_count, comments_count et liked_by_me (utilisateur du JWT).',
+      'Pagination par curseur : passer `cursor` (ID du dernier post reçu) et `limit` (défaut 20). ' +
+      'Chaque post inclut likes_count, comments_count, liked_by_me et author (id, first_name, last_name).',
   })
-  @ApiOkResponse({ description: 'Liste des posts avec engagement' })
-  getPosts(@Req() req: Request) {
+  @ApiOkResponse({ description: 'Page de posts avec engagement et auteur' })
+  getPosts(@Req() req: Request, @Query() query: GetPostsQueryDto) {
     const payload = req.user as JwtPayload;
-    return this.postService.getPosts(payload.sub);
+    return this.postService.getPosts(payload.sub, query.cursor, query.limit);
   }
 
   @Get(':id/comments')

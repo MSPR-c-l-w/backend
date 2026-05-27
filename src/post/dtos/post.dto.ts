@@ -1,10 +1,12 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
 import {
   IsBoolean,
   IsInt,
   IsNotEmpty,
   IsOptional,
   IsString,
+  Max,
   MaxLength,
   Min,
 } from 'class-validator';
@@ -85,6 +87,30 @@ export class UpdatePostDto {
   @IsInt({ message: 'ORGANIZATION_ID_MUST_BE_AN_INTEGER' })
   @IsOptional()
   organization_id?: number | null;
+}
+
+export class GetPostsQueryDto {
+  @ApiPropertyOptional({
+    example: 10,
+    description:
+      'ID du dernier post reçu — tous les posts antérieurs sont retournés',
+  })
+  @IsInt({ message: 'CURSOR_MUST_BE_AN_INTEGER' })
+  @Min(1, { message: 'CURSOR_MUST_BE_POSITIVE' })
+  @IsOptional()
+  @Type(() => Number)
+  cursor?: number;
+
+  @ApiPropertyOptional({
+    example: 20,
+    description: 'Nombre de posts à retourner (défaut : 20, max : 100)',
+  })
+  @IsInt({ message: 'LIMIT_MUST_BE_AN_INTEGER' })
+  @Min(1, { message: 'LIMIT_MUST_BE_POSITIVE' })
+  @Max(100, { message: 'LIMIT_MUST_NOT_EXCEED_100' })
+  @IsOptional()
+  @Type(() => Number)
+  limit?: number;
 }
 
 export class CreatePostCommentDto {

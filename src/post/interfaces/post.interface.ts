@@ -3,6 +3,7 @@ import { Post } from '@prisma/client';
 import type {
   CreatePostCommentDto,
   CreatePostDto,
+  GetPostsQueryDto,
   UpdatePostDto,
 } from 'src/post/dtos/post.dto';
 import type {
@@ -11,7 +12,10 @@ import type {
 } from 'src/post/types/post-engagement.types';
 
 export interface IPostController {
-  getPosts(req: Request): Promise<PostWithEngagement[]>;
+  getPosts(
+    req: Request,
+    query: GetPostsQueryDto,
+  ): Promise<PostWithEngagement[]>;
   getPostById(id: string, req: Request): Promise<PostWithEngagement>;
   getPostComments(id: string): Promise<PostCommentWithAuthor[]>;
   createPostComment(
@@ -33,7 +37,11 @@ export interface IPostController {
 }
 
 export interface IPostService {
-  getPosts(currentUserId: number): Promise<PostWithEngagement[]>;
+  getPosts(
+    currentUserId: number,
+    cursor?: number,
+    limit?: number,
+  ): Promise<PostWithEngagement[]>;
   getPostById(id: string, currentUserId: number): Promise<PostWithEngagement>;
   getPostComments(id: string): Promise<PostCommentWithAuthor[]>;
   createPostComment(
