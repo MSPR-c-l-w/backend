@@ -1,16 +1,16 @@
 import {
-  BadRequestException,
   Inject,
   Injectable,
   Logger,
   ServiceUnavailableException,
 } from '@nestjs/common';
-import { Nutrition } from '@prisma/client';
+import { Nutrition, Prisma } from '@prisma/client';
 import { PrismaService } from 'src/prisma/services/prisma/prisma.service';
 import { EtlAnomalyDetectorService } from 'src/etl/services/etl-anomaly-detector/etl-anomaly-detector.service';
 import { SERVICES } from 'src/utils/constants';
 
 interface DetectedFood {
+  [key: string]: unknown;
   name: string;
   confidence: number;
 }
@@ -20,6 +20,7 @@ interface VisionServiceResponse {
 }
 
 interface MacroNutrients {
+  [key: string]: unknown;
   calories_kcal: number;
   protein_g: number;
   carbohydrates_g: number;
@@ -34,12 +35,12 @@ interface AnalysisResult {
   alimentsDetectes: DetectedFood[];
   macros: MacroNutrients;
   suggestions: string[];
-  anomalies: Record<string, unknown>[];
+  anomalies: Prisma.JsonValue;
 }
 
 interface BalanceAnalysis {
   isBalanced: boolean;
-  anomalies: Record<string, unknown>[];
+  anomalies: Prisma.JsonValue;
   suggestions?: string[];
 }
 
@@ -73,9 +74,13 @@ export class NutritionAiService {
   constructor(
     private readonly prisma: PrismaService,
     @Inject(SERVICES.HUGGINGFACE_VISION_SERVICE)
-    private readonly huggingFaceService: { identifyFoodFromImage: (url: string) => Promise<VisionServiceResponse> },
+    private readonly huggingFaceService: {
+      identifyFoodFromImage: (url: string) => Promise<VisionServiceResponse>;
+    },
     @Inject(SERVICES.GOOGLE_VISION_SERVICE)
-    private readonly googleVisionService: { analyzeFoodImage: (url: string) => Promise<VisionServiceResponse> },
+    private readonly googleVisionService: {
+      analyzeFoodImage: (url: string) => Promise<VisionServiceResponse>;
+    },
     private readonly anomalyDetector: EtlAnomalyDetectorService,
   ) {}
 
@@ -96,9 +101,8 @@ export class NutritionAiService {
     // Étape 1: Identifier aliments via vision AI
     let detectedFoods: DetectedFood[] = [];
     try {
-      const result = await this.huggingFaceService.identifyFoodFromImage(
-        imageUrl,
-      );
+      const result =
+        await this.huggingFaceService.identifyFoodFromImage(imageUrl);
       detectedFoods = result.detectedFoods || [];
     } catch (hfError) {
       this.logger.warn(
@@ -106,16 +110,15 @@ export class NutritionAiService {
       );
 
       try {
-        const result = await this.googleVisionService.analyzeFoodImage(
-          imageUrl,
-        );
+        const result =
+          await this.googleVisionService.analyzeFoodImage(imageUrl);
         detectedFoods = result.detectedFoods || [];
       } catch (googleError) {
         this.logger.error(
           `Tous les services de vision ont échoué: HF=${(hfError as Error).message}, Google=${(googleError as Error).message}`,
         );
         throw new ServiceUnavailableException(
-          'Impossible de traiter l\'image : tous les services de vision sont indisponibles.',
+          "Impossible de traiter l'image : tous les services de vision sont indisponibles.",
         );
       }
     }
@@ -146,10 +149,10 @@ export class NutritionAiService {
         user_id: userId,
         type: 'ANALYSIS',
         input_image_url: imageUrl,
-        aliments_detectes: detectedFoods,
-        macros,
+        aliments_detectes: detectedFoods as Prisma.InputJsonValue,
+        macros: macros as Prisma.InputJsonValue,
         suggestions: suggestionResult.suggestions,
-        meal_plan: null,
+        meal_plan: Prisma.JsonNull,
       },
     });
 
@@ -167,7 +170,7 @@ export class NutritionAiService {
    * @param userProfile Profil utilisateur
    * @returns Analyse d'équilibre avec anomalies détectées
    */
-  async analyzeNutritionBalance(
+  analyzeNutritionBalance(
     macros: MacroNutrients,
     userProfile: UserProfile,
   ): Promise<BalanceAnalysis> {
@@ -288,7 +291,7 @@ export class NutritionAiService {
    * @param userProfile Profil utilisateur
    * @returns Suggestions adaptées au profil
    */
-  async generateNutritionSuggestions(
+  generateNutritionSuggestions(
     macros: MacroNutrients,
     userProfile: UserProfile,
   ): Promise<{ suggestions: string[] }> {
@@ -354,9 +357,7 @@ export class NutritionAiService {
 
     // Message par défaut si aucune suggestion
     if (suggestions.length === 0) {
-      suggestions.push(
-        'Excellent équilibre nutritionnel ! Continuez ainsi.',
-      );
+      suggestions.push('Excellent équilibre nutritionnel ! Continuez ainsi.');
     }
 
     return { suggestions };
@@ -382,7 +383,8 @@ export class NutritionAiService {
     return {
       age: user.date_of_birth
         ? Math.floor(
-            (Date.now() - user.date_of_birth.getTime()) / (1000 * 60 * 60 * 24 * 365.25),
+            (Date.now() - user.date_of_birth.getTime()) /
+              (1000 * 60 * 60 * 24 * 365.25),
           )
         : undefined,
       gender: user.gender || undefined,
