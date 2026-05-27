@@ -5,7 +5,7 @@ import {
   Logger,
   ServiceUnavailableException,
 } from '@nestjs/common';
-import { Nutrition } from '@prisma/client';
+import { Nutrition, Prisma } from '@prisma/client';
 import { PrismaService } from 'src/prisma/services/prisma/prisma.service';
 import { EtlAnomalyDetectorService } from 'src/etl/services/etl-anomaly-detector/etl-anomaly-detector.service';
 import { SERVICES } from 'src/utils/constants';
@@ -34,12 +34,12 @@ interface AnalysisResult {
   alimentsDetectes: DetectedFood[];
   macros: MacroNutrients;
   suggestions: string[];
-  anomalies: Record<string, unknown>[];
+  anomalies: Prisma.JsonArray;
 }
 
 interface BalanceAnalysis {
   isBalanced: boolean;
-  anomalies: Record<string, unknown>[];
+  anomalies: Prisma.JsonArray;
   suggestions?: string[];
 }
 
