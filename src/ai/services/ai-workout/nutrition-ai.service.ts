@@ -1,5 +1,4 @@
 import {
-  BadRequestException,
   Inject,
   Injectable,
   Logger,
@@ -34,12 +33,12 @@ interface AnalysisResult {
   alimentsDetectes: DetectedFood[];
   macros: MacroNutrients;
   suggestions: string[];
-  anomalies: Record<string, unknown>[];
+  anomalies: unknown[];
 }
 
 interface BalanceAnalysis {
   isBalanced: boolean;
-  anomalies: Record<string, unknown>[];
+  anomalies: unknown[];
   suggestions?: string[];
 }
 
@@ -73,9 +72,13 @@ export class NutritionAiService {
   constructor(
     private readonly prisma: PrismaService,
     @Inject(SERVICES.HUGGINGFACE_VISION_SERVICE)
-    private readonly huggingFaceService: { identifyFoodFromImage: (url: string) => Promise<VisionServiceResponse> },
+    private readonly huggingFaceService: {
+      identifyFoodFromImage: (url: string) => Promise<VisionServiceResponse>;
+    },
     @Inject(SERVICES.GOOGLE_VISION_SERVICE)
-    private readonly googleVisionService: { analyzeFoodImage: (url: string) => Promise<VisionServiceResponse> },
+    private readonly googleVisionService: {
+      analyzeFoodImage: (url: string) => Promise<VisionServiceResponse>;
+    },
     private readonly anomalyDetector: EtlAnomalyDetectorService,
   ) {}
 
@@ -96,9 +99,8 @@ export class NutritionAiService {
     // Étape 1: Identifier aliments via vision AI
     let detectedFoods: DetectedFood[] = [];
     try {
-      const result = await this.huggingFaceService.identifyFoodFromImage(
-        imageUrl,
-      );
+      const result =
+        await this.huggingFaceService.identifyFoodFromImage(imageUrl);
       detectedFoods = result.detectedFoods || [];
     } catch (hfError) {
       this.logger.warn(
@@ -106,16 +108,15 @@ export class NutritionAiService {
       );
 
       try {
-        const result = await this.googleVisionService.analyzeFoodImage(
-          imageUrl,
-        );
+        const result =
+          await this.googleVisionService.analyzeFoodImage(imageUrl);
         detectedFoods = result.detectedFoods || [];
       } catch (googleError) {
         this.logger.error(
           `Tous les services de vision ont échoué: HF=${(hfError as Error).message}, Google=${(googleError as Error).message}`,
         );
         throw new ServiceUnavailableException(
-          'Impossible de traiter l\'image : tous les services de vision sont indisponibles.',
+          "Impossible de traiter l'image : tous les services de vision sont indisponibles.",
         );
       }
     }
@@ -135,7 +136,7 @@ export class NutritionAiService {
 
     // Étape 5: Générer suggestions
     const userProfile = await this.getUserProfile(userId);
-    const suggestionResult = await this.generateNutritionSuggestions(
+    const suggestionResult = this.generateNutritionSuggestions(
       macros,
       userProfile,
     );
@@ -146,10 +147,9 @@ export class NutritionAiService {
         user_id: userId,
         type: 'ANALYSIS',
         input_image_url: imageUrl,
-        aliments_detectes: detectedFoods,
-        macros,
+        aliments_detectes: JSON.stringify(detectedFoods),
+        macros: JSON.stringify(macros),
         suggestions: suggestionResult.suggestions,
-        meal_plan: null,
       },
     });
 
@@ -167,10 +167,10 @@ export class NutritionAiService {
    * @param userProfile Profil utilisateur
    * @returns Analyse d'équilibre avec anomalies détectées
    */
-  async analyzeNutritionBalance(
+  analyzeNutritionBalance(
     macros: MacroNutrients,
     userProfile: UserProfile,
-  ): Promise<BalanceAnalysis> {
+  ): BalanceAnalysis {
     this.logger.log(
       `Analyse équilibre nutrition pour profil: ${JSON.stringify(userProfile)}`,
     );
@@ -288,10 +288,10 @@ export class NutritionAiService {
    * @param userProfile Profil utilisateur
    * @returns Suggestions adaptées au profil
    */
-  async generateNutritionSuggestions(
+  generateNutritionSuggestions(
     macros: MacroNutrients,
     userProfile: UserProfile,
-  ): Promise<{ suggestions: string[] }> {
+  ): { suggestions: string[] } {
     const suggestions: string[] = [];
     const target = userProfile.daily_calories_target || 2000;
     const activityLevel =
@@ -354,9 +354,7 @@ export class NutritionAiService {
 
     // Message par défaut si aucune suggestion
     if (suggestions.length === 0) {
-      suggestions.push(
-        'Excellent équilibre nutritionnel ! Continuez ainsi.',
-      );
+      suggestions.push('Excellent équilibre nutritionnel ! Continuez ainsi.');
     }
 
     return { suggestions };
@@ -382,7 +380,8 @@ export class NutritionAiService {
     return {
       age: user.date_of_birth
         ? Math.floor(
-            (Date.now() - user.date_of_birth.getTime()) / (1000 * 60 * 60 * 24 * 365.25),
+            (Date.now() - user.date_of_birth.getTime()) /
+              (1000 * 60 * 60 * 24 * 365.25),
           )
         : undefined,
       gender: user.gender || undefined,
