@@ -1,4 +1,4 @@
-import 'dotenv/config';
+import 'src/config/load-env';
 import { NestFactory } from '@nestjs/core';
 import { Logger, ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';

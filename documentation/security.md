@@ -131,6 +131,17 @@ POST /auth/password-reset/confirm { token, new_password }
 
 ---
 
+## Rotation de `JWT_SECRET`
+
+Voir la procédure complète dans [secrets-management.md](secrets-management.md#rotation-de-jwt_secret) :
+
+1. Générer une nouvelle clé (`openssl rand -base64 48`)
+2. Mettre à jour `.env.secrets` / le vault de production
+3. Redéployer toutes les instances backend
+4. Les access tokens existants sont invalidés — reconnexion utilisateur requise
+
+---
+
 ## Bonnes pratiques à respecter
 
 - Ne jamais stocker un token en clair en base.

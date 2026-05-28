@@ -3,7 +3,7 @@ import {
   PrismaClient,
   WorkoutRecommendationStatus,
 } from '@prisma/client';
-import 'dotenv/config';
+import '../src/config/load-env';
 import { PrismaMariaDb } from '@prisma/adapter-mariadb';
 import { faker } from '@faker-js/faker/locale/fr';
 import { hashPassword } from '../src/utils/security/password';

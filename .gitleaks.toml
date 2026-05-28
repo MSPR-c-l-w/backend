@@ -1,0 +1,17 @@
+title = "Backend gitleaks config (#130)"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Fichiers d'exemple et baseline detect-secrets"
+paths = [
+  '''\.env\.example$''',
+  '''\.env\.secrets\.example$''',
+  '''^env\.template$''',
+  '''\.secrets\.baseline$''',
+  '''documentation/secrets-management\.md''',
+]
+
+[allowlist.regexTarget]
+line = '''change-me|rootpassword|example\.com|localhost|your-|dummy|test_api_key|kg_xxxxxxxx'''

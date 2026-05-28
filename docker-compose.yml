@@ -6,11 +6,11 @@ services:
     image: mariadb:11.4
     container_name: backend-mariadb
     restart: unless-stopped
+    env_file:
+      - .env.secrets
     environment:
-      MYSQL_ROOT_PASSWORD: rootpassword
       MYSQL_DATABASE: backend_db
       MYSQL_USER: backend_user
-      MYSQL_PASSWORD: backend_password
     ports:
       - '3306:3306'
     volumes:
@@ -34,12 +34,12 @@ services:
     image: phpmyadmin:5-apache
     container_name: backend-phpmyadmin
     restart: unless-stopped
+    env_file:
+      - .env.secrets
     environment:
       PMA_HOST: mariadb
       PMA_PORT: 3306
       PMA_USER: root
-      PMA_PASSWORD: rootpassword
-      MYSQL_ROOT_PASSWORD: rootpassword
     ports:
       - '8080:80'
     depends_on:
@@ -61,10 +61,11 @@ services:
       dockerfile: Dockerfile
     container_name: backend-api
     restart: unless-stopped
+    env_file:
+      - .env.secrets
     environment:
       NODE_ENV: production
       PORT: 3001
-      DATABASE_URL: mysql://backend_user:backend_password@mariadb:3306/backend_db
     ports:
       - '3001:3001'
     depends_on:

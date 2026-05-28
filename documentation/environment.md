@@ -1,6 +1,8 @@
 # Variables d'environnement
 
-Copier `env.template` vers `.env` avant de démarrer.
+Copier `.env.example` → `.env` et `.env.secrets.example` → `.env.secrets` avant de démarrer.
+
+Gestion des secrets, rotation JWT, Docker : voir [secrets-management.md](secrets-management.md).
 
 ## Application
 
@@ -56,6 +58,26 @@ Requis uniquement pour déclencher les pipelines d'import de données.
 |---|---|---|
 | `DISCORD_WEBHOOK_URL` | GitHub Actions (vars) | URL du webhook Discord pour les notifications CI. Si absent, la notification est silencieusement ignorée. |
 
+## CSRF (complément)
+
+| Variable | Requis | Défaut | Description |
+|---|---|---|---|
+| `CSRF_SECRET` | Non (prod : recommandé) | `JWT_SECRET` | Clé HMAC des tokens CSRF |
+| `CSRF_TTL_MS` | Non | `7200000` | Durée de vie CSRF en millisecondes |
+
+## Workout micro-service
+
+| Variable | Requis | Exemple | Description |
+|---|---|---|---|
+| `WORKOUT_SERVICE_URL` | **Pour IA workout** | `http://localhost:8000` | URL du micro-service |
+| `WORKOUT_SERVICE_API_KEY` | **Pour IA workout** | — | Clé API (secret → `.env.secrets`) |
+
+## WebSocket ETL
+
+| Variable | Requis | Description |
+|---|---|---|
+| `ETL_WS_ALLOWED_ORIGINS` | Non | Origines CORS WebSocket (virgules). Défaut : `FRONTEND_URL` |
+
 ## Docker
 
 - **Dev** : `docker-compose.yml` (MariaDB, phpMyAdmin, optionnellement l’API).
@@ -63,19 +85,15 @@ Requis uniquement pour déclencher les pipelines d'import de données.
 
 Hardening conteneurs (non-root, limites, `no-new-privileges`, scan Trivy) : voir [README.Docker.md](../README.Docker.md).
 
-En production, les variables sont passées dans la section `environment`. Ne jamais committer le fichier `.env` — il est dans `.gitignore`.
+En production / Docker, les **secrets** passent par `env_file: .env.secrets` (fichier gitignoré). Les valeurs non sensibles restent dans `environment:` du compose.
 
-Exemple minimal pour Docker :
+Ne jamais committer `.env` ni `.env.secrets`.
+
+Exemple minimal pour Docker (`docker-compose.yml`) :
 ```yaml
+env_file:
+  - .env.secrets
 environment:
   NODE_ENV: production
   PORT: 3001
-  DATABASE_URL: mysql://user:pass@db:3306/backend_db
-  JWT_SECRET: un-secret-tres-long-et-aleatoire
-  APP_URL: https://api.mondomaine.fr
-  SMTP_HOST: smtp.mondomaine.fr
-  SMTP_PORT: 587
-  SMTP_USER: noreply@mondomaine.fr
-  SMTP_PASS: password
-  SMTP_FROM: noreply@mondomaine.fr
 ```

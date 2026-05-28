@@ -6,6 +6,8 @@ services:
       context: .
       dockerfile: Dockerfile
     restart: unless-stopped
+    env_file:
+      - .env.secrets
     environment:
       NODE_ENV: production
       PORT: 3001

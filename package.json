@@ -26,6 +26,7 @@
     "prisma:generate": "prisma generate",
     "prisma:seed": "ts-node prisma/seed.ts",
     "prepare": "husky",
+    "secrets:scan": "node scripts/check-staged-secrets.mjs",
     "precommit:verify": "lint-staged",
     "prepush:verify": "npm run lint && npm run format && npm run build && npm run test",
     "commit": "cz",
@@ -144,6 +145,9 @@
     ],
     "*.{json,md,yml,yaml}": [
       "prettier --write"
+    ],
+    "*.{ts,js,mjs,json,md,yml,yaml,env,example}": [
+      "node scripts/check-staged-secrets.mjs"
     ]
   }
 }

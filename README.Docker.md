@@ -1,5 +1,16 @@
 # Docker — Backend
 
+## Secrets (#130)
+
+Avant le premier `docker compose up` :
+
+```bash
+cp .env.secrets.example .env.secrets
+# Adapter DATABASE_URL pour Docker : host `mariadb` au lieu de `localhost`
+```
+
+Les mots de passe et clés API ne doivent **pas** être dans `docker-compose.yml` — uniquement dans `.env.secrets` (gitignoré). Voir [documentation/secrets-management.md](documentation/secrets-management.md).
+
 ## Démarrage rapide
 
 **Base de données locale (MariaDB + phpMyAdmin) :**
