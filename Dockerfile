@@ -23,11 +23,13 @@ FROM base AS final
 
 ENV NODE_ENV=production
 
-USER node
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 
-COPY --chown=node:node package.json .
-COPY --chown=node:node --from=build /usr/src/app/node_modules ./node_modules
-COPY --chown=node:node --from=build /usr/src/app/dist ./dist
+COPY --chown=appuser:appgroup package.json .
+COPY --chown=appuser:appgroup --from=build /usr/src/app/node_modules ./node_modules
+COPY --chown=appuser:appgroup --from=build /usr/src/app/dist ./dist
+
+USER appuser
 
 EXPOSE 3001
 
