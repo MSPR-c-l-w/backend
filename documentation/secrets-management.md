@@ -53,7 +53,7 @@ Deux mécanismes complémentaires :
 1. **Husky** (par défaut) : `npm run secrets:scan` via `scripts/check-staged-secrets.mjs` sur les fichiers stagés
 2. **detect-secrets** (optionnel) : `pip install pre-commit detect-secrets && pre-commit install`
 
-En CI : scan **Gitleaks** sur le dépôt (workflow `ci-quality.yml`).
+En CI : scan **Gitleaks** (binaire open source via `scripts/ci-gitleaks.sh`, workflow `ci-quality.yml`). Pour les dépôts d’organisation, éviter `gitleaks-action@v2` qui exige une licence `GITLEAKS_LICENSE`.
 
 ## Rotation de `JWT_SECRET`
 
