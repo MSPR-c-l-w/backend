@@ -1,22 +1,62 @@
-### Building and running your application
+# Docker — Backend
 
-When you're ready, start your application by running:
-`docker compose up --build`.
+## Secrets (#130)
 
-Your application will be available at http://localhost:3001.
+Avant le premier `docker compose up` :
 
-### Deploying your application to the cloud
+```bash
+cp .env.secrets.example .env.secrets
+# Adapter DATABASE_URL pour Docker : host `mariadb` au lieu de `localhost`
+```
 
-First, build your image, e.g.: `docker build -t myapp .`.
-If your cloud uses a different CPU architecture than your development
-machine (e.g., you are on a Mac M1 and your cloud provider is amd64),
-you'll want to build the image for that platform, e.g.:
-`docker build --platform=linux/amd64 -t myapp .`.
+Les mots de passe et clés API ne doivent **pas** être dans `docker-compose.yml` — uniquement dans `.env.secrets` (gitignoré). Voir [documentation/secrets-management.md](documentation/secrets-management.md).
 
-Then, push it to your registry, e.g. `docker push myregistry.com/myapp`.
+## Démarrage rapide
 
-Consult Docker's [getting started](https://docs.docker.com/go/get-started-sharing/)
-docs for more detail on building and pushing.
+**Base de données locale (MariaDB + phpMyAdmin) :**
 
-### References
-* [Docker's Node.js guide](https://docs.docker.com/language/nodejs/)
+```bash
+docker compose -f docker-compose.yml up -d mariadb phpmyadmin
+```
+
+**Stack complète (DB + API) :**
+
+```bash
+docker compose -f docker-compose.yml up -d --build
+```
+
+API : http://localhost:3001 — phpMyAdmin : http://localhost:8080
+
+**Image backend seule (prod) :**
+
+```bash
+docker compose -f compose.yaml up --build
+```
+
+## Sécurité des conteneurs (#129)
+
+| Élément | Backend (ce repo) |
+|--------|-------------------|
+| Utilisateur non-root | `appuser` / `appgroup` dans `Dockerfile` |
+| Limites CPU/RAM | `deploy.resources.limits` dans `compose.yaml` et `docker-compose.yml` |
+| `no-new-privileges` | Tous les services dans les compose files |
+| Scan CVE | Trivy dans `.github/workflows/cd.yml` (échec si critique) |
+
+**Frontend (nginx)** — dépôt front séparé ; à y appliquer :
+
+- `cap_drop: [ALL]` + `cap_add: [NET_BIND_SERVICE]`
+- `read_only: true` + `tmpfs: [/tmp, /var/run/nginx]`
+- Limites : `0.2` CPU / `128M` RAM
+
+## Build multi-plateforme
+
+```bash
+docker build --platform=linux/amd64 -t backend:local .
+```
+
+## Scan manuel des vulnérabilités
+
+```bash
+docker build -t backend:scan .
+docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image --severity CRITICAL backend:scan
+```

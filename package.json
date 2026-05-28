@@ -8,8 +8,8 @@
   "packageManager": "pnpm@10.29.3",
   "scripts": {
     "build": "nest build",
-    "format": "prettier --check \"src/**/*.ts\" \"test/**/*.ts\"",
-    "format:write": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
+    "format": "prettier --check \"src/**/*.ts\" \"test/**/*.ts\" \"prisma.config.ts\"",
+    "format:write": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\" \"prisma.config.ts\"",
     "start": "nest start",
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
@@ -26,6 +26,8 @@
     "prisma:generate": "prisma generate",
     "prisma:seed": "ts-node prisma/seed.ts",
     "prepare": "husky",
+    "secrets:scan": "node scripts/check-staged-secrets.mjs",
+    "secrets:scan:gitleaks": "gitleaks git --config .gitleaks.toml --verbose --redact",
     "precommit:verify": "lint-staged",
     "prepush:verify": "npm run lint && npm run format && npm run build && npm run test",
     "commit": "cz",
@@ -144,6 +146,9 @@
     ],
     "*.{json,md,yml,yaml}": [
       "prettier --write"
+    ],
+    "*.{ts,js,mjs,json,md,yml,yaml,env,example}": [
+      "node scripts/check-staged-secrets.mjs"
     ]
   }
 }

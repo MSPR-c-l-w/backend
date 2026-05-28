@@ -1,10 +1,22 @@
+# Image backend seule (prod / CI). Hardening aligné issue #129.
+
 services:
   server:
     build:
       context: .
+      dockerfile: Dockerfile
     restart: unless-stopped
+    env_file:
+      - .env.secrets
     environment:
       NODE_ENV: production
       PORT: 3001
     ports:
       - 3001:3001
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G

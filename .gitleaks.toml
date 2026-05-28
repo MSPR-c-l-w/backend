@@ -1,0 +1,28 @@
+title = "Backend gitleaks config (#130)"
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Fichiers d'exemple et baseline detect-secrets"
+paths = [
+  '''\.env\.example$''',
+  '''\.env\.secrets\.example$''',
+  '''^env\.template$''',
+  '''\.secrets\.baseline$''',
+  '''documentation/secrets-management\.md''',
+]
+
+[[allowlists]]
+description = "Placeholders documentés (ligne entière)"
+regexTarget = "line"
+regexes = [
+  '''change-me|rootpassword|example\.com|localhost|your-|dummy|test_api_key|kg_xxxxxxxx''',
+]
+
+[[allowlists]]
+description = "Badges README historiques (shields.io, faux positif generic-api-key)"
+regexTarget = "line"
+regexes = [
+  '''img\.shields\.io|shields\.io/badge''',
+]
