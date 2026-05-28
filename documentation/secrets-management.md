@@ -2,12 +2,12 @@
 
 ## Fichiers de configuration
 
-| Fichier | Versionné | Rôle |
-|---------|-----------|------|
-| `.env.example` | Oui | Référence exhaustive (toutes les variables, format, obligatoire/optionnel) |
-| `.env.secrets.example` | Oui | Modèle des **secrets** uniquement |
-| `.env` | Non (gitignore) | Config non sensible locale |
-| `.env.secrets` | Non (gitignore) | Secrets locaux / Docker `env_file` |
+| Fichier                | Versionné       | Rôle                                                                       |
+| ---------------------- | --------------- | -------------------------------------------------------------------------- |
+| `.env.example`         | Oui             | Référence exhaustive (toutes les variables, format, obligatoire/optionnel) |
+| `.env.secrets.example` | Oui             | Modèle des **secrets** uniquement                                          |
+| `.env`                 | Non (gitignore) | Config non sensible locale                                                 |
+| `.env.secrets`         | Non (gitignore) | Secrets locaux / Docker `env_file`                                         |
 
 ### Démarrage local
 
@@ -20,6 +20,8 @@ cp .env.secrets.example .env.secrets
 L'application charge `.env` puis `.env.secrets` via `src/config/load-env.ts` (avant le bootstrap NestJS).
 
 ## Docker Compose — séparation sensible / secrets
+
+Réseaux `healthai-internal` / `healthai-public` : voir [network.md](network.md).
 
 Dans `docker-compose.yml` :
 

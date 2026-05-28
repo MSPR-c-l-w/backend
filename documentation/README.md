@@ -29,13 +29,14 @@ Backend NestJS pour une plateforme de fitness & santé. Ce dossier contient la d
 | [dashboard.md](dashboard.md)               | Module Dashboard — pilotage admin                                         |
 | [etl.md](etl.md)                           | Module ETL — pipelines, staging, WebSocket                                |
 | [post.md](post.md)                         | Module Post — articles, commentaires, likes                               |
+| [network.md](network.md)                   | Réseaux Docker `healthai-internal` / `healthai-public`, firewall          |
 
 ## Démarrage rapide
 
 ```bash
 corepack enable              # Activer pnpm via Corepack
-cp env.template .env         # Configurer les variables d'env
-docker-compose up -d         # Démarrer MariaDB + phpMyAdmin
+cp .env.example .env && cp .env.secrets.example .env.secrets
+docker compose up -d         # Stack HealthAI (voir network.md)
 pnpm install
 pnpm run prisma:migrate      # Appliquer les migrations
 pnpm run prisma:generate     # Générer le client Prisma

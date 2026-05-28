@@ -28,6 +28,7 @@
     "prepare": "husky",
     "secrets:scan": "node scripts/check-staged-secrets.mjs",
     "secrets:scan:gitleaks": "gitleaks git --config .gitleaks.toml --verbose --redact",
+    "docker:verify-network": "bash scripts/verify-docker-network.sh",
     "precommit:verify": "lint-staged",
     "prepush:verify": "npm run lint && npm run format && npm run build && npm run test",
     "commit": "cz",
