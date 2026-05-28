@@ -138,7 +138,7 @@ export class NutritionAiService {
 
     // Étape 5: Générer suggestions
     const userProfile = await this.getUserProfile(userId);
-    const suggestionResult = await this.generateNutritionSuggestions(
+    const suggestionResult = this.generateNutritionSuggestions(
       macros,
       userProfile,
     );
@@ -173,7 +173,7 @@ export class NutritionAiService {
   analyzeNutritionBalance(
     macros: MacroNutrients,
     userProfile: UserProfile,
-  ): Promise<BalanceAnalysis> {
+  ): BalanceAnalysis {
     this.logger.log(
       `Analyse équilibre nutrition pour profil: ${JSON.stringify(userProfile)}`,
     );
@@ -294,7 +294,7 @@ export class NutritionAiService {
   generateNutritionSuggestions(
     macros: MacroNutrients,
     userProfile: UserProfile,
-  ): Promise<{ suggestions: string[] }> {
+  ): { suggestions: string[] } {
     const suggestions: string[] = [];
     const target = userProfile.daily_calories_target || 2000;
     const activityLevel =
