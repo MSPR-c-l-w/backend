@@ -10,6 +10,19 @@ export class RolesService implements IRoleService, OnModuleInit {
 
   async onModuleInit(): Promise<void> {
     await this.seedDefaultRoles();
+    await this.assignDefaultRoleToUsersWithoutRole();
+  }
+
+  async assignDefaultRoleToUsersWithoutRole(): Promise<void> {
+    const clientRole = await this.prisma.role.findFirst({
+      where: { name: 'CLIENT' },
+      select: { id: true },
+    });
+    if (!clientRole) return;
+    await this.prisma.user.updateMany({
+      where: { role_id: null },
+      data: { role_id: clientRole.id },
+    });
   }
 
   async seedDefaultRoles(): Promise<void> {

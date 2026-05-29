@@ -60,10 +60,12 @@ export class PostService implements IPostService {
     currentUserId: number,
     cursor?: number,
     limit = 20,
+    category?: string,
   ): Promise<PostWithEngagement[]> {
     const rows = await this.prisma.post.findMany({
       take: limit,
       ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+      where: category ? { category } : undefined,
       orderBy: { created_at: 'desc' },
       include: postEngagementInclude(currentUserId),
     });
@@ -202,6 +204,8 @@ export class PostService implements IPostService {
           title: dto.title,
           content: dto.content,
           media_url: dto.media_url ?? null,
+          category: dto.category ?? null,
+          mood: dto.mood ?? null,
           is_published: dto.is_published ?? false,
           author_id: dto.author_id,
           organization_id: dto.organization_id ?? null,
