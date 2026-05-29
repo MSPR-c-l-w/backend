@@ -421,4 +421,17 @@ export class UsersService implements IUsersService {
       update: data,
     });
   }
+
+  async updateMe(
+    userId: number,
+    first_name: string,
+    last_name: string,
+  ): Promise<{ first_name: string; last_name: string }> {
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { first_name: first_name.trim(), last_name: last_name.trim() },
+    });
+
+    return { first_name: first_name.trim(), last_name: last_name.trim() };
+  }
 }

@@ -738,4 +738,26 @@ describe('UsersService', () => {
       expect(prisma.userAiPreferences.upsert).not.toHaveBeenCalled();
     });
   });
+
+  describe('updateMe', () => {
+    it('met à jour first_name et last_name et retourne les valeurs trimées', async () => {
+      prisma.user.update.mockResolvedValue({});
+
+      const result = await service.updateMe(1, '  Jean ', ' Dupont ');
+
+      expect(prisma.user.update).toHaveBeenCalledWith({
+        where: { id: 1 },
+        data: { first_name: 'Jean', last_name: 'Dupont' },
+      });
+      expect(result).toEqual({ first_name: 'Jean', last_name: 'Dupont' });
+    });
+
+    it('propage les erreurs Prisma', async () => {
+      prisma.user.update.mockRejectedValue(new Error('DB_ERROR'));
+
+      await expect(service.updateMe(1, 'Jean', 'Dupont')).rejects.toThrow(
+        'DB_ERROR',
+      );
+    });
+  });
 });
