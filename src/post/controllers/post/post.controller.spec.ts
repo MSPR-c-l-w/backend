@@ -26,6 +26,7 @@ describe('PostController', () => {
     content: '<p>Contenu</p>',
     media_url: null,
     category: null,
+    mood: null,
     is_published: false,
     created_at: new Date(),
     updated_at: new Date(),

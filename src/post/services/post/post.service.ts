@@ -205,6 +205,7 @@ export class PostService implements IPostService {
           content: dto.content,
           media_url: dto.media_url ?? null,
           category: dto.category ?? null,
+          mood: dto.mood ?? null,
           is_published: dto.is_published ?? false,
           author_id: dto.author_id,
           organization_id: dto.organization_id ?? null,

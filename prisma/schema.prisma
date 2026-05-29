@@ -225,6 +225,7 @@ model Post {
   content         String        @db.LongText
   media_url       String?       @db.VarChar(2048)
   category        String?
+  mood            String?
   is_published    Boolean       @default(false)
   created_at      DateTime      @default(now())
   updated_at      DateTime      @updatedAt

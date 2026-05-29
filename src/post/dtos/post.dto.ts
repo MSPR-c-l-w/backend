@@ -39,6 +39,15 @@ export class CreatePostDto {
   category?: string;
 
   @ApiPropertyOptional({
+    example: '💪',
+    description: 'Emoji humeur associé au post',
+  })
+  @IsString({ message: 'MOOD_MUST_BE_A_STRING' })
+  @IsOptional()
+  @MaxLength(8, { message: 'MOOD_TOO_LONG' })
+  mood?: string;
+
+  @ApiPropertyOptional({
     example: false,
     description: 'Publication (MCD is_published)',
   })
