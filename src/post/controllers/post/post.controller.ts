@@ -64,7 +64,12 @@ export class PostController implements IPostController {
   @ApiOkResponse({ description: 'Page de posts avec engagement et auteur' })
   getPosts(@Req() req: Request, @Query() query: GetPostsQueryDto) {
     const payload = req.user as JwtPayload;
-    return this.postService.getPosts(payload.sub, query.cursor, query.limit);
+    return this.postService.getPosts(
+      payload.sub,
+      query.cursor,
+      query.limit,
+      query.category,
+    );
   }
 
   @Get(':id/comments')

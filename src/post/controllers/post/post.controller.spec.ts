@@ -25,6 +25,7 @@ describe('PostController', () => {
     title: 'Titre',
     content: '<p>Contenu</p>',
     media_url: null,
+    category: null,
     is_published: false,
     created_at: new Date(),
     updated_at: new Date(),
@@ -80,6 +81,7 @@ describe('PostController', () => {
         1,
         undefined,
         undefined,
+        undefined,
       );
     });
 
@@ -88,7 +90,12 @@ describe('PostController', () => {
 
       await controller.getPosts(authReq, { cursor: 5, limit: 10 });
 
-      expect(postServiceMock.getPosts).toHaveBeenCalledWith(1, 5, 10);
+      expect(postServiceMock.getPosts).toHaveBeenCalledWith(
+        1,
+        5,
+        10,
+        undefined,
+      );
     });
   });
 

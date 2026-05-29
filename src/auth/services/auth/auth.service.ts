@@ -148,11 +148,17 @@ export class AuthService {
 
     const passwordHash = await hashPassword(dto.password);
 
+    const clientRole = await this.prisma.role.findFirst({
+      where: { name: 'CLIENT' },
+      select: { id: true },
+    });
+
     const created = await this.prisma.user.create({
       data: {
         ...(dto.organization_id == null
           ? {}
           : { organization: { connect: { id: dto.organization_id } } }),
+        ...(clientRole ? { role: { connect: { id: clientRole.id } } } : {}),
         email: dto.email,
         password_hash: passwordHash,
         first_name: dto.first_name,
