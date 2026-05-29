@@ -31,6 +31,23 @@ export class CreatePostDto {
   media_url?: string;
 
   @ApiPropertyOptional({
+    example: 'workout',
+    description: 'Catégorie du post : workout | nutrition | wellness',
+  })
+  @IsString({ message: 'CATEGORY_MUST_BE_A_STRING' })
+  @IsOptional()
+  category?: string;
+
+  @ApiPropertyOptional({
+    example: '💪',
+    description: 'Emoji humeur associé au post',
+  })
+  @IsString({ message: 'MOOD_MUST_BE_A_STRING' })
+  @IsOptional()
+  @MaxLength(8, { message: 'MOOD_TOO_LONG' })
+  mood?: string;
+
+  @ApiPropertyOptional({
     example: false,
     description: 'Publication (MCD is_published)',
   })
@@ -83,6 +100,14 @@ export class UpdatePostDto {
   @Min(1, { message: 'AUTHOR_ID_MUST_BE_POSITIVE' })
   author_id?: number;
 
+  @ApiPropertyOptional({
+    example: 'workout',
+    description: 'Catégorie du post : workout | nutrition | wellness',
+  })
+  @IsString({ message: 'CATEGORY_MUST_BE_A_STRING' })
+  @IsOptional()
+  category?: string | null;
+
   @ApiPropertyOptional({ example: 1 })
   @IsInt({ message: 'ORGANIZATION_ID_MUST_BE_AN_INTEGER' })
   @IsOptional()
@@ -111,6 +136,14 @@ export class GetPostsQueryDto {
   @IsOptional()
   @Type(() => Number)
   limit?: number;
+
+  @ApiPropertyOptional({
+    example: 'workout',
+    description: 'Filtrer par catégorie : workout | nutrition | wellness',
+  })
+  @IsString({ message: 'CATEGORY_MUST_BE_A_STRING' })
+  @IsOptional()
+  category?: string;
 }
 
 export class CreatePostCommentDto {

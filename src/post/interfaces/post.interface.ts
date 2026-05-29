@@ -41,6 +41,7 @@ export interface IPostService {
     currentUserId: number,
     cursor?: number,
     limit?: number,
+    category?: string,
   ): Promise<PostWithEngagement[]>;
   getPostById(id: string, currentUserId: number): Promise<PostWithEngagement>;
   getPostComments(id: string): Promise<PostCommentWithAuthor[]>;
