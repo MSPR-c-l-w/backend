@@ -21,6 +21,7 @@ import { CreateUserDto } from 'src/users/dtos/create.user.dto';
 import { UpdateUserDto } from 'src/users/dtos/update.user.dto';
 import { UpdateUserRoleDto } from 'src/users/dtos/update-user-role.dto';
 import { UpdateAiPreferencesDto } from 'src/users/dtos/update-ai-preferences.dto';
+import { UpdateMeDto } from 'src/users/dtos/update-me.dto';
 import type { UserAiPreferencesRecord } from 'src/users/interfaces/user-ai-preferences.interface';
 import type {
   IUsersController,
@@ -66,6 +67,24 @@ export class UsersController implements IUsersController {
     b2bUsers: number;
   }> {
     return this.usersService.getUsersStats();
+  }
+
+  @Patch('me')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: "Mettre à jour mon nom d'affichage" })
+  @ApiOkResponse({ description: 'Profil mis à jour' })
+  @ApiUnauthorizedResponse({ description: 'JWT invalide ou expiré' })
+  async updateMe(
+    @Req() req: Request,
+    @Body() dto: UpdateMeDto,
+  ): Promise<{ user: { first_name: string; last_name: string } }> {
+    const payload = req.user as JwtPayload;
+    const result = await this.usersService.updateMe(
+      payload.sub,
+      dto.first_name,
+      dto.last_name,
+    );
+    return { user: result };
   }
 
   @Put('me/ai-preferences')

@@ -21,6 +21,10 @@ export interface IUsersController {
     req: Request,
     preferences: UpdateAiPreferencesDto,
   ): Promise<UserAiPreferencesRecord>;
+  updateMe(
+    req: Request,
+    dto: { first_name: string; last_name: string },
+  ): Promise<{ user: { first_name: string; last_name: string } }>;
 }
 
 export interface IUsersService {
@@ -40,4 +44,9 @@ export interface IUsersService {
     userId: string,
     preferences: UpdateAiPreferencesDto,
   ): Promise<UserAiPreferencesRecord>;
+  updateMe(
+    userId: number,
+    first_name: string,
+    last_name: string,
+  ): Promise<{ first_name: string; last_name: string }>;
 }
