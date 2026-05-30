@@ -12,6 +12,7 @@
 8. [Guide développeur — ajouter une métrique](#8-guide-développeur--ajouter-une-métrique)
 9. [Runbooks opérationnels](#9-runbooks-opérationnels)
 10. [Limitations macOS / Rancher Desktop](#10-limitations-macos--rancher-desktop)
+11. [Gestion mémoire Node.js](#11-gestion-mémoire-nodejs)
 
 ---
 
@@ -204,6 +205,43 @@ Suivi des appels aux APIs IA externes.
 | Répartition par provider | Camembert des appels                            |
 | Logs IA                  | Logs filtrés workout/generateProgram (Loki)     |
 
+### 4.5 Routes Analytics (`routes-analytics`) — NOUVEAU
+
+Dashboard dédié à l'analyse par route HTTP — permet de voir quelles routes sont les plus sollicitées, les plus lentes, et celles qui génèrent le plus d'erreurs.
+
+**Rangée 1 — Vue globale :**
+
+| Panel                                  | Description                                                   |
+|----------------------------------------|---------------------------------------------------------------|
+| Top 10 routes les plus utilisées       | Bar chart horizontal — volume total de requêtes sur la période sélectionnée |
+| Top 10 routes les plus lentes (p95)    | Bar chart horizontal — latence au 95e percentile              |
+
+**Rangée 2 — Tableau détaillé :**
+
+Tableau interactif triable avec pour chaque route × méthode HTTP :
+
+| Colonne          | Métrique PromQL                                                         | Unité   |
+|------------------|-------------------------------------------------------------------------|---------|
+| Total appels     | `sum by (route, method) (increase(http_requests_total[$__range]))`      | nombre  |
+| Latence moy      | `sum(duration_sum) / sum(duration_count)`                               | secondes — fond coloré jaune/rouge |
+| Latence min (p5) | `histogram_quantile(0.05, ...)`                                         | secondes|
+| Latence max (p99)| `histogram_quantile(0.99, ...)`                                         | secondes|
+| Latence p95      | `histogram_quantile(0.95, ...)`                                         | secondes — fond coloré |
+| Taux d'erreur    | erreurs 4xx+5xx / total                                                 | % — fond coloré rouge si > 5% |
+
+**Rangée 3 — Évolution temporelle :**
+- Timeseries req/s top 5 routes (avec légende max/mean/last)
+- Timeseries latence p50/p95/p99 top 5 routes
+
+**Rangée 4 — Erreurs :**
+- Bar chart routes avec le plus d'erreurs 4xx/5xx
+- Donut répartition des codes HTTP (200/401/404/500…)
+
+**Usage typique :**
+- Changer la période en haut à droite (`Last 1h`, `Last 24h`, `Last 7d`) pour analyser différentes fenêtres
+- Trier le tableau par "Total appels" pour les routes les plus utilisées
+- Trier par "Latence p95" pour identifier les goulots d'étranglement
+
 ---
 
 ## 5. Alertes Prometheus
@@ -246,6 +284,8 @@ open http://localhost:9093    # AlertManager UI — alertes actives, silences
 open http://localhost:9090    # Prometheus UI — requêtes ad hoc, règles, targets
 ```
 
+> **⚠️ Attention Prometheus templates :** les fonctions `mul` et `mulf` n'existent **pas** dans les templates d'annotations Prometheus. Utiliser `{{ printf "%.3f" $value }}s` à la place. Une erreur de template fait crasher Prometheus au démarrage, ce qui prive Grafana de datasource (erreur 502).
+
 ---
 
 ## 6. Centralisation des logs (Loki)
@@ -272,6 +312,27 @@ Grafana (datasource Loki)
 | `component` | `backend`, `ai`  | Calculé depuis le nom du conteneur  |
 
 > **Filtre bruit :** les requêtes `GET /health` et `GET /metrics` sont exclues de Loki automatiquement.
+
+> **⚠️ Backend NestJS hors Docker :** si le backend tourne en natif (`npm run start:dev`), ses logs ne sont **pas** collectés par Promtail (qui scrape uniquement le socket Docker). Pour avoir les logs NestJS dans Loki, lancer le backend dans un conteneur Docker.
+
+> **⚠️ Logs anciens rejetés :** Loki rejette les entrées dont le timestamp est antérieur à 7 jours (configuration par défaut). Si Promtail redémarre après une longue pause et tente de renvoyer d'anciens logs, il obtient des erreurs 400 `entry has timestamp too old`. Ce comportement est normal.
+
+### Datasource UIDs dans les dashboards
+
+Les panels Loki dans les dashboards JSON doivent avoir la datasource définie **au niveau du panel** (pas uniquement au niveau du target), sinon Grafana envoie les requêtes LogQL à Prometheus et retourne une erreur 400 `unexpected character '|'` :
+
+```json
+{
+  "type": "logs",
+  "datasource": { "type": "loki", "uid": "loki" },
+  "targets": [
+    {
+      "datasource": { "type": "loki", "uid": "loki" },
+      "expr": "{container=\"backend-nestjs\"} |= \"ERROR\""
+    }
+  ]
+}
+```
 
 ### Requêtes LogQL utiles
 
@@ -309,10 +370,10 @@ sum(rate({container="backend-nestjs", level="ERROR"}[1m]))
 cd docker/
 docker compose -f docker-compose.monitoring.yml up -d
 
-# 2. Backend NestJS (depuis la racine)
+# 2. Backend NestJS (depuis la racine) — avec flags mémoire
 cd ..
 npm run build
-npm run start:prod
+npm run start:prod    # = node --max-old-space-size=512 --expose-gc dist/main.js
 
 # 3. Vérification des targets Prometheus
 curl -s http://localhost:9090/api/v1/targets | python3 -c "
@@ -325,6 +386,17 @@ for t in json.load(sys.stdin)['data']['activeTargets']:
 # 4. Accès Grafana
 open http://localhost:3002   # admin / admin
 ```
+
+### URLs d'accès
+
+| Service       | URL                          | Identifiants   |
+|---------------|------------------------------|----------------|
+| Grafana       | http://localhost:3002        | admin / admin  |
+| Prometheus    | http://localhost:9090        | —              |
+| AlertManager  | http://localhost:9093        | —              |
+| Loki          | http://localhost:3100        | —              |
+| Backend API   | http://localhost:3001/api    | —              |
+| Métriques raw | http://localhost:3001/metrics| —              |
 
 ### Générer des métriques ETL
 
@@ -398,7 +470,28 @@ async maMethode(): Promise<void> {
 }
 ```
 
-### Étape 5 — Vérifier
+### Étape 5 — Mocker dans les tests
+
+Tout service qui injecte `MetricsService` doit le mocker dans ses specs :
+
+```typescript
+// mon-service.spec.ts
+import { MetricsService } from 'src/metrics/metrics.service';
+
+providers: [
+  MonService,
+  {
+    provide: MetricsService,
+    useValue: {
+      observerDureeETL: jest.fn(),
+      enregistrerRequeteHttp: jest.fn(),
+      enregistrerAppelIA: jest.fn(),
+    },
+  },
+]
+```
+
+### Étape 6 — Vérifier
 
 ```bash
 curl http://localhost:3001/metrics | grep ma_metrique
@@ -436,9 +529,6 @@ curl -s "http://localhost:9090/api/v1/query?query=nodejs_eventloop_lag_p99_secon
 # Vérifier si un pipeline ETL est en cours (bloque la DB)
 curl -s "http://localhost:9090/api/v1/query?query=etl_pipeline_duration_seconds_count" \
   | python3 -c "import json,sys; [print(r['metric']['pipeline'], r['value'][1]) for r in json.load(sys.stdin)['data']['result']]"
-
-# Logs récents
-docker logs backend-nestjs --since 5m | grep -E "ERROR|WARN"
 ```
 
 ### RB-03 — Event Loop bloquée (`HighEventLoopLag`)
@@ -449,9 +539,6 @@ Causes probables : opération synchrone bloquante (JSON.parse massif, crypto), b
 # Handles actifs
 curl -s "http://localhost:9090/api/v1/query?query=nodejs_active_handles_total" \
   | python3 -c "import json,sys; print(json.load(sys.stdin)['data']['result'][0]['value'][1], 'handles')"
-
-# Logs avec contexte
-docker logs backend-nestjs --since 10m | grep -B2 -A2 "ERROR"
 ```
 
 ### RB-04 — Heap saturée (`HighHeapUsage`)
@@ -461,7 +548,12 @@ docker logs backend-nestjs --since 10m | grep -B2 -A2 "ERROR"
 curl -s "http://localhost:9090/api/v1/query?query=nodejs_heap_size_used_bytes/nodejs_heap_size_total_bytes*100" \
   | python3 -c "import json,sys; print(round(float(json.load(sys.stdin)['data']['result'][0]['value'][1]),1), '%')"
 
-# Si > 90% : redémarrer NestJS (récupérer PID via ps aux | grep 'node dist/main')
+# Vérifier les flags de démarrage (doit inclure --max-old-space-size=512)
+ps aux | grep "node dist/main"
+
+# Redémarrer avec les bons flags si nécessaire
+kill <PID>
+node --max-old-space-size=512 --expose-gc dist/main.js &
 ```
 
 ### RB-05 — Disque critique (`DiskSpaceLow`)
@@ -479,11 +571,49 @@ curl -s "http://localhost:9090/api/v1/query?query=etl_pipeline_duration_seconds_
   | python3 -c "
 import json,sys
 for r in json.load(sys.stdin)['data']['result']:
-    print(f'{r[\'metric\']["pipeline"]}: {float(r[\'value\'][1]):.1f}s')
+    print(f'{r[\"metric\"][\"pipeline\"]}: {float(r[\"value\"][1]):.1f}s')
 "
+```
 
-# Logs pipeline
-docker logs backend-nestjs --tail 200 | grep -i "pipeline\|ETL\|import\|ERROR"
+### RB-07 — Prometheus crash (erreur 502 dans Grafana)
+
+Symptôme : Grafana retourne `Status: 502. Message: Post "http://prometheus:9090/api/v1/query": dial tcp: lookup prometheus on ...: no such host`.
+
+Cause : Prometheus a crashé au démarrage (config invalide) et n'a pas reçu d'IP dans le réseau Docker.
+
+```bash
+# 1. Vérifier les logs Prometheus
+docker logs prometheus --tail 20
+
+# 2. Corriger le fichier de config (souvent alerts.yml)
+# ⚠️ Ne pas utiliser les fonctions 'mul' ou 'mulf' dans les templates d'annotations
+
+# 3. Recréer le conteneur (un simple restart ne suffit pas)
+docker compose -f docker/docker-compose.monitoring.yml stop prometheus
+docker compose -f docker/docker-compose.monitoring.yml rm -f prometheus
+docker compose -f docker/docker-compose.monitoring.yml up -d prometheus
+
+# 4. Vérifier que Prometheus a une IP
+docker inspect prometheus | python3 -c "
+import json,sys; d=json.load(sys.stdin)
+print('IP:', d[0]['NetworkSettings']['Networks'].get('docker_monitoring',{}).get('IPAddress','??'))
+"
+```
+
+### RB-08 — Grafana mot de passe perdu
+
+Si `admin/admin` ne fonctionne plus (mot de passe changé via l'UI et volume persistant) :
+
+```bash
+# Arrêter Grafana
+docker compose -f docker/docker-compose.monitoring.yml stop grafana
+docker rm -f grafana
+
+# Supprimer le volume de données
+docker volume rm docker_grafana-data
+
+# Relancer (repart avec admin/admin)
+docker compose -f docker/docker-compose.monitoring.yml up -d grafana
 ```
 
 ---
@@ -506,13 +636,22 @@ Toutes les images cAdvisor ont ce comportement sur macOS (gcr.io, ghcr.io, zcube
 Si `engine_daemon_*` disparaissent après redémarrage de Rancher Desktop :
 
 ```bash
-# Réécrire daemon.json dans la VM Lima
+# Réécrire daemon.json dans la VM Lima via un conteneur privilégié
 docker run --rm --privileged --pid=host alpine:latest \
   nsenter -t 1 -m -u -n -i -- sh -c \
-  'echo "{"features":{"containerd-snapshotter":true},"metrics-addr":"0.0.0.0:9323","experimental":true}" > /etc/docker/daemon.json'
+  'echo "{\"metrics-addr\":\"0.0.0.0:9323\",\"experimental\":true}" > /etc/docker/daemon.json'
 
-# Puis redémarrer Rancher Desktop
+# Puis redémarrer Rancher Desktop complètement
+rdctl shutdown
+open -a "Rancher Desktop"
+# Attendre ~60s que le socket Docker soit disponible
 ```
+
+### Compter les conteneurs sur Rancher Desktop
+
+Sur Rancher Desktop, `engine_daemon_container_states_containers` inclut les conteneurs **k3s internes** (CoreDNS, Traefik, metrics-server, local-path-provisioner…) en plus des conteneurs du projet. C'est normal — k3s embarque Kubernetes en local.
+
+Exemple typique : 8 conteneurs projet + 11 conteneurs k3s = 19 au total.
 
 ### Migration vers un serveur Linux (production)
 
@@ -540,8 +679,66 @@ Dans `docker/prometheus/prometheus.yml`, remplacer `docker-daemon` par :
     - targets: ['cadvisor:8080']
 ```
 
-Dans `docker/grafana/dashboards/stack-overview.json`, utiliser :
+Dans les dashboards, utiliser :
 ```promql
 rate(container_cpu_usage_seconds_total{name!=""}[2m]) * 100
 container_memory_usage_bytes{name!=""}
 ```
+
+---
+
+## 11. Gestion mémoire Node.js
+
+### Problème identifié
+
+Au démarrage par défaut, le process NestJS utilise **~57MB sur ~59MB** de heap V8, soit **96%** de la limite par défaut de Node.js. Ce niveau élevé est dû à :
+- La taille du bundle NestJS (modules, décorateurs, injection de dépendances)
+- Le client Prisma chargé en mémoire
+- Les métriques Prometheus accumulées dans le registre prom-client
+
+### Solution appliquée
+
+**1. Augmentation de la limite heap (`--max-old-space-size=512`)**
+
+Passe la limite de ~60MB à 512MB. Même volume de données, mais ratio `utilisé/total` passe de 96% à ~11%.
+
+**2. Activation du GC manuel (`--expose-gc`)**
+
+Active la fonction `global.gc()` dans Node.js, normalement inaccessible.
+
+**3. GC périodique automatique dans `src/main.ts`**
+
+```typescript
+// GC toutes les 30s si --expose-gc est actif
+if (typeof global.gc === 'function') {
+  setInterval(() => {
+    global.gc!();
+  }, 30_000);
+}
+```
+
+### Flags appliqués
+
+| Script           | Commande                                                     |
+|------------------|--------------------------------------------------------------|
+| `start:prod`     | `node --max-old-space-size=512 --expose-gc dist/main.js`     |
+| `nest start`     | Via `nest-cli.json` : `"exec": "node --max-old-space-size=512 --expose-gc"` |
+
+### Vérifier le heap en temps réel
+
+```bash
+# Via Prometheus
+curl -s "http://localhost:9090/api/v1/query?query=nodejs_heap_size_used_bytes/nodejs_heap_size_total_bytes*100" \
+  | python3 -c "import json,sys; r=json.load(sys.stdin)['data']['result']; print(round(float(r[0]['value'][1]),1), '% heap utilisé')"
+
+# Via /metrics directement
+curl -s http://localhost:3001/metrics | grep -E "^nodejs_heap_size_(used|total)_bytes [0-9]"
+```
+
+### Panneaux Grafana associés
+
+Le dashboard **API NestJS** contient :
+- **Heap utilisé %** (gauge) — seuil jaune 70%, rouge 85%
+- **Heap used/total/RSS** (timeseries)
+- **GC duration** — durée des cycles major/minor
+
