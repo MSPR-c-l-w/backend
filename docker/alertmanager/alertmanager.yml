@@ -11,7 +11,7 @@ route:
 receivers:
   - name: 'webhook-local'
     webhook_configs:
-      - url: '${ALERT_WEBHOOK_URL:-http://host.docker.internal:3000/alerts/webhook}'
+      - url: 'http://host.docker.internal:3000/alerts/webhook'
         send_resolved: true
 
 inhibit_rules:
