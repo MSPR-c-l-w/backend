@@ -6,9 +6,10 @@ import { AiNutritionService } from 'src/ai/services/ai-nutrition/ai-nutrition.se
 import { AiWorkoutService } from 'src/ai/services/ai-workout/ai-workout.service';
 import { WorkoutMicroserviceModule } from 'src/ai/workout-microservice/workout-microservice.module';
 import { SERVICES } from 'src/utils/constants';
+import { MetricsModule } from 'src/metrics/metrics.module';
 
 @Module({
-  imports: [WorkoutMicroserviceModule, HttpModule],
+  imports: [WorkoutMicroserviceModule, HttpModule, MetricsModule],
   controllers: [AiWorkoutController, AiNutritionController],
   providers: [
     AiWorkoutService,

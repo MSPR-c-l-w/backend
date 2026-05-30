@@ -9,6 +9,7 @@ import type { WorkoutUserProfile } from 'src/ai/interfaces/workout-user-profile.
 import { WorkoutMicroserviceClient } from 'src/ai/workout-microservice/workout-microservice.client';
 import { PrismaService } from 'src/prisma/services/prisma/prisma.service';
 import { SERVICES } from 'src/utils/constants';
+import { MetricsService } from 'src/metrics/metrics.service';
 
 export interface GenerateWorkoutResult {
   recommendationId: number;
@@ -37,6 +38,7 @@ export class AiWorkoutService {
     private readonly prisma: PrismaService,
     @Inject(SERVICES.WORKOUT_MICROSERVICE_CLIENT)
     private readonly workoutClient: WorkoutMicroserviceClient,
+    private readonly metricsService: MetricsService,
   ) {}
 
   async generateForUser(userId: number): Promise<GenerateWorkoutResult> {
@@ -64,6 +66,7 @@ export class AiWorkoutService {
       userId,
       userProfile,
     );
+    this.metricsService.enregistrerAppelIA('workout-microservice', 'generate-program');
 
     await this.prisma.aiWorkoutRecommendation.updateMany({
       where: { user_id: userId, statut: 'ACTIVE' },

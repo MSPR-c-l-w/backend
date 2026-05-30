@@ -12,7 +12,7 @@ groups:
 
       - alert: HighCpuUsage
         expr: >
-          rate(container_cpu_usage_seconds_total{name!=""}[2m]) * 100 > 80
+          rate(container_cpu_usage_seconds_total{id=~"/docker/[a-f0-9]+", cpu="total"}[2m]) * 100 > 80
         for: 2m
         labels:
           severity: warning
