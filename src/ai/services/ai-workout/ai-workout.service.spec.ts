@@ -3,6 +3,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { PrismaService } from 'src/prisma/services/prisma/prisma.service';
 import { SERVICES } from 'src/utils/constants';
 import { AiWorkoutService } from './ai-workout.service';
+import { MetricsService } from 'src/metrics/metrics.service';
 
 describe('AiWorkoutService', () => {
   let service: AiWorkoutService;
@@ -48,6 +49,14 @@ describe('AiWorkoutService', () => {
         {
           provide: SERVICES.WORKOUT_MICROSERVICE_CLIENT,
           useValue: workoutClient,
+        },
+        {
+          provide: MetricsService,
+          useValue: {
+            observerDureeETL: jest.fn(),
+            enregistrerRequeteHttp: jest.fn(),
+            enregistrerAppelIA: jest.fn(),
+          },
         },
       ],
     }).compile();

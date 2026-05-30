@@ -7,6 +7,7 @@ import { EtlService } from 'src/etl/services/etl/etl.service';
 import { of } from 'rxjs';
 import { EtlAnomalyDetectorService } from 'src/etl/services/etl-anomaly-detector/etl-anomaly-detector.service';
 import type { UpdateExerciceDto } from 'src/exercice/dtos/update-exercice.dto';
+import { MetricsService } from 'src/metrics/metrics.service';
 
 jest.mock('google-translate-api-x', () => ({
   translate: jest.fn((texts: string[] | string) => {
@@ -95,6 +96,14 @@ describe('ExerciceService', () => {
           provide: EtlAnomalyDetectorService,
           useValue: {
             detectForPipeline: jest.fn(() => []),
+          },
+        },
+        {
+          provide: MetricsService,
+          useValue: {
+            observerDureeETL: jest.fn(),
+            enregistrerRequeteHttp: jest.fn(),
+            enregistrerAppelIA: jest.fn(),
           },
         },
       ],

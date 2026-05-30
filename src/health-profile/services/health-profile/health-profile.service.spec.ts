@@ -6,6 +6,7 @@ import { HttpService } from '@nestjs/axios';
 import { of } from 'rxjs';
 import { EtlService } from 'src/etl/services/etl/etl.service';
 import { EtlAnomalyDetectorService } from 'src/etl/services/etl-anomaly-detector/etl-anomaly-detector.service';
+import { MetricsService } from 'src/metrics/metrics.service';
 
 describe('HealthProfileService', () => {
   let service: HealthProfileService;
@@ -58,6 +59,14 @@ describe('HealthProfileService', () => {
           provide: EtlAnomalyDetectorService,
           useValue: {
             detectForPipeline: jest.fn(() => []),
+          },
+        },
+        {
+          provide: MetricsService,
+          useValue: {
+            observerDureeETL: jest.fn(),
+            enregistrerRequeteHttp: jest.fn(),
+            enregistrerAppelIA: jest.fn(),
           },
         },
       ],
