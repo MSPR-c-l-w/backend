@@ -14,6 +14,7 @@ import { EtlService } from 'src/etl/services/etl/etl.service';
 import { lastValueFrom } from 'rxjs';
 import * as Papa from 'papaparse';
 import { EtlAnomalyDetectorService } from 'src/etl/services/etl-anomaly-detector/etl-anomaly-detector.service';
+import { MetricsService } from 'src/metrics/metrics.service';
 
 @Injectable()
 export class HealthProfileService implements IHealthProfileService {
@@ -28,9 +29,11 @@ export class HealthProfileService implements IHealthProfileService {
     private readonly httpService: HttpService,
     private readonly etl: EtlService,
     private readonly anomalyDetector: EtlAnomalyDetectorService,
+    private readonly metricsService: MetricsService,
   ) {}
   async runHealthProfilePipeline(): Promise<number> {
-    return this.etl.runWithPipelineLock('health-profile', async () => {
+    const start = process.hrtime.bigint();
+    const result = await this.etl.runWithPipelineLock('health-profile', async () => {
       try {
         this.etl.emit(
           'health-profile',
@@ -139,6 +142,11 @@ export class HealthProfileService implements IHealthProfileService {
         throw e;
       }
     });
+    this.metricsService.observerDureeETL(
+      'health-profile',
+      Number(process.hrtime.bigint() - start) / 1e9,
+    );
+    return result;
   }
   async getHealthProfiles(): Promise<HealthProfile[]> {
     const healthProfiles = await this.prisma.healthProfile.findMany();

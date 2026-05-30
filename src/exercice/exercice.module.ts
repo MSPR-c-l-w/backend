@@ -4,9 +4,10 @@ import { ExerciceController } from './controllers/exercice/exercice.controller';
 import { SERVICES } from 'src/utils/constants';
 import { HttpModule } from '@nestjs/axios';
 import { EtlModule } from 'src/etl/etl.module';
+import { MetricsModule } from 'src/metrics/metrics.module';
 
 @Module({
-  imports: [HttpModule, EtlModule],
+  imports: [HttpModule, EtlModule, MetricsModule],
   providers: [
     ExerciceService,
     {

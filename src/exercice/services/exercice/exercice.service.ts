@@ -14,6 +14,7 @@ import { translate } from 'google-translate-api-x';
 import { GetExercisesFilterDto } from 'src/exercice/dtos/et-exercises-filter.dto';
 import { EtlAnomalyDetectorService } from 'src/etl/services/etl-anomaly-detector/etl-anomaly-detector.service';
 import { UpdateExerciceDto } from 'src/exercice/dtos/update-exercice.dto';
+import { MetricsService } from 'src/metrics/metrics.service';
 
 @Injectable()
 export class ExerciceService implements IExerciceService {
@@ -67,6 +68,7 @@ export class ExerciceService implements IExerciceService {
     private readonly httpService: HttpService,
     private readonly etl: EtlService,
     private readonly anomalyDetector: EtlAnomalyDetectorService,
+    private readonly metricsService: MetricsService,
   ) {}
 
   private translateTerm(term: string | null): string | null {
@@ -132,7 +134,8 @@ export class ExerciceService implements IExerciceService {
   }
 
   async runImportPipeline(): Promise<number> {
-    return this.etl.runWithPipelineLock('exercise', async () => {
+    const start = process.hrtime.bigint();
+    const result = await this.etl.runWithPipelineLock('exercise', async () => {
       try {
         const startMsg = '--- DÉBUT PIPELINE ETL (UPSERT & BATCH) ---';
         this.logger.log(startMsg);
@@ -255,6 +258,11 @@ export class ExerciceService implements IExerciceService {
         throw error;
       }
     });
+    this.metricsService.observerDureeETL(
+      'exercise',
+      Number(process.hrtime.bigint() - start) / 1e9,
+    );
+    return result;
   }
 
   async findByFilters(filters: GetExercisesFilterDto): Promise<Exercise[]> {

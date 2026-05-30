@@ -4,9 +4,10 @@ import { NutritionService } from './services/nutrition/nutrition.service';
 import { NutritionController } from './controllers/nutrition/nutrition.controller';
 import { EtlModule } from 'src/etl/etl.module';
 import { SERVICES } from 'src/utils/constants';
+import { MetricsModule } from 'src/metrics/metrics.module';
 
 @Module({
-  imports: [HttpModule, EtlModule],
+  imports: [HttpModule, EtlModule, MetricsModule],
   providers: [
     NutritionService,
     {

@@ -5,9 +5,10 @@ import { SERVICES } from 'src/utils/constants';
 import { HttpModule } from '@nestjs/axios';
 import { PrismaModule } from 'src/prisma/prisma.module';
 import { EtlModule } from 'src/etl/etl.module';
+import { MetricsModule } from 'src/metrics/metrics.module';
 
 @Module({
-  imports: [PrismaModule, HttpModule, EtlModule],
+  imports: [PrismaModule, HttpModule, EtlModule, MetricsModule],
   providers: [
     HealthProfileService,
     {
