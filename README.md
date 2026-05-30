@@ -3,7 +3,8 @@
 Backend NestJS pour une plateforme de suivi fitness et santé.
 
 **Stack :** NestJS v11, TypeScript, MariaDB via Prisma ORM, JWT, Socket.IO  
-**Documentation complète :** [`documentation/`](documentation/README.md)
+**Documentation complète :** [`documentation/`](documentation/README.md)  
+**Plan de tests TPRE601 :** [`docs/tests/`](docs/tests/README.md)
 
 ---
 
