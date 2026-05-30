@@ -66,7 +66,10 @@ export class AiWorkoutService {
       userId,
       userProfile,
     );
-    this.metricsService.enregistrerAppelIA('workout-microservice', 'generate-program');
+    this.metricsService.enregistrerAppelIA(
+      'workout-microservice',
+      'generate-program',
+    );
 
     await this.prisma.aiWorkoutRecommendation.updateMany({
       where: { user_id: userId, statut: 'ACTIVE' },
