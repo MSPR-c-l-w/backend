@@ -61,7 +61,6 @@ services:
     networks:
       - monitoring
 
-
   loki:
     image: grafana/loki:3.0.0
     container_name: loki
