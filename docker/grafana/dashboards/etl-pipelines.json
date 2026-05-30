@@ -1,0 +1,109 @@
+{
+  "uid": "etl-pipelines",
+  "title": "ETL Pipelines",
+  "tags": ["healthai", "etl", "data"],
+  "timezone": "browser",
+  "schemaVersion": 38,
+  "version": 1,
+  "refresh": "30s",
+  "panels": [
+    {
+      "id": 1,
+      "title": "Runs Nutrition",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 0, "y": 0 },
+      "targets": [{ "datasource": {"type":"prometheus","uid":"prometheus"}, "expr": "etl_pipeline_duration_seconds_count{pipeline=\"nutrition\"} or vector(0)", "legendFormat": "runs" }],
+      "options": { "colorMode": "background", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "fieldConfig": { "defaults": { "unit": "short", "color": {"mode":"thresholds"}, "thresholds": {"mode":"absolute","steps":[{"color":"blue","value":null}]} } }
+    },
+    {
+      "id": 2,
+      "title": "Durée dernière exec Nutrition",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 4, "y": 0 },
+      "targets": [{ "datasource": {"type":"prometheus","uid":"prometheus"}, "expr": "etl_pipeline_duration_seconds_sum{pipeline=\"nutrition\"} / etl_pipeline_duration_seconds_count{pipeline=\"nutrition\"} or vector(0)", "legendFormat": "durée moy" }],
+      "options": { "colorMode": "background", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "fieldConfig": { "defaults": { "unit": "s", "color": {"mode":"thresholds"}, "thresholds": {"mode":"absolute","steps":[{"color":"green","value":null},{"color":"yellow","value":30},{"color":"red","value":60}]} } }
+    },
+    {
+      "id": 3,
+      "title": "Runs Exercise",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 8, "y": 0 },
+      "targets": [{ "datasource": {"type":"prometheus","uid":"prometheus"}, "expr": "etl_pipeline_duration_seconds_count{pipeline=\"exercise\"} or vector(0)", "legendFormat": "runs" }],
+      "options": { "colorMode": "background", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "fieldConfig": { "defaults": { "unit": "short", "color": {"mode":"thresholds"}, "thresholds": {"mode":"absolute","steps":[{"color":"blue","value":null}]} } }
+    },
+    {
+      "id": 4,
+      "title": "Durée dernière exec Exercise",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 12, "y": 0 },
+      "targets": [{ "datasource": {"type":"prometheus","uid":"prometheus"}, "expr": "etl_pipeline_duration_seconds_sum{pipeline=\"exercise\"} / etl_pipeline_duration_seconds_count{pipeline=\"exercise\"} or vector(0)", "legendFormat": "durée moy" }],
+      "options": { "colorMode": "background", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "fieldConfig": { "defaults": { "unit": "s", "color": {"mode":"thresholds"}, "thresholds": {"mode":"absolute","steps":[{"color":"green","value":null},{"color":"yellow","value":60},{"color":"red","value":120}]} } }
+    },
+    {
+      "id": 5,
+      "title": "Runs Health Profile",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 16, "y": 0 },
+      "targets": [{ "datasource": {"type":"prometheus","uid":"prometheus"}, "expr": "etl_pipeline_duration_seconds_count{pipeline=\"health-profile\"} or vector(0)", "legendFormat": "runs" }],
+      "options": { "colorMode": "background", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "fieldConfig": { "defaults": { "unit": "short", "color": {"mode":"thresholds"}, "thresholds": {"mode":"absolute","steps":[{"color":"blue","value":null}]} } }
+    },
+    {
+      "id": 6,
+      "title": "Durée dernière exec Health Profile",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 20, "y": 0 },
+      "targets": [{ "datasource": {"type":"prometheus","uid":"prometheus"}, "expr": "etl_pipeline_duration_seconds_sum{pipeline=\"health-profile\"} / etl_pipeline_duration_seconds_count{pipeline=\"health-profile\"} or vector(0)", "legendFormat": "durée moy" }],
+      "options": { "colorMode": "background", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "fieldConfig": { "defaults": { "unit": "s", "color": {"mode":"thresholds"}, "thresholds": {"mode":"absolute","steps":[{"color":"green","value":null},{"color":"yellow","value":10},{"color":"red","value":30}]} } }
+    },
+    {
+      "id": 7,
+      "title": "Durée des pipelines ETL — historique (p50 / p95)",
+      "type": "timeseries",
+      "gridPos": { "h": 9, "w": 24, "x": 0, "y": 4 },
+      "targets": [
+        { "datasource": {"type":"prometheus","uid":"prometheus"}, "expr": "histogram_quantile(0.50, sum(rate(etl_pipeline_duration_seconds_bucket[10m])) by (le, pipeline))", "legendFormat": "p50 — {{ pipeline }}" },
+        { "datasource": {"type":"prometheus","uid":"prometheus"}, "expr": "histogram_quantile(0.95, sum(rate(etl_pipeline_duration_seconds_bucket[10m])) by (le, pipeline))", "legendFormat": "p95 — {{ pipeline }}" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "s" } }
+    },
+    {
+      "id": 8,
+      "title": "Nombre total d'exécutions par pipeline",
+      "type": "bargauge",
+      "gridPos": { "h": 6, "w": 12, "x": 0, "y": 13 },
+      "targets": [
+        { "datasource": {"type":"prometheus","uid":"prometheus"}, "expr": "etl_pipeline_duration_seconds_count", "legendFormat": "{{ pipeline }}", "instant": true }
+      ],
+      "options": { "orientation": "horizontal", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "fieldConfig": { "defaults": { "unit": "short", "color": {"mode":"palette-classic"} } }
+    },
+    {
+      "id": 9,
+      "title": "Durée totale cumulée par pipeline",
+      "type": "bargauge",
+      "gridPos": { "h": 6, "w": 12, "x": 12, "y": 13 },
+      "targets": [
+        { "datasource": {"type":"prometheus","uid":"prometheus"}, "expr": "etl_pipeline_duration_seconds_sum", "legendFormat": "{{ pipeline }}", "instant": true }
+      ],
+      "options": { "orientation": "horizontal", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "fieldConfig": { "defaults": { "unit": "s", "color": {"mode":"palette-classic"} } }
+    },
+    {
+      "id": 10,
+      "title": "Logs ETL (Loki)",
+      "type": "logs",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 19 },
+      "targets": [
+        { "datasource": {"type":"loki","uid":"loki"}, "expr": "{container=~\"backend-nestjs\"} |~ \"pipeline|ETL|import|Import\"", "legendFormat": "" }
+      ],
+      "options": { "showLabels": false, "showTime": true, "sortOrder": "Descending" }
+    }
+  ],
+  "time": { "from": "now-24h", "to": "now" }
+}

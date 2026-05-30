@@ -21,14 +21,27 @@ scrape_configs:
         target_label: service
       - source_labels: ['__meta_docker_container_id']
         target_label: container_id
+      # Composant applicatif (backend, ai, monitoring)
+      - source_labels: ['__meta_docker_container_name']
+        regex: '.*(nestjs|backend-nestjs).*'
+        replacement: 'backend'
+        target_label: component
+      - source_labels: ['__meta_docker_container_name']
+        regex: '.*(fastapi|api-ia).*'
+        replacement: 'ai'
+        target_label: component
     pipeline_stages:
-      # Parser NestJS (format: [Nest] PID  LOG_LEVEL [context] message)
+      # Extraction niveau de log NestJS
       - regex:
-          expression: '^\[Nest\]\s+\d+\s+-\s+\d{2}/\d{2}/\d{4},\s+[\d:,\s]+(?P<level>LOG|ERROR|WARN|DEBUG|VERBOSE)'
+          expression: '^\[Nest\]\s+\d+\s+-\s+[\d/,\s:]+(?P<level>LOG|ERROR|WARN|DEBUG|VERBOSE)\s'
       - labels:
           level:
-      # Parser FastAPI / uvicorn
+      # Extraction niveau FastAPI
       - regex:
-          expression: '^(?P<timestamp>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2},\d+)\s+(?P<level>INFO|WARNING|ERROR|CRITICAL)'
+          expression: '^(?P<timestamp>[\d\-T:\.Z]+)\s+(?P<level>INFO|WARNING|ERROR|CRITICAL)\s'
       - labels:
           level:
+      # Filtrer les health checks pour réduire le bruit
+      - drop:
+          expression: '.*(GET /health|GET /metrics).*'
+          drop_counter_reason: health_check_noise

@@ -4,111 +4,139 @@
   "tags": ["healthai", "api"],
   "timezone": "browser",
   "schemaVersion": 38,
-  "version": 1,
+  "version": 2,
   "refresh": "15s",
   "panels": [
     {
       "id": 1,
-      "title": "Requêtes/s global",
+      "title": "Requêtes/s",
       "type": "stat",
-      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
-      "targets": [
-        {
-          "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "sum(rate(http_requests_total[1m]))",
-          "legendFormat": "req/s"
-        }
-      ],
-      "fieldConfig": { "defaults": { "unit": "reqps" } }
+      "gridPos": { "h": 4, "w": 4, "x": 0, "y": 0 },
+      "targets": [{ "datasource": {"type":"prometheus","uid":"prometheus"}, "expr": "sum(rate(http_requests_total[1m]))", "legendFormat": "req/s" }],
+      "options": { "colorMode": "background", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "fieldConfig": { "defaults": { "unit": "reqps", "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{"color":"green","value":null},{"color":"yellow","value":10},{"color":"red","value":50}] } } }
     },
     {
       "id": 2,
-      "title": "Taux d'erreur 4xx (%)",
+      "title": "Erreurs 4xx (%)",
       "type": "stat",
-      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 0 },
-      "targets": [
-        {
-          "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "sum(rate(http_requests_total{status_code=~\"4..\"}[1m])) / sum(rate(http_requests_total[1m])) * 100",
-          "legendFormat": "4xx %"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "percent",
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              { "color": "green", "value": null },
-              { "color": "yellow", "value": 5 },
-              { "color": "red", "value": 10 }
-            ]
-          }
-        }
-      }
+      "gridPos": { "h": 4, "w": 4, "x": 4, "y": 0 },
+      "targets": [{ "datasource": {"type":"prometheus","uid":"prometheus"}, "expr": "sum(rate(http_requests_total{status_code=~\"4..\"}[1m])) / sum(rate(http_requests_total[1m])) * 100 or vector(0)", "legendFormat": "4xx %" }],
+      "options": { "colorMode": "background", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "fieldConfig": { "defaults": { "unit": "percent", "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{"color":"green","value":null},{"color":"yellow","value":5},{"color":"red","value":10}] } } }
     },
     {
       "id": 3,
-      "title": "Taux d'erreur 5xx (%)",
+      "title": "Erreurs 5xx (%)",
       "type": "stat",
-      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 0 },
-      "targets": [
-        {
-          "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "sum(rate(http_requests_total{status_code=~\"5..\"}[1m])) / sum(rate(http_requests_total[1m])) * 100",
-          "legendFormat": "5xx %"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "percent",
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              { "color": "green", "value": null },
-              { "color": "red", "value": 5 }
-            ]
-          }
-        }
-      }
+      "gridPos": { "h": 4, "w": 4, "x": 8, "y": 0 },
+      "targets": [{ "datasource": {"type":"prometheus","uid":"prometheus"}, "expr": "sum(rate(http_requests_total{status_code=~\"5..\"}[1m])) / sum(rate(http_requests_total[1m])) * 100 or vector(0)", "legendFormat": "5xx %" }],
+      "options": { "colorMode": "background", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "fieldConfig": { "defaults": { "unit": "percent", "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{"color":"green","value":null},{"color":"red","value":1}] } } }
+    },
+    {
+      "id": 10,
+      "title": "Event Loop Lag p99",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 12, "y": 0 },
+      "targets": [{ "datasource": {"type":"prometheus","uid":"prometheus"}, "expr": "nodejs_eventloop_lag_p99_seconds * 1000", "legendFormat": "lag p99" }],
+      "options": { "colorMode": "background", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "fieldConfig": { "defaults": { "unit": "ms", "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{"color":"green","value":null},{"color":"yellow","value":100},{"color":"red","value":500}] } } }
+    },
+    {
+      "id": 11,
+      "title": "Heap utilisé (%)",
+      "type": "gauge",
+      "gridPos": { "h": 4, "w": 4, "x": 16, "y": 0 },
+      "targets": [{ "datasource": {"type":"prometheus","uid":"prometheus"}, "expr": "nodejs_heap_size_used_bytes / nodejs_heap_size_total_bytes * 100", "legendFormat": "heap %" }],
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "fieldConfig": { "defaults": { "unit": "percent", "min": 0, "max": 100, "thresholds": { "mode": "absolute", "steps": [{"color":"green","value":null},{"color":"yellow","value":70},{"color":"red","value":85}] } } }
+    },
+    {
+      "id": 12,
+      "title": "Process CPU (%)",
+      "type": "gauge",
+      "gridPos": { "h": 4, "w": 4, "x": 20, "y": 0 },
+      "targets": [{ "datasource": {"type":"prometheus","uid":"prometheus"}, "expr": "rate(process_cpu_seconds_total[1m]) * 100", "legendFormat": "CPU %" }],
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "fieldConfig": { "defaults": { "unit": "percent", "min": 0, "max": 100, "thresholds": { "mode": "absolute", "steps": [{"color":"green","value":null},{"color":"yellow","value":50},{"color":"red","value":80}] } } }
     },
     {
       "id": 4,
-      "title": "Latence p50/p95/p99 (toutes routes)",
+      "title": "Latence p50 / p95 / p99 (toutes routes)",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 4 },
+      "gridPos": { "h": 8, "w": 14, "x": 0, "y": 4 },
       "targets": [
-        {
-          "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "histogram_quantile(0.50, sum(rate(http_request_duration_seconds_bucket[5m])) by (le))",
-          "legendFormat": "p50"
-        },
-        {
-          "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le))",
-          "legendFormat": "p95"
-        },
-        {
-          "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket[5m])) by (le))",
-          "legendFormat": "p99"
-        }
+        { "datasource": {"type":"prometheus","uid":"prometheus"}, "expr": "histogram_quantile(0.50, sum(rate(http_request_duration_seconds_bucket[5m])) by (le))", "legendFormat": "p50" },
+        { "datasource": {"type":"prometheus","uid":"prometheus"}, "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le))", "legendFormat": "p95" },
+        { "datasource": {"type":"prometheus","uid":"prometheus"}, "expr": "histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket[5m])) by (le))", "legendFormat": "p99" }
       ],
       "fieldConfig": { "defaults": { "unit": "s" } }
+    },
+    {
+      "id": 13,
+      "title": "Event Loop Lag (tendance)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 10, "x": 14, "y": 4 },
+      "targets": [
+        { "datasource": {"type":"prometheus","uid":"prometheus"}, "expr": "nodejs_eventloop_lag_p50_seconds * 1000", "legendFormat": "p50" },
+        { "datasource": {"type":"prometheus","uid":"prometheus"}, "expr": "nodejs_eventloop_lag_p90_seconds * 1000", "legendFormat": "p90" },
+        { "datasource": {"type":"prometheus","uid":"prometheus"}, "expr": "nodejs_eventloop_lag_p99_seconds * 1000", "legendFormat": "p99" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "ms" } }
     },
     {
       "id": 5,
       "title": "Requêtes/s par endpoint",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 12 },
+      "gridPos": { "h": 8, "w": 14, "x": 0, "y": 12 },
       "targets": [
-        {
-          "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "sum(rate(http_requests_total[1m])) by (route, method)",
-          "legendFormat": "{{ method }} {{ route }}"
-        }
+        { "datasource": {"type":"prometheus","uid":"prometheus"}, "expr": "sum(rate(http_requests_total[1m])) by (route, method)", "legendFormat": "{{ method }} {{ route }}" }
       ],
       "fieldConfig": { "defaults": { "unit": "reqps" } }
+    },
+    {
+      "id": 14,
+      "title": "Mémoire Heap Node.js",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 10, "x": 14, "y": 12 },
+      "targets": [
+        { "datasource": {"type":"prometheus","uid":"prometheus"}, "expr": "nodejs_heap_size_used_bytes", "legendFormat": "Heap utilisé" },
+        { "datasource": {"type":"prometheus","uid":"prometheus"}, "expr": "nodejs_heap_size_total_bytes", "legendFormat": "Heap total" },
+        { "datasource": {"type":"prometheus","uid":"prometheus"}, "expr": "process_resident_memory_bytes", "legendFormat": "RSS" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "bytes" } }
+    },
+    {
+      "id": 15,
+      "title": "Garbage Collector (durée par type)",
+      "type": "timeseries",
+      "gridPos": { "h": 6, "w": 12, "x": 0, "y": 20 },
+      "targets": [
+        { "datasource": {"type":"prometheus","uid":"prometheus"}, "expr": "rate(nodejs_gc_duration_seconds_sum[5m])", "legendFormat": "GC {{ kind }}" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "s" } }
+    },
+    {
+      "id": 16,
+      "title": "Handles actifs Node.js",
+      "type": "timeseries",
+      "gridPos": { "h": 6, "w": 12, "x": 12, "y": 20 },
+      "targets": [
+        { "datasource": {"type":"prometheus","uid":"prometheus"}, "expr": "nodejs_active_handles_total", "legendFormat": "Handles actifs" },
+        { "datasource": {"type":"prometheus","uid":"prometheus"}, "expr": "nodejs_active_requests_total", "legendFormat": "Requests actives" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "short" } }
+    },
+    {
+      "id": 17,
+      "title": "Logs d'erreurs NestJS (Loki)",
+      "type": "logs",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 26 },
+      "targets": [
+        { "datasource": {"type":"loki","uid":"loki"}, "expr": "{container=\"backend-nestjs\"} |= \"ERROR\"", "legendFormat": "" }
+      ],
+      "options": { "showLabels": false, "showTime": true, "sortOrder": "Descending" }
     }
   ],
   "time": { "from": "now-1h", "to": "now" }

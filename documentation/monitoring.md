@@ -2,580 +2,546 @@
 
 ## Table des matières
 
-1. [Introduction et architecture](#1-introduction-et-architecture)
-2. [Métriques collectées](#2-métriques-collectées)
-3. [Guide de démarrage rapide](#3-guide-de-démarrage-rapide)
-4. [Runbook — Latence API élevée](#4-runbook--latence-api-élevée)
-5. [Runbook — Service down](#5-runbook--service-down)
-6. [Runbook — Disque saturé](#6-runbook--disque-saturé)
-7. [Ajouter une nouvelle métrique custom NestJS](#7-ajouter-une-nouvelle-métrique-custom-nestjs)
-8. [Ajouter un nouveau dashboard Grafana](#8-ajouter-un-nouveau-dashboard-grafana)
-9. [Migration ELK → Loki](#9-migration-elk--loki)
-10. [Configuration des ports](#10-configuration-des-ports)
+1. [Architecture](#1-architecture)
+2. [Stack de monitoring](#2-stack-de-monitoring)
+3. [Métriques disponibles](#3-métriques-disponibles)
+4. [Dashboards Grafana](#4-dashboards-grafana)
+5. [Alertes Prometheus](#5-alertes-prometheus)
+6. [Centralisation des logs (Loki)](#6-centralisation-des-logs-loki)
+7. [Guide de démarrage](#7-guide-de-démarrage)
+8. [Guide développeur — ajouter une métrique](#8-guide-développeur--ajouter-une-métrique)
+9. [Runbooks opérationnels](#9-runbooks-opérationnels)
+10. [Limitations macOS / Rancher Desktop](#10-limitations-macos--rancher-desktop)
 
 ---
 
-## 1. Introduction et architecture
+## 1. Architecture
 
-### Présentation
-
-Le système de supervision de HealthAI Coach offre une observabilité complète de la stack applicative : métriques temps réel, agrégation de logs, alertes proactives et dashboards Grafana préconfigurés.
-
-### Architecture globale
+La stack de supervision suit le modèle **Prometheus + Grafana + Loki** (standard industrie CNCF).
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                    Sources de données                    │
-│  NestJS (:3000/metrics)   FastAPI (:8000/metrics)        │
-│  Node Exporter (:9100)    cAdvisor (:8081)               │
-└────────────────────┬────────────────────────────────────┘
-                     │ scrape (15s)
-                     ▼
-             ┌───────────────┐
-             │  Prometheus   │ (:9090)  — stockage métriques
-             └───────┬───────┘
-                     │ évaluation règles
-                     ▼
-             ┌───────────────┐
-             │ AlertManager  │ (:9093)  — routage alertes
-             └───────┬───────┘
-                     │ webhook
-                     ▼
-             ┌───────────────┐
-             │ Backend NestJS│ (:3000/alerts/webhook)
-             └───────────────┘
+Sources de métriques
+  NestJS :3001/metrics  →  http_requests, etl_pipeline, ai_api_calls, nodejs_*
+  FastAPI :8000/metrics →  métriques IA (si déployé)
+  Node Exporter :9100   →  CPU, RAM, disque, réseau hôte
+  Docker Daemon :9323   →  conteneurs running/stopped, événements Docker
+         │
+         │ scrape 15s
+         ▼
+     Prometheus :9090   —  stockage TSDB, évaluation alertes
+         │
+         ▼
+     AlertManager :9093 —  déduplication, silences, routage webhook
 
-┌─────────────────────────────────────────────────────────┐
-│                    Agrégation de logs                    │
-│  Promtail (scrape Docker)  ──►  Loki (:3100)            │
-└─────────────────────────────────────────────────────────┘
-
-┌─────────────────────────────────────────────────────────┐
-│                    Visualisation                         │
-│  Grafana (:3001) ◄── Prometheus + Loki                  │
-└─────────────────────────────────────────────────────────┘
+Logs Docker (stdout/stderr)
+  Docker socket → Promtail → Loki :3100
+                                  │
+                                  ▼
+                          Grafana :3002  ←  Prometheus + Loki
 ```
 
-### Composants
+---
 
-| Composant      | Version  | Rôle                                               |
-|----------------|----------|----------------------------------------------------|
-| Prometheus     | v2.51.2  | Collecte et stockage des métriques (scrape pull)   |
-| AlertManager   | v0.27.0  | Routage, groupement et envoi des alertes           |
-| Node Exporter  | v1.8.1   | Métriques système hôte (CPU, RAM, disque, réseau)  |
-| cAdvisor       | v0.49.1  | Métriques par conteneur Docker                     |
-| Loki           | v3.0.0   | Agrégation et indexation des logs                  |
-| Promtail       | v3.0.0   | Collecteur de logs Docker → Loki                   |
-| Grafana        | v10.4.3  | Dashboards, alertes visuelles, exploration logs    |
+## 2. Stack de monitoring
+
+### Services
+
+| Service          | Image                         | Port  | Rôle                                    |
+|------------------|-------------------------------|-------|-----------------------------------------|
+| **Prometheus**   | `prom/prometheus:v2.51.2`     | 9090  | Collecte et stockage métriques          |
+| **Grafana**      | `grafana/grafana:10.4.3`      | 3002  | Visualisation — dashboards              |
+| **AlertManager** | `prom/alertmanager:v0.27.0`   | 9093  | Routage et gestion des alertes          |
+| **Loki**         | `grafana/loki:3.0.0`          | 3100  | Stockage et indexation des logs         |
+| **Promtail**     | `grafana/promtail:3.0.0`      | 9080  | Collecte logs Docker → Loki             |
+| **Node Exporter**| `prom/node-exporter:v1.8.1`   | 9100  | Métriques système hôte                  |
+
+### Targets Prometheus
+
+| Job               | Target                          | Ce qui est collecté               |
+|-------------------|---------------------------------|-----------------------------------|
+| `backend-nestjs`  | `host.docker.internal:3001`     | HTTP, ETL, IA, Node.js runtime    |
+| `api-ia-fastapi`  | `host.docker.internal:8000`     | FastAPI IA (si disponible)        |
+| `node-exporter`   | `node-exporter:9100`            | CPU, RAM, disque, réseau          |
+| `docker-daemon`   | `host.docker.internal:9323`     | Conteneurs, événements Docker     |
+
+### Commandes
+
+```bash
+# Depuis le dossier docker/
+docker compose -f docker-compose.monitoring.yml up -d        # démarrer
+docker compose -f docker-compose.monitoring.yml down         # arrêter
+docker compose -f docker-compose.monitoring.yml ps           # statut
+docker compose -f docker-compose.monitoring.yml restart <svc> # relancer un service
+```
 
 ---
 
-## 2. Métriques collectées
+## 3. Métriques disponibles
 
-### 2.1 Métriques applicatives NestJS (exposées sur `/metrics`)
+### 3.1 Métriques custom NestJS
 
-| Nom de la métrique                   | Type      | Labels                            | Description                                    | Seuil d'alerte               |
-|--------------------------------------|-----------|-----------------------------------|------------------------------------------------|------------------------------|
-| `http_requests_total`                | Counter   | `route`, `method`, `status_code`  | Nombre total de requêtes HTTP reçues           | Taux 5xx > 5 % sur 1 min     |
-| `http_request_duration_seconds`      | Histogram | `route`, `method`, `status_code`  | Durée des requêtes HTTP (buckets : 50ms–1s)    | p95 > 1 s sur 5 min          |
-| `ai_api_calls_total`                 | Counter   | `provider`, `type`                | Nombre d'appels aux APIs IA externes           | —                            |
-| `etl_pipeline_duration_seconds`      | Histogram | `pipeline`                        | Durée des pipelines ETL (buckets : 1s–300s)    | p95 > 120 s sur 5 min        |
-| `nodejs_*` (default metrics)         | Gauge/Counter | —                             | Métriques Node.js intégrées (heap, GC, etc.)   | —                            |
-| `process_*` (default metrics)        | Gauge     | —                                 | Métriques processus (CPU, mémoire, FDs)        | —                            |
+Déclarées dans `src/metrics/metrics.module.ts`, exposées via `src/metrics/metrics.service.ts`.
 
-### 2.2 Métriques infrastructure (Node Exporter)
+| Métrique                           | Type      | Labels                           | Description                        |
+|------------------------------------|-----------|----------------------------------|------------------------------------|
+| `http_requests_total`              | Counter   | `route`, `method`, `status_code` | Toutes les requêtes HTTP reçues    |
+| `http_request_duration_seconds`    | Histogram | `route`, `method`                | Latence par route (buckets 10ms–30s)|
+| `etl_pipeline_duration_seconds`    | Histogram | `pipeline`                       | Durée ETL : nutrition, exercise, health-profile |
+| `ai_api_calls_total`               | Counter   | `provider`, `type`               | Appels vers les APIs IA            |
 
-| Nom de la métrique                            | Type    | Description                             | Seuil d'alerte          |
-|-----------------------------------------------|---------|-----------------------------------------|-------------------------|
-| `node_cpu_seconds_total`                      | Counter | Temps CPU par mode (user, system, idle) | > 80 % sur 5 min        |
-| `node_memory_MemAvailable_bytes`              | Gauge   | Mémoire disponible                      | < 10 % de MemTotal      |
-| `node_filesystem_avail_bytes`                 | Gauge   | Espace disque disponible par partition  | < 15 % disponible       |
-| `node_network_receive_bytes_total`            | Counter | Octets reçus par interface réseau       | —                       |
-| `node_network_transmit_bytes_total`           | Counter | Octets émis par interface réseau        | —                       |
+### 3.2 Métriques Node.js (collectées automatiquement)
 
-### 2.3 Métriques conteneurs (cAdvisor)
+| Métrique                           | Seuil alerte | Description                          |
+|------------------------------------|--------------|--------------------------------------|
+| `nodejs_eventloop_lag_p99_seconds` | > 500ms      | Lag p99 de l'event loop              |
+| `nodejs_heap_size_used_bytes`      | > 85% total  | Heap V8 utilisé                      |
+| `nodejs_heap_size_total_bytes`     | —            | Heap V8 total alloué                 |
+| `nodejs_gc_duration_seconds`       | —            | Durée GC par type (major/minor)      |
+| `nodejs_active_handles_total`      | —            | Connexions et timers libuv actifs    |
+| `process_cpu_seconds_total`        | —            | CPU consommé par NestJS              |
+| `process_resident_memory_bytes`    | —            | Mémoire RSS du process               |
 
-| Nom de la métrique                              | Type    | Labels           | Description                        | Seuil d'alerte     |
-|-------------------------------------------------|---------|------------------|------------------------------------|--------------------|
-| `container_cpu_usage_seconds_total`             | Counter | `name`, `image`  | CPU cumulé par conteneur           | > 80 % sur 2 min   |
-| `container_memory_usage_bytes`                  | Gauge   | `name`, `image`  | Mémoire utilisée par conteneur     | —                  |
-| `container_network_receive_bytes_total`         | Counter | `name`           | Trafic réseau entrant              | —                  |
-| `container_network_transmit_bytes_total`        | Counter | `name`           | Trafic réseau sortant              | —                  |
+### 3.3 Métriques système (Node Exporter)
 
-### 2.4 Métriques base de données (MariaDB Exporter — optionnel)
+| Métrique                                       | Description               |
+|------------------------------------------------|---------------------------|
+| `node_cpu_seconds_total{mode="idle"}`          | CPU disponible            |
+| `node_memory_MemAvailable_bytes`               | RAM disponible            |
+| `node_memory_MemTotal_bytes`                   | RAM totale                |
+| `node_filesystem_avail_bytes{mountpoint="/"}`  | Espace disque disponible  |
+| `node_network_receive_bytes_total`             | Trafic réseau entrant     |
 
-| Nom de la métrique                              | Type  | Description                             | Seuil d'alerte              |
-|-------------------------------------------------|-------|-----------------------------------------|-----------------------------|
-| `mysql_global_status_threads_connected`         | Gauge | Connexions actives                      | > 80 % de max_connections   |
-| `mysql_global_variables_max_connections`        | Gauge | Limite maximale de connexions           | —                           |
-| `mysql_global_status_slow_queries`              | Counter | Requêtes lentes cumulées              | Augmentation > 10/min       |
+### 3.4 Métriques Docker Daemon
+
+| Métrique                                       | Description                    |
+|------------------------------------------------|--------------------------------|
+| `engine_daemon_container_states_containers`    | Conteneurs par état (running/stopped/paused) |
+| `engine_daemon_events_total`                   | Événements Docker (start/stop/die) |
+| `engine_daemon_engine_memory_bytes`            | RAM disponible pour Docker     |
 
 ---
 
-## 3. Guide de démarrage rapide
+## 4. Dashboards Grafana
+
+**Accès :** http://localhost:3002 — identifiants : `admin` / `admin`
+
+Les dashboards sont auto-provisionnés depuis `docker/grafana/dashboards/`. Tout fichier JSON ajouté dans ce dossier est chargé automatiquement (délai max 30s).
+
+### 4.1 Stack Overview (`stack-overview`)
+
+Vue d'ensemble de l'infrastructure.
+
+| Panel                       | Métrique                                              |
+|-----------------------------|-------------------------------------------------------|
+| Services actifs             | `count(up == 1)`                                      |
+| Conteneurs Docker running   | `engine_daemon_container_states_containers{state="running"}` |
+| CPU host % (gauge)          | `100 - avg(rate(node_cpu_seconds_total{mode="idle"}[2m])) * 100` |
+| RAM utilisée % (gauge)      | `(MemTotal - MemAvailable) / MemTotal * 100`          |
+| CPU global (timeseries)     | Historique charge CPU hôte                            |
+| RAM utilisée / totale       | Évolution mémoire hôte                               |
+| Conteneurs par état         | `engine_daemon_container_states_containers`           |
+| Événements Docker           | `rate(engine_daemon_events_total[2m])`                |
+| Uptime services (table)     | `up` — état de chaque target                          |
+
+### 4.2 API NestJS (`api-nestjs`) — Refresh 15s
+
+Santé et performances de l'API NestJS. Dashboard principal pour le suivi en production.
+
+**Rangée 1 — Indicateurs de santé :**
+
+| Panel                  | Seuils                              |
+|------------------------|-------------------------------------|
+| Requêtes/s             | jaune > 10, rouge > 50              |
+| Erreurs 4xx %          | jaune > 5%, rouge > 10%             |
+| Erreurs 5xx %          | rouge dès 1%                        |
+| Event Loop Lag p99     | jaune > 100ms, rouge > 500ms        |
+| Heap utilisé %         | jaune > 70%, rouge > 85%            |
+| CPU process %          | jaune > 50%, rouge > 80%            |
+
+**Rangées 2–3 — Performances :**
+- Latence p50/p95/p99 toutes routes
+- Tendance Event Loop (p50/p90/p99)
+- Requêtes/s par endpoint (identifier les routes chaudes)
+- Mémoire Heap used/total/RSS
+
+**Rangées 4–5 — Runtime Node.js :**
+- Garbage Collector (durée par type major/minor)
+- Handles libuv actifs (connexions ouvertes)
+
+**Rangée finale — Logs :**
+- Stream logs ERROR NestJS en temps réel (Loki)
+
+### 4.3 ETL Pipelines (`etl-pipelines`) — Période par défaut 24h
+
+Dashboard dédié aux 3 pipelines ETL du projet.
+
+**Rangée 1 — Synthèse par pipeline :**
+
+| Stat             | Nutrition     | Exercise       | Health Profile |
+|------------------|---------------|----------------|----------------|
+| Nombre de runs   | compteur      | compteur       | compteur       |
+| Durée moy        | jaune > 30s / rouge > 60s | jaune > 60s / rouge > 120s | jaune > 10s / rouge > 30s |
+
+**Rangée 2 — Historique :**
+- Durée p50/p95 par pipeline (timeseries)
+
+**Rangée 3 — Comparaison :**
+- Bargauge total exécutions par pipeline
+- Bargauge durée cumulée par pipeline
+
+**Logs ETL :** filtré sur `pipeline|ETL|import` (Loki)
+
+### 4.4 AI Services (`ai-services`)
+
+Suivi des appels aux APIs IA externes.
+
+| Panel                    | Description                                     |
+|--------------------------|-------------------------------------------------|
+| Total appels IA cumulé   | Compteur depuis le démarrage                    |
+| API IA disponible        | UP/DOWN du service FastAPI                      |
+| Appels/min               | Cadence actuelle                                |
+| Appels/min par provider  | Ventilation provider × type (timeseries)        |
+| Répartition par provider | Camembert des appels                            |
+| Logs IA                  | Logs filtrés workout/generateProgram (Loki)     |
+
+---
+
+## 5. Alertes Prometheus
+
+Fichier de règles : `docker/prometheus/alerts.yml`
+
+### Groupe : SLA Service
+
+| Alerte              | Expression                              | Délai | Sévérité | Impact                             |
+|---------------------|-----------------------------------------|-------|----------|------------------------------------|
+| `ServiceDown`       | `up == 0`                               | 1m    | critical | Service inaccessible               |
+| `HighErrorRate5xx`  | taux 5xx > 5%                           | 1m    | critical | Erreurs serveur en rafale          |
+| `HighLatency`       | p95 latence > 2s                        | 2m    | warning  | Dégradation UX                     |
+
+### Groupe : Node.js Runtime
+
+| Alerte              | Expression                              | Délai | Sévérité | Impact                             |
+|---------------------|-----------------------------------------|-------|----------|------------------------------------|
+| `HighEventLoopLag`  | event loop p99 > 500ms                  | 2m    | warning  | Requêtes ralenties, timeouts       |
+| `HighHeapUsage`     | heap > 85%                              | 5m    | warning  | Risque d'OOM crash                 |
+
+### Groupe : Infrastructure
+
+| Alerte              | Expression                              | Délai | Sévérité | Impact                             |
+|---------------------|-----------------------------------------|-------|----------|------------------------------------|
+| `HighCpuUsage`      | CPU hôte > 80%                          | 2m    | warning  | Ralentissement général             |
+| `HighMemoryUsage`   | RAM > 85%                               | 5m    | warning  | Swap, OOM potentiel                |
+| `DiskSpaceLow`      | espace disque `/` < 15%                 | 0m    | critical | Logs non écrits, DB corrompue      |
+
+### Groupe : ETL
+
+| Alerte                | Expression                              | Délai | Sévérité | Impact                         |
+|-----------------------|-----------------------------------------|-------|----------|--------------------------------|
+| `ETLPipelineNotRun`   | pas de run depuis 24h                   | 0m    | info     | Données obsolètes potentielles |
+
+### Interface
+
+```bash
+open http://localhost:9093    # AlertManager UI — alertes actives, silences
+open http://localhost:9090    # Prometheus UI — requêtes ad hoc, règles, targets
+```
+
+---
+
+## 6. Centralisation des logs (Loki)
+
+### Pipeline de collecte
+
+```
+Conteneur Docker (stdout/stderr)
+  ↓ Docker socket
+Promtail
+  ↓ labels enrichis
+Loki :3100
+  ↓ requêtes LogQL
+Grafana (datasource Loki)
+```
+
+### Labels appliqués par Promtail
+
+| Label       | Exemple          | Source                              |
+|-------------|------------------|-------------------------------------|
+| `container` | `backend-nestjs` | Nom du conteneur Docker             |
+| `service`   | `grafana`        | Label docker-compose service        |
+| `level`     | `ERROR`, `WARN`  | Extrait des logs NestJS / FastAPI   |
+| `component` | `backend`, `ai`  | Calculé depuis le nom du conteneur  |
+
+> **Filtre bruit :** les requêtes `GET /health` et `GET /metrics` sont exclues de Loki automatiquement.
+
+### Requêtes LogQL utiles
+
+```logql
+# Erreurs NestJS
+{container="backend-nestjs"} |= "ERROR"
+
+# Logs ETL / imports
+{container="backend-nestjs"} |~ "pipeline|ETL|import|Import"
+
+# Tous les WARN et ERROR
+{level=~"ERROR|WARN"}
+
+# Logs d'une route spécifique
+{container="backend-nestjs"} |~ "POST /nutrition|POST /exercise"
+
+# Fréquence d'erreurs (pour alertes Grafana)
+sum(rate({container="backend-nestjs", level="ERROR"}[1m]))
+```
+
+---
+
+## 7. Guide de démarrage
 
 ### Prérequis
 
-- Docker et Docker Compose installés
-- Le backend NestJS démarré sur le port `3000`
-- Le répertoire `docker/` présent à la racine du projet
+- Rancher Desktop en cours d'exécution
+- MariaDB démarrée : `docker compose up -d` (à la racine du projet)
+- Environnement NestJS : `.env` configuré, `npm install` effectué
 
-### Démarrer la stack de monitoring
+### Démarrage complet
 
 ```bash
-# Depuis la racine du projet backend
-cd docker
-
-# Démarrer tous les services de monitoring en arrière-plan
+# 1. Stack monitoring (depuis le dossier docker/)
+cd docker/
 docker compose -f docker-compose.monitoring.yml up -d
 
-# Vérifier que tous les services sont actifs
-docker compose -f docker-compose.monitoring.yml ps
+# 2. Backend NestJS (depuis la racine)
+cd ..
+npm run build
+npm run start:prod
+
+# 3. Vérification des targets Prometheus
+curl -s http://localhost:9090/api/v1/targets | python3 -c "
+import json, sys
+for t in json.load(sys.stdin)['data']['activeTargets']:
+    emoji = '✅' if t['health'] == 'up' else '❌'
+    print(emoji, t['labels']['job'], '-', t['health'])
+"
+
+# 4. Accès Grafana
+open http://localhost:3002   # admin / admin
 ```
 
-### Accès aux interfaces
+### Générer des métriques ETL
 
 ```bash
-# Grafana (dashboards)
-open http://localhost:3001
-# Identifiants par défaut : admin / admin
+# Authentification
+TOKEN=$(curl -s -X POST http://localhost:3001/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"agathe.andre@example.com","password":"SeedPassword123!"}' \
+  | python3 -c "import json,sys; print(json.load(sys.stdin)['access_token'])")
 
-# Prometheus (requêtes PromQL, cibles de scrape)
-open http://localhost:9090
-
-# AlertManager (alertes en cours, silences)
-open http://localhost:9093
-
-# cAdvisor (métriques conteneurs en temps réel)
-open http://localhost:8081
-
-# Métriques brutes NestJS
-curl http://localhost:3000/metrics
-```
-
-### Arrêter la stack
-
-```bash
-cd docker
-docker compose -f docker-compose.monitoring.yml down
-
-# Suppression également des volumes (perte des données historiques)
-docker compose -f docker-compose.monitoring.yml down -v
-```
-
-### Vérifier la santé du scraping Prometheus
-
-```bash
-# Vérifier que les cibles sont bien scrapées (state = "up")
-curl -s http://localhost:9090/api/v1/targets | jq '.data.activeTargets[] | {job: .labels.job, health: .health}'
+# Lancer les 3 pipelines
+curl -X POST http://localhost:3001/nutrition/import      -H "Authorization: Bearer $TOKEN"
+curl -X POST http://localhost:3001/exercise/import       -H "Authorization: Bearer $TOKEN"
+curl -X POST http://localhost:3001/health-profile/import -H "Authorization: Bearer $TOKEN"
 ```
 
 ---
 
-## 4. Runbook — Latence API élevée
+## 8. Guide développeur — ajouter une métrique
 
-**Alerte déclenchée :** p95 de `http_request_duration_seconds` > 1 s sur 5 minutes.
-
-### Étape 1 — Identifier les endpoints impactés
-
-Dans Grafana → dashboard **API NestJS** → panneau **Requêtes/s par endpoint**, filtrer sur les routes avec latence élevée.
-
-Ou en PromQL :
-```promql
-histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le, route))
-```
-
-### Étape 2 — Vérifier la charge système
-
-```bash
-# CPU et mémoire des conteneurs
-docker stats --no-stream
-
-# Vérifier les connexions base de données
-docker exec -it <container_mariadb> mysql -u root -p -e "SHOW STATUS LIKE 'Threads_connected';"
-```
-
-### Étape 3 — Analyser les logs
-
-Dans Grafana → Explore → datasource **Loki** :
-```logql
-{service="backend-nestjs"} |= "ERROR" | json | latency > 1000
-```
-
-### Étape 4 — Actions correctives
-
-| Cause probable            | Action                                                       |
-|---------------------------|--------------------------------------------------------------|
-| Requête DB lente          | Analyser les slow queries, ajouter un index                  |
-| Pool de connexions saturé | Augmenter `connection_limit` dans `DATABASE_URL`             |
-| Endpoint non optimisé     | Profiler le service NestJS concerné, ajouter du cache        |
-| Pic de trafic soudain     | Scaler horizontalement le backend ou limiter le rate         |
-
-### Étape 5 — Validation
-
-Vérifier que le p95 repasse sous 500 ms dans Grafana sur une fenêtre de 5 minutes.
-
----
-
-## 5. Runbook — Service down
-
-**Alerte déclenchée :** `up == 0` pendant plus d'1 minute pour un job Prometheus.
-
-### Étape 1 — Identifier le service impacté
-
-```bash
-# Vérifier l'état des cibles Prometheus
-curl -s http://localhost:9090/api/v1/targets | jq '.data.activeTargets[] | select(.health != "up") | {job: .labels.job, instance: .labels.instance, lastError: .lastError}'
-```
-
-### Étape 2 — Vérifier l'état du conteneur
-
-```bash
-# Lister les conteneurs arrêtés
-docker ps -a --filter "status=exited"
-
-# Voir les logs du conteneur impacté
-docker logs <container_name> --tail 100
-```
-
-### Étape 3 — Redémarrer le service
-
-```bash
-# Redémarrer un service spécifique
-docker compose -f docker/docker-compose.monitoring.yml restart <service_name>
-
-# Ou pour le backend NestJS (hors stack monitoring)
-docker compose restart backend
-```
-
-### Étape 4 — Vérifier la reprise
-
-```bash
-# Attendre ~30 secondes puis vérifier que l'alerte se résout
-curl -s http://localhost:9090/api/v1/query?query=up | jq '.data.result[] | select(.metric.job == "<job_name>") | .value[1]'
-```
-
-### Étape 5 — Post-mortem
-
-Si le service redémarre en boucle (crash loop) :
-1. Analyser les logs avec `docker logs <container> --tail 200`
-2. Vérifier les variables d'environnement requises
-3. Vérifier la connectivité réseau interne Docker
-4. Escalader si non résolu en < 15 minutes
-
----
-
-## 6. Runbook — Disque saturé
-
-**Alerte déclenchée :** espace disponible sur une partition < 15 % (via Node Exporter).
-
-### Étape 1 — Identifier la partition impactée
-
-```bash
-df -h
-# ou en PromQL
-# node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"} * 100
-```
-
-### Étape 2 — Identifier les gros consommateurs
-
-```bash
-# Top 10 des dossiers les plus lourds
-du -sh /* 2>/dev/null | sort -rh | head -10
-
-# Volumes Docker
-docker system df
-docker volume ls
-```
-
-### Étape 3 — Libérer de l'espace
-
-```bash
-# Nettoyer les images, conteneurs et volumes Docker inutilisés
-docker system prune -f
-
-# Supprimer les images non utilisées
-docker image prune -a -f
-
-# Compresser ou archiver les logs anciens
-find /var/log -name "*.log" -mtime +7 -exec gzip {} \;
-```
-
-### Étape 4 — Purger les données Prometheus anciennes (si nécessaire)
-
-```bash
-# Via l'API Admin Prometheus (activer --web.enable-admin-api)
-curl -X POST "http://localhost:9090/api/v1/admin/tsdb/delete_series?match[]={job='old-job'}"
-curl -X POST http://localhost:9090/api/v1/admin/tsdb/clean_tombstones
-```
-
-### Étape 5 — Action long terme
-
-- Ajuster la rétention Prometheus (`--storage.tsdb.retention.time=15d`)
-- Configurer une rotation des logs avec `logrotate`
-- Envisager l'extension du volume ou le déplacement vers un stockage externe
-
----
-
-## 7. Ajouter une nouvelle métrique custom NestJS
-
-### Exemple complet — Counter + Histogram
-
-#### 7.1 Déclarer les providers dans `MetricsModule`
-
-Dans `src/metrics/metrics.module.ts`, ajouter dans le tableau `providers` :
+### Étape 1 — Déclarer dans MetricsModule
 
 ```typescript
+// src/metrics/metrics.module.ts
 import { makeCounterProvider, makeHistogramProvider } from '@willsoto/nestjs-prometheus';
 
-// Dans providers[] du @Module :
-makeCounterProvider({
-  name: 'subscription_events_total',
-  help: "Nombre total d'événements d'abonnement",
-  labelNames: ['event_type', 'plan'],
-}),
-makeHistogramProvider({
-  name: 'subscription_processing_duration_seconds',
-  help: "Durée de traitement des abonnements en secondes",
-  labelNames: ['plan'],
-  buckets: [0.1, 0.5, 1, 2, 5],
-}),
+providers: [
+  MetricsService,
+  makeCounterProvider({
+    name: 'ma_metrique_total',
+    help: 'Description courte de la métrique',
+    labelNames: ['label1', 'label2'],
+  }),
+]
 ```
 
-Ne pas oublier d'ajouter les noms dans le tableau `exports` si le service doit être utilisé hors du module.
-
-#### 7.2 Injecter dans `MetricsService`
-
-Dans `src/metrics/metrics.service.ts` :
+### Étape 2 — Exposer dans MetricsService
 
 ```typescript
-import { Counter, Histogram } from 'prom-client';
+// src/metrics/metrics.service.ts
 import { InjectMetric } from '@willsoto/nestjs-prometheus';
+import { Counter } from 'prom-client';
 
-@Injectable()
-export class MetricsService {
-  constructor(
-    // ... métriques existantes ...
-    @InjectMetric('subscription_events_total')
-    private readonly subscriptionEventsCounter: Counter<string>,
-    @InjectMetric('subscription_processing_duration_seconds')
-    private readonly subscriptionDurationHistogram: Histogram<string>,
-  ) {}
+constructor(
+  @InjectMetric('ma_metrique_total')
+  private readonly maMetrique: Counter<string>,
+) {}
 
-  enregistrerEvenementAbonnement(eventType: string, plan: string): void {
-    this.subscriptionEventsCounter.inc({ event_type: eventType, plan });
-  }
-
-  observerDureeAbonnement(plan: string, durationSeconds: number): void {
-    this.subscriptionDurationHistogram.observe({ plan }, durationSeconds);
-  }
+incrementer(label1: string, label2: string): void {
+  this.maMetrique.inc({ label1, label2 });
 }
 ```
 
-#### 7.3 Utiliser dans un service métier
+### Étape 3 — Importer MetricsModule dans le module cible
 
 ```typescript
-import { Injectable } from '@nestjs/common';
-import { MetricsService } from 'src/metrics/metrics.service';
-
-@Injectable()
-export class SubscriptionService {
-  constructor(private readonly metricsService: MetricsService) {}
-
-  async creerAbonnement(userId: string, plan: string): Promise<void> {
-    const debut = Date.now();
-
-    // ... logique métier ...
-
-    const durationSeconds = (Date.now() - debut) / 1000;
-    this.metricsService.enregistrerEvenementAbonnement('created', plan);
-    this.metricsService.observerDureeAbonnement(plan, durationSeconds);
-  }
-}
-```
-
-#### 7.4 Importer `MetricsModule` dans le module cible
-
-Dans `src/subscription/subscription.module.ts` :
-
-```typescript
-import { MetricsModule } from 'src/metrics/metrics.module';
-
+// src/mon-module/mon-module.module.ts
 @Module({
   imports: [MetricsModule],
-  // ...
+  providers: [MonService],
 })
-export class SubscriptionModule {}
 ```
 
-#### 7.5 Vérifier que la métrique est bien exposée
+### Étape 4 — Injecter dans le service
 
-```bash
-curl http://localhost:3000/metrics | grep subscription_events_total
-```
+```typescript
+constructor(private readonly metricsService: MetricsService) {}
 
----
-
-## 8. Ajouter un nouveau dashboard Grafana et le versionner
-
-### 8.1 Créer le fichier JSON du dashboard
-
-Créer un fichier dans `docker/grafana/dashboards/` :
-
-```bash
-touch docker/grafana/dashboards/mon-nouveau-dashboard.json
-```
-
-Structure minimale d'un dashboard Grafana JSON :
-
-```json
-{
-  "uid": "mon-nouveau-dashboard",
-  "title": "Mon Nouveau Dashboard",
-  "tags": ["healthai", "custom"],
-  "timezone": "browser",
-  "schemaVersion": 38,
-  "version": 1,
-  "refresh": "30s",
-  "panels": [
-    {
-      "id": 1,
-      "title": "Ma métrique",
-      "type": "timeseries",
-      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 0 },
-      "targets": [
-        {
-          "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "ma_metrique_total",
-          "legendFormat": "Valeur"
-        }
-      ],
-      "fieldConfig": { "defaults": { "unit": "short" } }
-    }
-  ],
-  "time": { "from": "now-1h", "to": "now" }
+async maMethode(): Promise<void> {
+  this.metricsService.incrementer('valeur1', 'valeur2');
 }
 ```
 
-### 8.2 Rechargement automatique
-
-Grafana vérifie le dossier de dashboards toutes les 30 secondes (configurable via `updateIntervalSeconds` dans `dashboards.yml`). Le dashboard apparaît automatiquement dans le dossier **HealthAI Coach**.
-
-### 8.3 Exporter un dashboard existant depuis l'UI
-
-1. Ouvrir Grafana → le dashboard à versionner
-2. Cliquer sur l'icône **Partager** → **Exporter** → **Enregistrer dans un fichier**
-3. Placer le fichier JSON dans `docker/grafana/dashboards/`
-4. Committer le fichier dans git
-
-### 8.4 Bonne pratique de nommage
-
-- Fichier : `kebab-case.json` (ex. `subscription-analytics.json`)
-- `uid` : identique au nom du fichier sans extension (pour éviter les conflits)
-- `tags` : toujours inclure `"healthai"` + un tag de domaine
-
-### 8.5 Versionner les modifications
+### Étape 5 — Vérifier
 
 ```bash
-git add docker/grafana/dashboards/mon-nouveau-dashboard.json
-git commit -m "feat(monitoring): ajout dashboard <nom> Grafana"
+curl http://localhost:3001/metrics | grep ma_metrique
 ```
 
 ---
 
-## 9. Migration ELK → Loki
+## 9. Runbooks opérationnels
 
-### Pourquoi migrer vers Loki ?
-
-| Critère             | ELK (Elasticsearch + Logstash + Kibana) | Loki + Grafana                        |
-|---------------------|-----------------------------------------|---------------------------------------|
-| Consommation RAM    | Élevée (Elasticsearch : 4–8 Go min)     | Faible (Loki : < 512 Mo)              |
-| Indexation          | Full-text sur tous les champs           | Labels uniquement (logs non indexés)  |
-| Coût d'exploitation | Élevé                                   | Faible                                |
-| Intégration Grafana | Via plugin (Kibana séparé)              | Natif                                 |
-| Scalabilité         | Complexe (cluster ES)                   | Simple (stockage objet S3 compatible) |
-| Courbe d'apprentissage | Steep (DSL Elasticsearch)            | Progressive (LogQL proche de PromQL)  |
-
-Loki est plus adapté à notre contexte (hébergement contraint, stack Grafana déjà présente).
-
-### Plan de migration
-
-#### Étape 1 — Paralléliser (phase transitoire)
-
-Pendant 1 à 2 semaines, envoyer les logs vers ELK **et** Loki simultanément pour valider que Loki capte bien tous les logs.
-
-```yaml
-# Dans promtail-config.yml, ajouter un client ELK si nécessaire
-# (ou conserver Logstash en parallèle)
-clients:
-  - url: http://loki:3100/loki/api/v1/push
-```
-
-#### Étape 2 — Valider les requêtes LogQL équivalentes
-
-| Requête Kibana / Elasticsearch           | Équivalent LogQL                                       |
-|------------------------------------------|--------------------------------------------------------|
-| `level: ERROR`                           | `{service="backend-nestjs"} \| json \| level="ERROR"` |
-| `message: "timeout"`                     | `{service="backend-nestjs"} \|= "timeout"`            |
-| `@timestamp > now-1h AND level: WARN`    | `{service="backend-nestjs"} \| json \| level="WARN"`  |
-
-#### Étape 3 — Migrer les alertes
-
-Les alertes basées sur les logs Elasticsearch → recréer dans Grafana avec la datasource Loki :
-
-```logql
-# Exemple : alerte si plus de 10 erreurs en 5 minutes
-count_over_time({service="backend-nestjs"} |= "ERROR" [5m]) > 10
-```
-
-#### Étape 4 — Arrêter ELK
-
-Une fois les dashboards et alertes Loki validés en production :
+### RB-01 — Service DOWN (`ServiceDown`)
 
 ```bash
-# Arrêter les services ELK
-docker compose -f docker-compose.elk.yml down
+# 1. Identifier le service
+curl -s http://localhost:9090/api/v1/alerts | python3 -c "
+import json,sys
+for a in json.load(sys.stdin)['data']['alerts']:
+    if a['state'] == 'firing':
+        print(a['labels']['alertname'], '→', a['labels'].get('job',''))
+"
 
-# Optionnel : supprimer les volumes ELK
-docker volume rm elasticsearch-data kibana-data
+# 2. Logs du service
+docker logs <nom-conteneur> --tail 50
+
+# 3. Redémarrer
+docker compose -f docker/docker-compose.monitoring.yml restart <service>
 ```
 
-#### Étape 5 — Nettoyage
+### RB-02 — Latence élevée (`HighLatency`)
 
-- Supprimer les configurations Logstash/Beats
-- Archiver les anciens dashboards Kibana (export JSON)
-- Documenter la date de bascule dans ce fichier
+```bash
+# Vérifier l'event loop
+curl -s "http://localhost:9090/api/v1/query?query=nodejs_eventloop_lag_p99_seconds" \
+  | python3 -c "import json,sys; r=json.load(sys.stdin)['data']['result']; print(float(r[0]['value'][1])*1000, 'ms p99')"
+
+# Vérifier si un pipeline ETL est en cours (bloque la DB)
+curl -s "http://localhost:9090/api/v1/query?query=etl_pipeline_duration_seconds_count" \
+  | python3 -c "import json,sys; [print(r['metric']['pipeline'], r['value'][1]) for r in json.load(sys.stdin)['data']['result']]"
+
+# Logs récents
+docker logs backend-nestjs --since 5m | grep -E "ERROR|WARN"
+```
+
+### RB-03 — Event Loop bloquée (`HighEventLoopLag`)
+
+Causes probables : opération synchrone bloquante (JSON.parse massif, crypto), boucle CPU-bound, fuites de connexions.
+
+```bash
+# Handles actifs
+curl -s "http://localhost:9090/api/v1/query?query=nodejs_active_handles_total" \
+  | python3 -c "import json,sys; print(json.load(sys.stdin)['data']['result'][0]['value'][1], 'handles')"
+
+# Logs avec contexte
+docker logs backend-nestjs --since 10m | grep -B2 -A2 "ERROR"
+```
+
+### RB-04 — Heap saturée (`HighHeapUsage`)
+
+```bash
+# Utilisation actuelle
+curl -s "http://localhost:9090/api/v1/query?query=nodejs_heap_size_used_bytes/nodejs_heap_size_total_bytes*100" \
+  | python3 -c "import json,sys; print(round(float(json.load(sys.stdin)['data']['result'][0]['value'][1]),1), '%')"
+
+# Si > 90% : redémarrer NestJS (récupérer PID via ps aux | grep 'node dist/main')
+```
+
+### RB-05 — Disque critique (`DiskSpaceLow`)
+
+```bash
+df -h /
+docker system prune --volumes -f   # purger images/volumes non utilisés
+```
+
+### RB-06 — Pipeline ETL anormalement lent
+
+```bash
+# Durées moyennes actuelles
+curl -s "http://localhost:9090/api/v1/query?query=etl_pipeline_duration_seconds_sum/etl_pipeline_duration_seconds_count" \
+  | python3 -c "
+import json,sys
+for r in json.load(sys.stdin)['data']['result']:
+    print(f'{r[\'metric\']["pipeline"]}: {float(r[\'value\'][1]):.1f}s')
+"
+
+# Logs pipeline
+docker logs backend-nestjs --tail 200 | grep -i "pipeline\|ETL\|import\|ERROR"
+```
 
 ---
 
-## 10. Configuration des ports
+## 10. Limitations macOS / Rancher Desktop
 
-| Service        | Port hôte | Port conteneur | Accès externe         |
-|----------------|-----------|----------------|-----------------------|
-| Backend NestJS | 3000      | 3000           | API principale        |
-| Grafana        | 3001      | 3000           | Dashboards            |
-| Loki           | 3100      | 3100           | Ingestion logs        |
-| Prometheus     | 9090      | 9090           | Métriques / PromQL    |
-| AlertManager   | 9093      | 9093           | Gestion alertes       |
-| Node Exporter  | 9100      | 9100           | Métriques hôte        |
-| cAdvisor       | 8081      | 8080           | Métriques conteneurs  |
-| FastAPI (IA)   | 8000      | 8000           | API IA                |
-| phpMyAdmin     | 8080      | 80             | Administration MariaDB|
-| Promtail       | 9080      | 9080           | Healthcheck           |
+### Pourquoi cAdvisor ne fonctionne pas
 
-> **Note :** cAdvisor est exposé sur le port `8081` côté hôte (et non `8080`) pour éviter le conflit avec phpMyAdmin.
+Sur macOS, Docker tourne dans une VM Linux (Lima/k3s). cAdvisor s'exécute dans cette VM et voit les processus Linux internes (openrc, k3s, traefik…) mais **pas les conteneurs Docker nommés du projet**.
 
-### Réseau Docker
+Toutes les images cAdvisor ont ce comportement sur macOS (gcr.io, ghcr.io, zcube) — c'est architectural.
 
-Tous les services de monitoring appartiennent au réseau bridge `monitoring`. Le backend NestJS et la FastAPI sont contactés via `host.docker.internal` (accès à l'hôte depuis le conteneur).
+**Alternative retenue :** Docker Daemon Metrics sur port `9323`, qui fournit :
+- `engine_daemon_container_states_containers` → running/stopped/paused
+- `engine_daemon_events_total` → événements start/stop/die
+- `engine_daemon_engine_memory_bytes` → RAM dispo Docker
 
-Pour intégrer le backend dans le réseau `monitoring` (recommandé en production) :
+### Restaurer les métriques Docker Daemon
 
+Si `engine_daemon_*` disparaissent après redémarrage de Rancher Desktop :
+
+```bash
+# Réécrire daemon.json dans la VM Lima
+docker run --rm --privileged --pid=host alpine:latest \
+  nsenter -t 1 -m -u -n -i -- sh -c \
+  'echo "{"features":{"containerd-snapshotter":true},"metrics-addr":"0.0.0.0:9323","experimental":true}" > /etc/docker/daemon.json'
+
+# Puis redémarrer Rancher Desktop
+```
+
+### Migration vers un serveur Linux (production)
+
+Sur Linux, cAdvisor fonctionne nativement et expose des métriques par conteneur (`name` label).
+
+**Changements à effectuer :**
+
+Dans `docker/docker-compose.monitoring.yml`, remplacer le service `(aucun)` par :
 ```yaml
-# Dans compose.yaml (backend)
-networks:
-  - monitoring
+cadvisor:
+  image: gcr.io/cadvisor/cadvisor:latest
+  volumes:
+    - /:/rootfs:ro
+    - /var/run:/var/run:ro
+    - /sys:/sys:ro
+    - /var/lib/docker:/var/lib/docker:ro
+  ports:
+    - '8081:8080'
+```
 
-# Puis mettre à jour prometheus.yml pour cibler le nom du service
-# au lieu de host.docker.internal
+Dans `docker/prometheus/prometheus.yml`, remplacer `docker-daemon` par :
+```yaml
+- job_name: cadvisor
+  static_configs:
+    - targets: ['cadvisor:8080']
+```
+
+Dans `docker/grafana/dashboards/stack-overview.json`, utiliser :
+```promql
+rate(container_cpu_usage_seconds_total{name!=""}[2m]) * 100
+container_memory_usage_bytes{name!=""}
 ```

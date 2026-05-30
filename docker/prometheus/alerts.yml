@@ -1,5 +1,5 @@
 groups:
-  - name: healthai_alerts
+  - name: healthai_service_alerts
     rules:
       - alert: ServiceDown
         expr: up == 0
@@ -8,23 +8,13 @@ groups:
           severity: critical
         annotations:
           summary: 'Service {{ $labels.job }} indisponible'
-          description: 'Le service {{ $labels.job }} (instance {{ $labels.instance }}) est hors ligne depuis plus d''1 minute.'
+          description: 'Le service {{ $labels.job }} ({{ $labels.instance }}) est hors ligne depuis plus d''1 minute.'
 
-      - alert: HighCpuUsage
+      - alert: HighErrorRate5xx
         expr: >
-          100 - (avg(rate(node_cpu_seconds_total{mode="idle"}[2m])) * 100) > 80
-        for: 2m
-        labels:
-          severity: warning
-        annotations:
-          summary: 'CPU élevé sur le conteneur {{ $labels.name }}'
-          description: 'Le conteneur {{ $labels.name }} utilise {{ printf "%.1f" $value }}% de CPU depuis 2 minutes.'
-
-      - alert: HighErrorRate
-        expr: >
-          rate(http_requests_total{status_code=~"5.."}[1m])
+          sum(rate(http_requests_total{status_code=~"5.."}[1m]))
           /
-          rate(http_requests_total[1m]) * 100 > 5
+          sum(rate(http_requests_total[1m])) * 100 > 5
         for: 1m
         labels:
           severity: critical
@@ -32,14 +22,77 @@ groups:
           summary: 'Taux d''erreurs 5xx élevé'
           description: 'Le taux d''erreurs 5xx est de {{ printf "%.1f" $value }}% sur la dernière minute.'
 
-      - alert: DatabaseConnectionsHigh
+      - alert: HighLatency
         expr: >
-          mysql_global_status_threads_connected
-          /
-          mysql_global_variables_max_connections * 100 > 80
-        for: 0m
+          histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le)) > 2
+        for: 2m
         labels:
           severity: warning
         annotations:
-          summary: 'Connexions MariaDB élevées'
-          description: 'Le taux de connexions MariaDB est à {{ printf "%.1f" $value }}% du maximum autorisé.'
+          summary: 'Latence API élevée (p95 > 2s)'
+          description: 'La latence p95 est de {{ printf "%.2f" $value }}s depuis 2 minutes.'
+
+  - name: healthai_nodejs_alerts
+    rules:
+      - alert: HighEventLoopLag
+        expr: nodejs_eventloop_lag_p99_seconds > 0.5
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: 'Event loop Node.js saturée'
+          description: 'Le lag p99 de l''event loop est de {{ printf "%.0f" (mul $value 1000) }}ms depuis 2 minutes. L''application est potentiellement bloquée.'
+
+      - alert: HighHeapUsage
+        expr: >
+          nodejs_heap_size_used_bytes / nodejs_heap_size_total_bytes * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: 'Heap Node.js saturée'
+          description: 'Le heap est utilisé à {{ printf "%.1f" $value }}% depuis 5 minutes. Risque d''OOM.'
+
+  - name: healthai_infrastructure_alerts
+    rules:
+      - alert: HighCpuUsage
+        expr: >
+          100 - (avg(rate(node_cpu_seconds_total{mode="idle"}[2m])) * 100) > 80
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: 'CPU hôte élevé (>80%)'
+          description: 'Le CPU de l''hôte est à {{ printf "%.1f" $value }}% depuis 2 minutes.'
+
+      - alert: HighMemoryUsage
+        expr: >
+          (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: 'RAM hôte saturée (>85%)'
+          description: 'La RAM est utilisée à {{ printf "%.1f" $value }}% depuis 5 minutes.'
+
+      - alert: DiskSpaceLow
+        expr: >
+          (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) * 100 < 15
+        for: 0m
+        labels:
+          severity: critical
+        annotations:
+          summary: 'Espace disque critique (<15%)'
+          description: 'Il reste {{ printf "%.1f" $value }}% d''espace disque sur /.'
+
+  - name: healthai_etl_alerts
+    rules:
+      - alert: ETLPipelineNotRun
+        expr: >
+          time() - etl_pipeline_duration_seconds_created > 86400
+        for: 0m
+        labels:
+          severity: info
+        annotations:
+          summary: 'Pipeline ETL {{ $labels.pipeline }} non exécuté depuis 24h'
+          description: 'Le pipeline {{ $labels.pipeline }} n''a pas été exécuté depuis plus de 24 heures.'
