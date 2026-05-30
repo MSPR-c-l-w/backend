@@ -41,7 +41,7 @@ groups:
           severity: warning
         annotations:
           summary: 'Event loop Node.js saturée'
-          description: 'Le lag p99 de l''event loop est de {{ printf "%.0f" (mul $value 1000) }}ms depuis 2 minutes. L''application est potentiellement bloquée.'
+          description: 'Le lag p99 de l''event loop est de {{ printf "%.3f" $value }}s depuis 2 minutes. L''application est potentiellement bloquée.'
 
       - alert: HighHeapUsage
         expr: >
