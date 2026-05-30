@@ -1,0 +1,215 @@
+# Stack HealthAI — isolation réseau (réseau interne sans exposition BDD / S3 API).
+# Frontend dédié : repo séparé ; image nginx ci-dessous = placeholder dev.
+# Voir documentation/network.md
+
+name: healthai
+
+services:
+  # --- Réseau healthai-internal (aucun port publié sur l'hôte) ----------------
+
+  mariadb:
+    image: mariadb:11.4
+    container_name: healthai-mariadb
+    restart: unless-stopped
+    env_file:
+      - .env.secrets
+    environment:
+      MYSQL_DATABASE: backend_db
+      MYSQL_USER: backend_user
+    volumes:
+      - mariadb_data:/var/lib/mysql
+    networks:
+      - healthai-internal
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+    healthcheck:
+      test: ['CMD', 'healthcheck.sh', '--connect', '--innodb_initialized']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  mongodb:
+    image: mongo:7
+    container_name: healthai-mongodb
+    restart: unless-stopped
+    env_file:
+      - .env.secrets
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER:-root}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:-change-me-mongo-root}
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - healthai-internal
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+
+  minio:
+    image: minio/minio:RELEASE.2025-01-20T14-49-07Z
+    container_name: healthai-minio
+    restart: unless-stopped
+    env_file:
+      - .env.secrets
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-change-me-minio}
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
+    networks:
+      - healthai-internal
+      - healthai-public
+    expose:
+      - '9000'
+    ports:
+      - '9001:9001'
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+
+  workout-api:
+    build:
+      context: ./docker/workout-api
+      dockerfile: Dockerfile
+    container_name: healthai-workout-api
+    restart: unless-stopped
+    env_file:
+      - .env.secrets
+    environment:
+      MONGODB_URI: ${MONGODB_URI:-mongodb://root:change-me-mongo-root@mongodb:27017/?authSource=admin}
+    depends_on:
+      - mongodb
+    networks:
+      - healthai-internal
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+
+  # --- healthai-public (exposition minimale) + liaison interne si besoin ------
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: healthai-backend
+    restart: unless-stopped
+    env_file:
+      - .env.secrets
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      WORKOUT_SERVICE_URL: http://workout-api:8000
+    ports:
+      - '3000:3000'
+    depends_on:
+      mariadb:
+        condition: service_healthy
+    networks:
+      - healthai-internal
+      - healthai-public
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+
+  frontend:
+    image: nginx:1.27-alpine
+    container_name: healthai-frontend
+    restart: unless-stopped
+    ports:
+      - '80:80'
+    volumes:
+      - ./docker/frontend/default.conf:/etc/nginx/conf.d/default.conf:ro
+    networks:
+      - healthai-public
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          cpus: '0.2'
+          memory: 128M
+
+  grafana:
+    image: grafana/grafana:11.4.0
+    container_name: healthai-grafana
+    restart: unless-stopped
+    env_file:
+      - .env.secrets
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-change-me-grafana}
+    ports:
+      - '3001:3000'
+    volumes:
+      - grafana_data:/var/lib/grafana
+    networks:
+      - healthai-public
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+
+  adminer:
+    image: adminer:4
+    container_name: healthai-adminer
+    restart: unless-stopped
+    environment:
+      ADMINER_DEFAULT_SERVER: mariadb
+    ports:
+      - '8080:8080'
+    depends_on:
+      mariadb:
+        condition: service_healthy
+    networks:
+      - healthai-public
+      - healthai-internal
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 128M
+
+volumes:
+  mariadb_data:
+    driver: local
+  mongodb_data:
+    driver: local
+  minio_data:
+    driver: local
+  grafana_data:
+    driver: local
+
+networks:
+  healthai-internal:
+    name: healthai-internal
+    driver: bridge
+  healthai-public:
+    name: healthai-public
+    driver: bridge
