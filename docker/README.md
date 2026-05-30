@@ -23,7 +23,7 @@ docker compose -f docker-compose.monitoring.yml up -d
 
 | Service | URL | Identifiants |
 |---------|-----|--------------|
-| **Grafana** (dashboards) | http://localhost:3001 | admin / admin |
+| **Grafana** (dashboards) | http://localhost:3002 | admin / admin |
 | **Prometheus** (métriques) | http://localhost:9090 | — |
 | **AlertManager** (alertes) | http://localhost:9093 | — |
 | **cAdvisor** (conteneurs) | http://localhost:8081 | — |
