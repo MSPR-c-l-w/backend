@@ -1,0 +1,45 @@
+groups:
+  - name: healthai_alerts
+    rules:
+      - alert: ServiceDown
+        expr: up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: 'Service {{ $labels.job }} indisponible'
+          description: 'Le service {{ $labels.job }} (instance {{ $labels.instance }}) est hors ligne depuis plus d''1 minute.'
+
+      - alert: HighCpuUsage
+        expr: >
+          rate(container_cpu_usage_seconds_total{name!=""}[2m]) * 100 > 80
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: 'CPU élevé sur le conteneur {{ $labels.name }}'
+          description: 'Le conteneur {{ $labels.name }} utilise {{ printf "%.1f" $value }}% de CPU depuis 2 minutes.'
+
+      - alert: HighErrorRate
+        expr: >
+          rate(http_requests_total{status_code=~"5.."}[1m])
+          /
+          rate(http_requests_total[1m]) * 100 > 5
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: 'Taux d''erreurs 5xx élevé'
+          description: 'Le taux d''erreurs 5xx est de {{ printf "%.1f" $value }}% sur la dernière minute.'
+
+      - alert: DatabaseConnectionsHigh
+        expr: >
+          mysql_global_status_threads_connected
+          /
+          mysql_global_variables_max_connections * 100 > 80
+        for: 0m
+        labels:
+          severity: warning
+        annotations:
+          summary: 'Connexions MariaDB élevées'
+          description: 'Le taux de connexions MariaDB est à {{ printf "%.1f" $value }}% du maximum autorisé.'
