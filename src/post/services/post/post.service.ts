@@ -8,6 +8,7 @@ import { Post, Prisma } from '@prisma/client';
 import type { CreatePostDto, UpdatePostDto } from 'src/post/dtos/post.dto';
 import { IPostService } from 'src/post/interfaces/post.interface';
 import type {
+  PaginatedPostComments,
   PostCommentWithAuthor,
   PostWithEngagement,
 } from 'src/post/types/post-engagement.types';
@@ -87,17 +88,34 @@ export class PostService implements IPostService {
     return mapPostRowToEngagement(row);
   }
 
-  async getPostComments(id: string): Promise<PostCommentWithAuthor[]> {
+  async getPostComments(
+    id: string,
+    page: number,
+    limit: number,
+  ): Promise<PaginatedPostComments> {
     const postId = this.parsePostId(id);
     await this.ensurePostExists(postId);
 
-    return this.prisma.postComment.findMany({
-      where: { post_id: postId },
-      orderBy: { created_at: 'asc' },
-      include: {
-        user: { select: { id: true, first_name: true, last_name: true } },
-      },
-    });
+    const skip = (page - 1) * limit;
+
+    const [comments, total] = await this.prisma.$transaction([
+      this.prisma.postComment.findMany({
+        where: { post_id: postId },
+        orderBy: { created_at: 'asc' },
+        skip,
+        take: limit,
+        include: {
+          user: { select: { id: true, first_name: true, last_name: true } },
+        },
+      }),
+      this.prisma.postComment.count({ where: { post_id: postId } }),
+    ]);
+
+    return {
+      comments,
+      total,
+      hasMore: skip + comments.length < total,
+    };
   }
 
   async createPostComment(

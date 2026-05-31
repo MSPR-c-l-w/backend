@@ -27,3 +27,9 @@ export type PostCommentWithAuthor = {
     last_name: string;
   };
 };
+
+export type PaginatedPostComments = {
+  comments: PostCommentWithAuthor[];
+  total: number;
+  hasMore: boolean;
+};
