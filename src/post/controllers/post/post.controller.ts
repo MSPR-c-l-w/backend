@@ -1,4 +1,4 @@
-import {
+﻿import {
   Body,
   Controller,
   Delete,
@@ -31,6 +31,7 @@ import type { JwtPayload } from 'src/auth/strategies/jwt.strategy';
 import {
   CreatePostCommentDto,
   CreatePostDto,
+  GetPostCommentsQueryDto,
   GetPostsQueryDto,
   UpdatePostDto,
 } from 'src/post/dtos/post.dto';
@@ -73,13 +74,22 @@ export class PostController implements IPostController {
   }
 
   @Get(':id/comments')
-  @ApiOperation({ summary: 'Lister les commentaires d’un post' })
+  @ApiOperation({ summary: "Lister les commentaires d'un post (paginés)" })
   @ApiParam({ name: 'id', description: 'ID du post' })
-  @ApiOkResponse({ description: 'Liste des commentaires' })
+  @ApiOkResponse({
+    description: 'Commentaires paginés : { comments, total, hasMore }',
+  })
   @ApiNotFoundResponse({ description: 'Post introuvable' })
   @ApiBadRequestResponse({ description: 'ID du post invalide' })
-  getPostComments(@Param('id') id: string) {
-    return this.postService.getPostComments(id);
+  getPostComments(
+    @Param('id') id: string,
+    @Query() query: GetPostCommentsQueryDto,
+  ) {
+    return this.postService.getPostComments(
+      id,
+      query.page ?? 1,
+      query.limit ?? 20,
+    );
   }
 
   @PostMethod(':id/comments')
@@ -113,7 +123,7 @@ export class PostController implements IPostController {
   @PostMethod(':id/like')
   @ApiOperation({
     summary: 'Liker un post',
-    description: 'Idempotent : un second like ne change pas l’état.',
+    description: "Idempotent : un second like ne change pas l'etat.",
   })
   @ApiParam({ name: 'id', description: 'ID du post' })
   @ApiOkResponse({ description: 'Résumé des likes' })
@@ -124,7 +134,7 @@ export class PostController implements IPostController {
   }
 
   @Delete(':id/like')
-  @ApiOperation({ summary: 'Retirer son like d’un post' })
+  @ApiOperation({ summary: "Retirer son like d'un post" })
   @ApiParam({ name: 'id', description: 'ID du post' })
   @ApiOkResponse({ description: 'Résumé des likes' })
   @ApiNotFoundResponse({ description: 'Post introuvable' })
