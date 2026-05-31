@@ -2,6 +2,8 @@
 
 Backend NestJS pour une plateforme de fitness & santé. Ce dossier contient la documentation complète du projet.
 
+> 📐 **Documentation Architecture Système** : Voir [`docs/architecture/`](../docs/architecture/) pour la vision système, diagrammes C4, infrastructure K8s, ADRs, et sécurité.
+
 ## Index
 
 | Fichier                                    | Contenu                                                                   |
