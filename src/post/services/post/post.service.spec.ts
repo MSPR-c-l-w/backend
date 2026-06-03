@@ -24,7 +24,14 @@ describe('PostService', () => {
     postComment: {
       findFirst: jest.Mock;
       create: jest.Mock;
+      count: jest.Mock;
       delete: jest.Mock;
+    };
+    postCommentLike: {
+      create: jest.Mock;
+      deleteMany: jest.Mock;
+      count: jest.Mock;
+      findFirst: jest.Mock;
     };
   };
 
@@ -55,7 +62,14 @@ describe('PostService', () => {
       postComment: {
         findFirst: jest.fn(),
         create: jest.fn(),
+        count: jest.fn(),
         delete: jest.fn(),
+      },
+      postCommentLike: {
+        create: jest.fn(),
+        deleteMany: jest.fn(),
+        count: jest.fn(),
+        findFirst: jest.fn(),
       },
     };
 
@@ -271,6 +285,116 @@ describe('PostService', () => {
         'POST_COMMENT_PARENT_NOT_FOUND_OR_WRONG_POST',
       );
       expect(prisma.postComment.create).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('likeComment', () => {
+    beforeEach(() => {
+      prisma.post.findUnique.mockResolvedValue({ id: 1 });
+      prisma.postComment.findFirst.mockResolvedValue({ id: 5, post_id: 1 });
+    });
+
+    it('devrait liker un commentaire et retourner le résumé', async () => {
+      prisma.postCommentLike.create.mockResolvedValue({ id: 10 });
+      prisma.postCommentLike.count.mockResolvedValue(3);
+      prisma.postCommentLike.findFirst.mockResolvedValue({ id: 10 });
+
+      const result = await service.likeComment('1', '5', 7);
+
+      expect(result).toEqual({ likes_count: 3, liked_by_me: true });
+      expect(prisma.postCommentLike.create).toHaveBeenCalledWith({
+        data: { comment_id: 5, user_id: 7 },
+      });
+    });
+
+    it('devrait être idempotent (P2002 ignoré — optimistic update)', async () => {
+      const dupErr = new Prisma.PrismaClientKnownRequestError('dup', {
+        code: 'P2002',
+        clientVersion: 'test',
+      });
+      prisma.postCommentLike.create.mockRejectedValue(dupErr);
+      prisma.postCommentLike.count.mockResolvedValue(2);
+      prisma.postCommentLike.findFirst.mockResolvedValue({ id: 9 });
+
+      const result = await service.likeComment('1', '5', 7);
+
+      expect(result).toEqual({ likes_count: 2, liked_by_me: true });
+    });
+
+    it('devrait propager une erreur autre que P2002 (rollback)', async () => {
+      const unexpectedErr = new Prisma.PrismaClientKnownRequestError('err', {
+        code: 'P2003',
+        clientVersion: 'test',
+      });
+      prisma.postCommentLike.create.mockRejectedValue(unexpectedErr);
+
+      await expect(service.likeComment('1', '5', 7)).rejects.toEqual(
+        unexpectedErr,
+      );
+    });
+
+    it('devrait lever NotFoundException si le post est introuvable', async () => {
+      prisma.post.findUnique.mockResolvedValue(null);
+
+      await expect(service.likeComment('1', '5', 7)).rejects.toBeInstanceOf(
+        NotFoundException,
+      );
+      expect(prisma.postCommentLike.create).not.toHaveBeenCalled();
+    });
+
+    it('devrait lever NotFoundException si le commentaire est introuvable', async () => {
+      prisma.postComment.findFirst.mockResolvedValue(null);
+
+      await expect(service.likeComment('1', '999', 7)).rejects.toBeInstanceOf(
+        NotFoundException,
+      );
+      expect(prisma.postCommentLike.create).not.toHaveBeenCalled();
+    });
+
+    it('devrait lever BadRequestException si commentId invalide', async () => {
+      await expect(service.likeComment('1', 'bad', 7)).rejects.toBeInstanceOf(
+        BadRequestException,
+      );
+      expect(prisma.postCommentLike.create).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('unlikeComment', () => {
+    beforeEach(() => {
+      prisma.post.findUnique.mockResolvedValue({ id: 1 });
+      prisma.postComment.findFirst.mockResolvedValue({ id: 5, post_id: 1 });
+    });
+
+    it('devrait unliker un commentaire et retourner le résumé', async () => {
+      prisma.postCommentLike.deleteMany.mockResolvedValue({ count: 1 });
+      prisma.postCommentLike.count.mockResolvedValue(1);
+      prisma.postCommentLike.findFirst.mockResolvedValue(null);
+
+      const result = await service.unlikeComment('1', '5', 7);
+
+      expect(result).toEqual({ likes_count: 1, liked_by_me: false });
+      expect(prisma.postCommentLike.deleteMany).toHaveBeenCalledWith({
+        where: { comment_id: 5, user_id: 7 },
+      });
+    });
+
+    it("devrait être idempotent si l'utilisateur n'avait pas liké", async () => {
+      prisma.postCommentLike.deleteMany.mockResolvedValue({ count: 0 });
+      prisma.postCommentLike.count.mockResolvedValue(2);
+      prisma.postCommentLike.findFirst.mockResolvedValue(null);
+
+      const result = await service.unlikeComment('1', '5', 7);
+
+      expect(result).toEqual({ likes_count: 2, liked_by_me: false });
+    });
+
+    it('devrait lever NotFoundException si le commentaire est introuvable', async () => {
+      prisma.postComment.findFirst.mockResolvedValue(null);
+
+      await expect(service.unlikeComment('1', '999', 7)).rejects.toBeInstanceOf(
+        NotFoundException,
+      );
+      expect(prisma.postCommentLike.deleteMany).not.toHaveBeenCalled();
     });
   });
 

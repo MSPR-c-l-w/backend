@@ -8,6 +8,7 @@ import { Post, Prisma } from '@prisma/client';
 import type { CreatePostDto, UpdatePostDto } from 'src/post/dtos/post.dto';
 import { IPostService } from 'src/post/interfaces/post.interface';
 import type {
+  CommentLikeSummary,
   PaginatedPostComments,
   PostCommentWithAuthor,
   PostWithEngagement,
@@ -243,6 +244,87 @@ export class PostService implements IPostService {
       this.prisma.postLike.count({ where: { post_id: postId } }),
       this.prisma.postLike.findFirst({
         where: { post_id: postId, user_id: userId },
+        select: { id: true },
+      }),
+    ]);
+    return { likes_count, liked_by_me: mine !== null };
+  }
+
+  async likeComment(
+    postId: string,
+    commentId: string,
+    userId: number,
+  ): Promise<CommentLikeSummary> {
+    const parsedPostId = this.parsePostId(postId);
+    const parsedCommentId = this.parseCommentId(commentId);
+    await this.ensureCommentExists(parsedPostId, parsedCommentId);
+
+    try {
+      await this.prisma.postCommentLike.create({
+        data: { comment_id: parsedCommentId, user_id: userId },
+      });
+    } catch (e: unknown) {
+      if (
+        e instanceof Prisma.PrismaClientKnownRequestError &&
+        e.code === 'P2002'
+      ) {
+        // déjà liké — idempotent
+      } else {
+        throw e;
+      }
+    }
+
+    return this.getCommentLikeSummary(parsedCommentId, userId);
+  }
+
+  async unlikeComment(
+    postId: string,
+    commentId: string,
+    userId: number,
+  ): Promise<CommentLikeSummary> {
+    const parsedPostId = this.parsePostId(postId);
+    const parsedCommentId = this.parseCommentId(commentId);
+    await this.ensureCommentExists(parsedPostId, parsedCommentId);
+
+    await this.prisma.postCommentLike.deleteMany({
+      where: { comment_id: parsedCommentId, user_id: userId },
+    });
+
+    return this.getCommentLikeSummary(parsedCommentId, userId);
+  }
+
+  private parseCommentId(id: string): number {
+    const commentId = parseInt(id, 10);
+    if (!Number.isInteger(commentId)) {
+      throw new BadRequestException('COMMENT_ID_MUST_BE_A_NUMBER');
+    }
+    return commentId;
+  }
+
+  private async ensureCommentExists(
+    postId: number,
+    commentId: number,
+  ): Promise<void> {
+    await this.ensurePostExists(postId);
+    const exists = await this.prisma.postComment.findFirst({
+      where: { id: commentId, post_id: postId },
+      select: { id: true },
+    });
+    if (!exists) {
+      throw new NotFoundException(
+        `POST_COMMENT_${commentId}_NOT_FOUND_ON_POST_${postId}`,
+      );
+    }
+  }
+
+  private async getCommentLikeSummary(
+    commentId: number,
+    userId: number,
+  ): Promise<CommentLikeSummary> {
+    const [likes_count, mine] = await Promise.all([
+      this.prisma.postCommentLike.count({ where: { comment_id: commentId } }),
+      this.prisma.postCommentLike.findFirst({
+        where: { comment_id: commentId, user_id: userId },
         select: { id: true },
       }),
     ]);
