@@ -28,6 +28,7 @@ export interface IPostController {
     dto: CreatePostCommentDto,
     req: Request,
   ): Promise<PostCommentWithAuthor>;
+  deleteComment(id: string, commentId: string, req: Request): Promise<void>;
   likePost(
     id: string,
     req: Request,
@@ -60,6 +61,11 @@ export interface IPostService {
     userId: number,
     parentId?: number,
   ): Promise<PostCommentWithAuthor>;
+  deleteComment(
+    postId: string,
+    commentId: string,
+    userId: number,
+  ): Promise<void>;
   likePost(
     id: string,
     userId: number,
