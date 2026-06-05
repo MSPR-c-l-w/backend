@@ -47,6 +47,8 @@
     "@nestjs/websockets": "^11.1.19",
     "@prisma/adapter-mariadb": "^7.8.0",
     "@prisma/client": "^7.8.0",
+    "@react-email/components": "^1.0.12",
+    "@react-email/render": "^2.0.8",
     "adm-zip": "^0.5.16",
     "axios": "^1.16.1",
     "bcrypt": "^5.1.1",
@@ -61,7 +63,10 @@
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
     "prisma": "^7.8.0",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
     "reflect-metadata": "^0.2.2",
+    "resend": "^6.12.4",
     "rxjs": "^7.8.1",
     "socket.io": "^4.8.3"
   },
@@ -108,7 +113,8 @@
     "moduleFileExtensions": [
       "js",
       "json",
-      "ts"
+      "ts",
+      "tsx"
     ],
     "moduleNameMapper": {
       "^src/(.*)$": "<rootDir>/$1"
@@ -116,7 +122,7 @@
     "rootDir": "src",
     "testRegex": ".*\\.spec\\.ts$",
     "transform": {
-      "^.+\\.(t|j)s$": "ts-jest"
+      "^.+\\.(t|j)sx?$": "ts-jest"
     },
     "collectCoverageFrom": [
       "**/*.(t|j)s"
