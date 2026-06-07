@@ -6,6 +6,7 @@ import type { UpdateUserRoleDto } from '../dtos/update-user-role.dto';
 import type { GetUsersDto } from '../dtos/get.users.dto';
 import type { UpdateAiPreferencesDto } from '../dtos/update-ai-preferences.dto';
 import type { UserAiPreferencesRecord } from './user-ai-preferences.interface';
+import type { DataExportResponse } from './data-export.interface';
 import type { PaginatedUsersResponse } from '../types';
 
 export type { PaginatedUsersResponse };
@@ -25,6 +26,7 @@ export interface IUsersController {
     req: Request,
     dto: { first_name: string; last_name: string },
   ): Promise<{ user: { first_name: string; last_name: string } }>;
+  requestDataExport(req: Request): Promise<DataExportResponse>;
 }
 
 export interface IUsersService {
@@ -49,4 +51,5 @@ export interface IUsersService {
     first_name: string,
     last_name: string,
   ): Promise<{ first_name: string; last_name: string }>;
+  requestDataExport(userId: number): Promise<DataExportResponse>;
 }
