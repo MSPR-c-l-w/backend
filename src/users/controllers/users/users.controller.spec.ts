@@ -15,6 +15,9 @@ describe('UsersController', () => {
     updateUserRole: jest.fn(),
     deleteUser: jest.fn(),
     updateMyAiPreferences: jest.fn(),
+    followUser: jest.fn(),
+    unfollowUser: jest.fn(),
+    getPublicProfile: jest.fn(),
     deleteMe: jest.fn(),
     requestDataExport: jest.fn(),
   };
@@ -182,6 +185,52 @@ describe('UsersController', () => {
         '42',
         dto,
       );
+    });
+  });
+
+  describe('followUser', () => {
+    it('passe le sub JWT (follower) et l’id cible au service', async () => {
+      const res = { following: true, followersCount: 5 };
+      usersServiceMock.followUser.mockResolvedValue(res);
+
+      const req = { user: { sub: 1 } } as never;
+      const result = await controller.followUser(req, 2);
+
+      expect(result).toEqual(res);
+      expect(usersServiceMock.followUser).toHaveBeenCalledWith(1, 2);
+    });
+  });
+
+  describe('unfollowUser', () => {
+    it('passe le sub JWT (follower) et l’id cible au service', async () => {
+      const res = { following: false, followersCount: 4 };
+      usersServiceMock.unfollowUser.mockResolvedValue(res);
+
+      const req = { user: { sub: 1 } } as never;
+      const result = await controller.unfollowUser(req, 2);
+
+      expect(result).toEqual(res);
+      expect(usersServiceMock.unfollowUser).toHaveBeenCalledWith(1, 2);
+    });
+  });
+
+  describe('getPublicProfile', () => {
+    it('passe le sub JWT (demandeur) et l’id cible au service', async () => {
+      const profile = {
+        id: 2,
+        first_name: 'Jane',
+        last_name: 'Doe',
+        followersCount: 10,
+        followingCount: 3,
+        isFollowedByMe: true,
+      };
+      usersServiceMock.getPublicProfile.mockResolvedValue(profile);
+
+      const req = { user: { sub: 1 } } as never;
+      const result = await controller.getPublicProfile(req, 2);
+
+      expect(result).toEqual(profile);
+      expect(usersServiceMock.getPublicProfile).toHaveBeenCalledWith(1, 2);
     });
   });
 

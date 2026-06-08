@@ -35,6 +35,12 @@ describe('UsersService', () => {
     userAiPreferences: {
       upsert: jest.Mock;
     };
+    follow: {
+      upsert: jest.Mock;
+      deleteMany: jest.Mock;
+      count: jest.Mock;
+      findUnique: jest.Mock;
+    };
   };
 
   const createUserEntity = (overrides: Record<string, unknown> = {}) => ({
@@ -75,6 +81,12 @@ describe('UsersService', () => {
       },
       userAiPreferences: {
         upsert: jest.fn(),
+      },
+      follow: {
+        upsert: jest.fn(),
+        deleteMany: jest.fn(),
+        count: jest.fn(),
+        findUnique: jest.fn(),
       },
     };
 
@@ -763,6 +775,114 @@ describe('UsersService', () => {
 
       await expect(service.updateMe(1, 'Jean', 'Dupont')).rejects.toThrow(
         'DB_ERROR',
+      );
+    });
+  });
+
+  describe('followUser', () => {
+    it('crée la relation (idempotent) et retourne le compteur à jour', async () => {
+      prisma.user.findUnique.mockResolvedValue({ id: 2, is_deleted: false });
+      prisma.follow.upsert.mockResolvedValue({});
+      prisma.follow.count.mockResolvedValue(5);
+
+      const result = await service.followUser(1, 2);
+
+      expect(prisma.follow.upsert).toHaveBeenCalledWith({
+        where: {
+          follower_id_following_id: { follower_id: 1, following_id: 2 },
+        },
+        create: { follower_id: 1, following_id: 2 },
+        update: {},
+      });
+      expect(result).toEqual({ following: true, followersCount: 5 });
+    });
+
+    it('lève BadRequestException si on tente de se suivre soi-même', async () => {
+      await expect(service.followUser(1, 1)).rejects.toBeInstanceOf(
+        BadRequestException,
+      );
+      expect(prisma.follow.upsert).not.toHaveBeenCalled();
+    });
+
+    it("lève NotFoundException si l'utilisateur cible n'existe pas", async () => {
+      prisma.user.findUnique.mockResolvedValue(null);
+
+      await expect(service.followUser(1, 999)).rejects.toBeInstanceOf(
+        NotFoundException,
+      );
+      expect(prisma.follow.upsert).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('unfollowUser', () => {
+    it('supprime la relation (idempotent) et retourne le compteur à jour', async () => {
+      prisma.user.findUnique.mockResolvedValue({ id: 2, is_deleted: false });
+      prisma.follow.deleteMany.mockResolvedValue({ count: 1 });
+      prisma.follow.count.mockResolvedValue(4);
+
+      const result = await service.unfollowUser(1, 2);
+
+      expect(prisma.follow.deleteMany).toHaveBeenCalledWith({
+        where: { follower_id: 1, following_id: 2 },
+      });
+      expect(result).toEqual({ following: false, followersCount: 4 });
+    });
+
+    it("lève NotFoundException si l'utilisateur cible n'existe pas", async () => {
+      prisma.user.findUnique.mockResolvedValue(null);
+
+      await expect(service.unfollowUser(1, 999)).rejects.toBeInstanceOf(
+        NotFoundException,
+      );
+      expect(prisma.follow.deleteMany).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('getPublicProfile', () => {
+    it('retourne le profil avec compteurs et isFollowedByMe=true', async () => {
+      prisma.user.findUnique.mockResolvedValue({
+        id: 2,
+        first_name: 'Jane',
+        last_name: 'Doe',
+        is_deleted: false,
+      });
+      prisma.follow.count
+        .mockResolvedValueOnce(10) // followers
+        .mockResolvedValueOnce(3); // following
+      prisma.follow.findUnique.mockResolvedValue({ id: 99 });
+
+      const result = await service.getPublicProfile(1, 2);
+
+      expect(result).toEqual({
+        id: 2,
+        first_name: 'Jane',
+        last_name: 'Doe',
+        followersCount: 10,
+        followingCount: 3,
+        isFollowedByMe: true,
+      });
+    });
+
+    it('retourne isFollowedByMe=false quand aucune relation', async () => {
+      prisma.user.findUnique.mockResolvedValue({
+        id: 2,
+        first_name: 'Jane',
+        last_name: 'Doe',
+        is_deleted: false,
+      });
+      prisma.follow.count.mockResolvedValueOnce(0).mockResolvedValueOnce(0);
+      prisma.follow.findUnique.mockResolvedValue(null);
+
+      const result = await service.getPublicProfile(1, 2);
+
+      expect(result.isFollowedByMe).toBe(false);
+    });
+
+    it("lève NotFoundException si l'utilisateur n'existe pas", async () => {
+      prisma.user.findUnique.mockResolvedValue(null);
+
+      await expect(service.getPublicProfile(1, 999)).rejects.toBeInstanceOf(
+        NotFoundException,
       );
     });
   });
