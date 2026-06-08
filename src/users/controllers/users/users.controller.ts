@@ -3,8 +3,11 @@ import {
   Controller,
   Delete,
   Get,
+  HttpCode,
+  HttpStatus,
   Inject,
   Param,
+  ParseIntPipe,
   Patch,
   Post,
   Put,
@@ -23,6 +26,10 @@ import { UpdateUserRoleDto } from 'src/users/dtos/update-user-role.dto';
 import { UpdateAiPreferencesDto } from 'src/users/dtos/update-ai-preferences.dto';
 import { UpdateMeDto } from 'src/users/dtos/update-me.dto';
 import type { UserAiPreferencesRecord } from 'src/users/interfaces/user-ai-preferences.interface';
+import type {
+  FollowResult,
+  PublicProfile,
+} from 'src/users/interfaces/follow.interface';
 import type {
   IUsersController,
   IUsersService,
@@ -104,6 +111,48 @@ export class UsersController implements IUsersController {
       payload.sub.toString(),
       preferences,
     );
+  }
+
+  @Get(':id/profile')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({
+    summary: "Profil public d'un utilisateur (avec état de suivi)",
+  })
+  @ApiOkResponse({ description: 'Profil public' })
+  @ApiUnauthorizedResponse({ description: 'JWT invalide ou expiré' })
+  getPublicProfile(
+    @Req() req: Request,
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<PublicProfile> {
+    const payload = req.user as JwtPayload;
+    return this.usersService.getPublicProfile(payload.sub, id);
+  }
+
+  @Post(':id/follow')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Suivre un utilisateur' })
+  @ApiOkResponse({ description: 'Utilisateur suivi' })
+  @ApiUnauthorizedResponse({ description: 'JWT invalide ou expiré' })
+  followUser(
+    @Req() req: Request,
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<FollowResult> {
+    const payload = req.user as JwtPayload;
+    return this.usersService.followUser(payload.sub, id);
+  }
+
+  @Delete(':id/follow')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Ne plus suivre un utilisateur' })
+  @ApiOkResponse({ description: 'Utilisateur unfollow' })
+  @ApiUnauthorizedResponse({ description: 'JWT invalide ou expiré' })
+  unfollowUser(
+    @Req() req: Request,
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<FollowResult> {
+    const payload = req.user as JwtPayload;
+    return this.usersService.unfollowUser(payload.sub, id);
   }
 
   @Get(':id')

@@ -18,6 +18,10 @@ import { User } from 'src/utils/types';
 import { GetUsersDto } from 'src/users/dtos/get.users.dto';
 import { UpdateAiPreferencesDto } from 'src/users/dtos/update-ai-preferences.dto';
 import type { UserAiPreferencesRecord } from 'src/users/interfaces/user-ai-preferences.interface';
+import type {
+  FollowResult,
+  PublicProfile,
+} from 'src/users/interfaces/follow.interface';
 
 @Injectable()
 export class UsersService implements IUsersService {
@@ -433,5 +437,95 @@ export class UsersService implements IUsersService {
     });
 
     return { first_name: first_name.trim(), last_name: last_name.trim() };
+  }
+
+  private async assertUserExists(userId: number): Promise<void> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, is_deleted: true },
+    });
+    if (!user || user.is_deleted) {
+      throw new NotFoundException('USER_NOT_FOUND');
+    }
+  }
+
+  async followUser(
+    followerId: number,
+    targetId: number,
+  ): Promise<FollowResult> {
+    if (followerId === targetId) {
+      throw new BadRequestException('CANNOT_FOLLOW_SELF');
+    }
+    await this.assertUserExists(targetId);
+
+    // Idempotent : suivre deux fois ne crée qu'une seule relation.
+    await this.prisma.follow.upsert({
+      where: {
+        follower_id_following_id: {
+          follower_id: followerId,
+          following_id: targetId,
+        },
+      },
+      create: { follower_id: followerId, following_id: targetId },
+      update: {},
+    });
+
+    const followersCount = await this.prisma.follow.count({
+      where: { following_id: targetId },
+    });
+    return { following: true, followersCount };
+  }
+
+  async unfollowUser(
+    followerId: number,
+    targetId: number,
+  ): Promise<FollowResult> {
+    await this.assertUserExists(targetId);
+
+    // Idempotent : ne plus suivre un utilisateur non suivi ne fait rien.
+    await this.prisma.follow.deleteMany({
+      where: { follower_id: followerId, following_id: targetId },
+    });
+
+    const followersCount = await this.prisma.follow.count({
+      where: { following_id: targetId },
+    });
+    return { following: false, followersCount };
+  }
+
+  async getPublicProfile(
+    requesterId: number,
+    targetId: number,
+  ): Promise<PublicProfile> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: targetId },
+      select: { id: true, first_name: true, last_name: true, is_deleted: true },
+    });
+    if (!user || user.is_deleted) {
+      throw new NotFoundException('USER_NOT_FOUND');
+    }
+
+    const [followersCount, followingCount, existingFollow] = await Promise.all([
+      this.prisma.follow.count({ where: { following_id: targetId } }),
+      this.prisma.follow.count({ where: { follower_id: targetId } }),
+      this.prisma.follow.findUnique({
+        where: {
+          follower_id_following_id: {
+            follower_id: requesterId,
+            following_id: targetId,
+          },
+        },
+        select: { id: true },
+      }),
+    ]);
+
+    return {
+      id: user.id,
+      first_name: user.first_name,
+      last_name: user.last_name,
+      followersCount,
+      followingCount,
+      isFollowedByMe: existingFollow != null,
+    };
   }
 }

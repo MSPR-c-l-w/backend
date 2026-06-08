@@ -47,6 +47,8 @@ model User {
   aiPreferences                       UserAiPreferences?
   aiNutritionRecommendations          AiNutritionRecommendation[]
   aiWorkoutRecommendations            AiWorkoutRecommendation[]
+  following                           Follow[]                    @relation("UserFollowing")
+  followers                           Follow[]                    @relation("UserFollowers")
 }
 
 model Organization {
@@ -262,6 +264,18 @@ model PostLike {
 
   @@unique([post_id, user_id])
   @@index([post_id])
+}
+
+model Follow {
+  id           Int      @id @default(autoincrement())
+  follower_id  Int
+  following_id Int
+  created_at   DateTime @default(now())
+  follower     User     @relation("UserFollowing", fields: [follower_id], references: [id], onDelete: Cascade)
+  following    User     @relation("UserFollowers", fields: [following_id], references: [id], onDelete: Cascade)
+
+  @@unique([follower_id, following_id])
+  @@index([following_id])
 }
 
 // --- Staging ETL (validation humaine avant insertion en base finale) ---
