@@ -3,6 +3,8 @@
   Controller,
   Delete,
   Get,
+  HttpCode,
+  HttpStatus,
   Inject,
   Param,
   Post as PostMethod,
@@ -17,6 +19,7 @@ import {
   ApiBearerAuth,
   ApiBody,
   ApiForbiddenResponse,
+  ApiNoContentResponse,
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
@@ -118,6 +121,27 @@ export class PostController implements IPostController {
       payload.sub,
       dto.parent_id,
     );
+  }
+
+  @Delete(':id/comments/:commentId')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Supprimer son propre commentaire' })
+  @ApiParam({ name: 'id', description: 'ID du post' })
+  @ApiParam({ name: 'commentId', description: 'ID du commentaire' })
+  @ApiNoContentResponse({ description: 'Commentaire supprimé' })
+  @ApiNotFoundResponse({ description: 'Post ou commentaire introuvable' })
+  @ApiForbiddenResponse({
+    description:
+      "Interdit si l'utilisateur n'est pas l'auteur du commentaire (COMMENT_DELETE_FORBIDDEN_NOT_AUTHOR)",
+  })
+  @ApiBadRequestResponse({ description: 'ID invalide' })
+  deleteComment(
+    @Param('id') id: string,
+    @Param('commentId') commentId: string,
+    @Req() req: Request,
+  ): Promise<void> {
+    const payload = req.user as JwtPayload;
+    return this.postService.deleteComment(id, commentId, payload.sub);
   }
 
   @PostMethod(':id/like')

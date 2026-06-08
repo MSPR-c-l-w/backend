@@ -21,7 +21,11 @@ describe('PostService', () => {
       delete: jest.Mock;
     };
     user: { findUnique: jest.Mock };
-    postComment: { findFirst: jest.Mock; create: jest.Mock };
+    postComment: {
+      findFirst: jest.Mock;
+      create: jest.Mock;
+      delete: jest.Mock;
+    };
   };
 
   const mockPost: Post = {
@@ -48,7 +52,11 @@ describe('PostService', () => {
         delete: jest.fn(),
       },
       user: { findUnique: jest.fn() },
-      postComment: { findFirst: jest.fn(), create: jest.fn() },
+      postComment: {
+        findFirst: jest.fn(),
+        create: jest.fn(),
+        delete: jest.fn(),
+      },
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -327,6 +335,65 @@ describe('PostService', () => {
         service.updatePost('x', { title: 'A' }),
       ).rejects.toBeInstanceOf(BadRequestException);
       expect(prisma.post.update).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('deleteComment', () => {
+    beforeEach(() => {
+      prisma.post.findUnique.mockResolvedValue({ id: 1 });
+    });
+
+    it("devrait supprimer si l'utilisateur est l'auteur du commentaire", async () => {
+      prisma.postComment.findFirst.mockResolvedValue({ id: 5, user_id: 3 });
+      prisma.postComment.delete.mockResolvedValue(undefined);
+
+      await expect(service.deleteComment('1', '5', 3)).resolves.toBeUndefined();
+
+      expect(prisma.postComment.delete).toHaveBeenCalledWith({
+        where: { id: 5 },
+      });
+    });
+
+    it("devrait lancer ForbiddenException si l'utilisateur n'est pas l'auteur", async () => {
+      prisma.postComment.findFirst.mockResolvedValue({ id: 5, user_id: 3 });
+
+      await expect(service.deleteComment('1', '5', 99)).rejects.toBeInstanceOf(
+        ForbiddenException,
+      );
+      await expect(service.deleteComment('1', '5', 99)).rejects.toThrow(
+        'COMMENT_DELETE_FORBIDDEN_NOT_AUTHOR',
+      );
+      expect(prisma.postComment.delete).not.toHaveBeenCalled();
+    });
+
+    it('devrait lancer NotFoundException si le commentaire est introuvable', async () => {
+      prisma.postComment.findFirst.mockResolvedValue(null);
+
+      await expect(service.deleteComment('1', '999', 3)).rejects.toBeInstanceOf(
+        NotFoundException,
+      );
+      expect(prisma.postComment.delete).not.toHaveBeenCalled();
+    });
+
+    it('devrait lancer NotFoundException si le post est introuvable', async () => {
+      prisma.post.findUnique.mockResolvedValue(null);
+
+      await expect(service.deleteComment('999', '5', 3)).rejects.toBeInstanceOf(
+        NotFoundException,
+      );
+      expect(prisma.postComment.findFirst).not.toHaveBeenCalled();
+    });
+
+    it('devrait lancer BadRequestException si postId invalide', async () => {
+      await expect(service.deleteComment('bad', '5', 3)).rejects.toThrow(
+        'POST_ID_MUST_BE_A_NUMBER',
+      );
+    });
+
+    it('devrait lancer BadRequestException si commentId invalide', async () => {
+      await expect(service.deleteComment('1', 'bad', 3)).rejects.toThrow(
+        'COMMENT_ID_MUST_BE_A_NUMBER',
+      );
     });
   });
 
