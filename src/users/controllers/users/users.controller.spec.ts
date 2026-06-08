@@ -15,6 +15,7 @@ describe('UsersController', () => {
     updateUserRole: jest.fn(),
     deleteUser: jest.fn(),
     updateMyAiPreferences: jest.fn(),
+    deleteMe: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -180,6 +181,28 @@ describe('UsersController', () => {
         '42',
         dto,
       );
+    });
+  });
+
+  describe('deleteMe', () => {
+    it('passe le sub JWT et le mot de passe au service', async () => {
+      usersServiceMock.deleteMe.mockResolvedValue(undefined);
+
+      const req = { user: { sub: 7 } } as never;
+      await controller.deleteMe(req, { password: 'secret' });
+
+      expect(usersServiceMock.deleteMe).toHaveBeenCalledWith(7, 'secret');
+    });
+
+    it('propage les erreurs du service (ex. mot de passe incorrect)', async () => {
+      usersServiceMock.deleteMe.mockRejectedValue(
+        new Error('INVALID_CREDENTIALS'),
+      );
+
+      const req = { user: { sub: 7 } } as never;
+      await expect(
+        controller.deleteMe(req, { password: 'mauvais' }),
+      ).rejects.toThrow('INVALID_CREDENTIALS');
     });
   });
 });

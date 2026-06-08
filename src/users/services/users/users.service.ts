@@ -3,6 +3,7 @@ import {
   Inject,
   Injectable,
   NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from 'src/prisma/services/prisma/prisma.service';
@@ -13,7 +14,7 @@ import { UpdateUserRoleDto } from 'src/users/dtos/update-user-role.dto';
 import type { IUsersService } from 'src/users/interfaces/users.interface.js';
 import type { PaginatedUsersResponse } from 'src/users/types';
 import { ACTIVE_SUBSCRIPTION_STATUSES, SERVICES } from 'src/utils/constants';
-import { hashPassword } from 'src/utils/security/password';
+import { hashPassword, verifyPassword } from 'src/utils/security/password';
 import { User } from 'src/utils/types';
 import { GetUsersDto } from 'src/users/dtos/get.users.dto';
 import { UpdateAiPreferencesDto } from 'src/users/dtos/update-ai-preferences.dto';
@@ -433,5 +434,32 @@ export class UsersService implements IUsersService {
     });
 
     return { first_name: first_name.trim(), last_name: last_name.trim() };
+  }
+
+  async deleteMe(userId: number, password: string): Promise<void> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, password_hash: true, is_deleted: true },
+    });
+
+    if (!user || user.is_deleted) {
+      throw new NotFoundException('USER_NOT_FOUND');
+    }
+
+    const ok = await verifyPassword(password, user.password_hash);
+    if (!ok) {
+      throw new UnauthorizedException('INVALID_CREDENTIALS');
+    }
+
+    // Soft delete + révocation du refresh token pour invalider la session.
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        is_deleted: true,
+        deleted_at: new Date(),
+        is_active: false,
+        refresh_token_hash: null,
+      },
+    });
   }
 }

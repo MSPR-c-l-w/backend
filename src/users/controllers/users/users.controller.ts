@@ -3,6 +3,8 @@ import {
   Controller,
   Delete,
   Get,
+  HttpCode,
+  HttpStatus,
   Inject,
   Param,
   Patch,
@@ -22,6 +24,7 @@ import { UpdateUserDto } from 'src/users/dtos/update.user.dto';
 import { UpdateUserRoleDto } from 'src/users/dtos/update-user-role.dto';
 import { UpdateAiPreferencesDto } from 'src/users/dtos/update-ai-preferences.dto';
 import { UpdateMeDto } from 'src/users/dtos/update-me.dto';
+import { DeleteMeDto } from 'src/users/dtos/delete-me.dto';
 import type { UserAiPreferencesRecord } from 'src/users/interfaces/user-ai-preferences.interface';
 import type {
   IUsersController,
@@ -32,6 +35,7 @@ import { ROUTES, SERVICES } from 'src/utils/constants';
 import { User } from 'src/utils/types';
 import {
   ApiBearerAuth,
+  ApiNoContentResponse,
   ApiOkResponse,
   ApiOperation,
   ApiTags,
@@ -85,6 +89,21 @@ export class UsersController implements IUsersController {
       dto.last_name,
     );
     return { user: result };
+  }
+
+  @Delete('me')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({
+    summary: 'Supprimer mon compte (soft delete, mot de passe requis)',
+  })
+  @ApiNoContentResponse({ description: 'Compte supprimé' })
+  @ApiUnauthorizedResponse({
+    description: 'Mot de passe incorrect ou JWT invalide',
+  })
+  async deleteMe(@Req() req: Request, @Body() dto: DeleteMeDto): Promise<void> {
+    const payload = req.user as JwtPayload;
+    await this.usersService.deleteMe(payload.sub, dto.password);
   }
 
   @Put('me/ai-preferences')

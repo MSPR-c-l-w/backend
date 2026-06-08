@@ -25,6 +25,7 @@ export interface IUsersController {
     req: Request,
     dto: { first_name: string; last_name: string },
   ): Promise<{ user: { first_name: string; last_name: string } }>;
+  deleteMe(req: Request, dto: { password: string }): Promise<void>;
 }
 
 export interface IUsersService {
@@ -49,4 +50,5 @@ export interface IUsersService {
     first_name: string,
     last_name: string,
   ): Promise<{ first_name: string; last_name: string }>;
+  deleteMe(userId: number, password: string): Promise<void>;
 }
