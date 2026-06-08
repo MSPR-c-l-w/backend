@@ -44,6 +44,9 @@ model User {
   posts                               Post[]
   postComments                        PostComment[]
   postLikes                           PostLike[]
+  aiPreferences                       UserAiPreferences?
+  aiNutritionRecommendations          AiNutritionRecommendation[]
+  aiWorkoutRecommendations            AiWorkoutRecommendation[]
 }
 
 model Organization {
@@ -145,6 +148,58 @@ model HealthProfile {
   user                    User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
 }
 
+enum AiRecommendationType {
+  ANALYSIS
+  MEAL_PLAN
+}
+
+model UserAiPreferences {
+  id                      Int      @id @default(autoincrement())
+  user_id                 Int      @unique
+  allergies               Json
+  regime                  String?
+  budget                  Float?
+  objectif_ia             String
+  contraintes_materielles Json
+  updated_at              DateTime @updatedAt
+  user                    User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+}
+
+model AiNutritionRecommendation {
+  id                Int                  @id @default(autoincrement())
+  user_id           Int
+  type              AiRecommendationType
+  input_image_url   String?
+  aliments_detectes Json?
+  macros            Json?
+  suggestions       Json?
+  meal_plan         Json?
+  created_at        DateTime             @default(now())
+  user              User                 @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@index([created_at])
+}
+
+enum WorkoutRecommendationStatus {
+  ACTIVE
+  ARCHIVED
+}
+
+model AiWorkoutRecommendation {
+  id                  Int                         @id @default(autoincrement())
+  user_id             Int
+  microservice_ref_id String
+  statut              WorkoutRecommendationStatus @default(ACTIVE)
+  feedback            Json?
+  generated_at        DateTime                    @default(now())
+  updated_at          DateTime                    @updatedAt
+  user                User                        @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@index([microservice_ref_id])
+}
+
 model Role {
   id    Int    @id @default(autoincrement())
   name  String @unique
@@ -169,6 +224,8 @@ model Post {
   title           String
   content         String        @db.LongText
   media_url       String?       @db.VarChar(2048)
+  category        String?
+  mood            String?
   is_published    Boolean       @default(false)
   created_at      DateTime      @default(now())
   updated_at      DateTime      @updatedAt

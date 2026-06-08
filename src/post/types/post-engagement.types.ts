@@ -1,9 +1,16 @@
 import type { Post } from '@prisma/client';
 
+export type PostAuthor = {
+  id: number;
+  first_name: string;
+  last_name: string;
+};
+
 export type PostWithEngagement = Post & {
   likes_count: number;
   comments_count: number;
   liked_by_me: boolean;
+  author: PostAuthor;
 };
 
 export type PostCommentWithAuthor = {
@@ -19,4 +26,10 @@ export type PostCommentWithAuthor = {
     first_name: string;
     last_name: string;
   };
+};
+
+export type PaginatedPostComments = {
+  comments: PostCommentWithAuthor[];
+  total: number;
+  hasMore: boolean;
 };

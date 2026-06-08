@@ -26,9 +26,11 @@ ENV NODE_ENV=production
 USER node
 
 COPY --chown=node:node package.json .
+COPY --chown=node:node prisma.config.ts .
 COPY --chown=node:node --from=build /usr/src/app/node_modules ./node_modules
 COPY --chown=node:node --from=build /usr/src/app/dist ./dist
+COPY --chown=node:node prisma ./prisma
 
 EXPOSE 3001
 
-CMD ["node", "dist/main.js"]
+CMD ["sh", "-c", "node_modules/.bin/prisma migrate deploy && node dist/main.js"]

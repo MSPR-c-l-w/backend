@@ -1,4 +1,8 @@
-import { PrismaClient } from '@prisma/client';
+import {
+  AiRecommendationType,
+  PrismaClient,
+  WorkoutRecommendationStatus,
+} from '@prisma/client';
 import 'dotenv/config';
 import { PrismaMariaDb } from '@prisma/adapter-mariadb';
 import { faker } from '@faker-js/faker/locale/fr';
@@ -1026,6 +1030,106 @@ async function seedMeals(
   return created;
 }
 
+/** Données de démo pour les modèles IA (EPIC #80). */
+async function seedAiModels(userIds: number[]): Promise<{
+  preferences: number;
+  nutrition: number;
+  workout: number;
+}> {
+  const sampleUserIds = userIds.slice(0, Math.min(25, userIds.length));
+  let preferences = 0;
+  let nutrition = 0;
+  let workout = 0;
+
+  const regimes = ['omnivore', 'vegetarien', 'vegan', 'sans_gluten'];
+  const objectifs = ['perte_de_poids', 'prise_de_masse', 'maintien', 'performance'];
+
+  for (const userId of sampleUserIds) {
+    await prisma.userAiPreferences.upsert({
+      where: { user_id: userId },
+      create: {
+        user_id: userId,
+        allergies: faker.helpers.arrayElements(
+          ['lactose', 'arachides', 'gluten', 'fruits_de_mer'],
+          { min: 0, max: 2 },
+        ),
+        regime: faker.helpers.arrayElement(regimes),
+        budget: faker.number.float({ min: 80, max: 400, fractionDigits: 0 }),
+        objectif_ia: faker.helpers.arrayElement(objectifs),
+        contraintes_materielles: faker.helpers.arrayElements(
+          ['haltères', 'tapis', 'barre', 'élastiques'],
+          { min: 1, max: 3 },
+        ),
+      },
+      update: {},
+    });
+    preferences++;
+  }
+
+  for (const userId of sampleUserIds.slice(0, 15)) {
+    await prisma.aiNutritionRecommendation.create({
+      data: {
+        user_id: userId,
+        type: faker.helpers.arrayElement([
+          AiRecommendationType.ANALYSIS,
+          AiRecommendationType.MEAL_PLAN,
+        ]),
+        input_image_url:
+          faker.helpers.maybe(() => faker.image.url(), {
+            probability: 0.6,
+          }) ?? null,
+        aliments_detectes: {
+          items: ['poulet grillé', 'riz basmati', 'brocoli'],
+        },
+        macros: {
+          calories_kcal: 620,
+          protein_g: 42,
+          carbohydrates_g: 55,
+          fat_g: 18,
+        },
+        suggestions: {
+          tips: ['Augmenter les légumes verts', 'Réduire les sauces'],
+        },
+        meal_plan:
+          faker.helpers.maybe(
+            () => ({
+              days: [
+                { day: 'lundi', meals: ['porridge', 'salade composée'] },
+                { day: 'mardi', meals: ['omelette', 'saumon légumes'] },
+              ],
+            }),
+            { probability: 0.4 },
+          ) ?? null,
+      },
+    });
+    nutrition++;
+  }
+
+  for (const userId of sampleUserIds.slice(0, 12)) {
+    await prisma.aiWorkoutRecommendation.create({
+      data: {
+        user_id: userId,
+        microservice_ref_id: faker.string.uuid(),
+        statut: faker.helpers.arrayElement([
+          WorkoutRecommendationStatus.ACTIVE,
+          WorkoutRecommendationStatus.ARCHIVED,
+        ]),
+        feedback: faker.helpers.maybe(
+          () => ({
+            rating: faker.number.int({ min: 1, max: 5 }),
+            comment: faker.lorem.sentence(),
+          }),
+          { probability: 0.5 },
+        ),
+        generated_at: faker.date.recent({ days: 30 }),
+      },
+    });
+    workout++;
+  }
+
+  return { preferences, nutrition, workout };
+}
+
 async function main() {
   logSection('Démarrage du seed — Base de données', '🌱');
 
@@ -1044,6 +1148,9 @@ async function main() {
   );
   console.log(
     '      6. Créer exercices, nutrition, abonnements, sessions, repas',
+  );
+  console.log(
+    '      7. Créer données de démo IA (préférences, recommandations nutrition et sport)',
   );
   console.log('');
 
@@ -1149,6 +1256,12 @@ async function main() {
   const mealsCreated = await seedMeals(userIds, nutritionIds);
   console.log(`  ✅  ${mealsCreated} repas créés`);
 
+  logSection('Modèles IA (préférences et recommandations)', '🤖');
+  const aiSeeded = await seedAiModels(userIds);
+  console.log(
+    `  ✅  ${aiSeeded.preferences} UserAiPreferences, ${aiSeeded.nutrition} AiNutritionRecommendation, ${aiSeeded.workout} AiWorkoutRecommendation`,
+  );
+
   logSection('Résumé', '📊');
   console.log(`  📈  Total : ${TOTAL_USERS} utilisateurs`);
   console.log(`  💳  Plans payants : ${planIds.length} offres`);
@@ -1160,6 +1273,9 @@ async function main() {
   console.log(`  📄  Abonnements : ${subCreated} créés`);
   console.log(`  🏃  Sessions : ${sessionIds.length}`);
   console.log(`  🍽️  Repas : ${mealsCreated}`);
+  console.log(
+    `  🤖  IA : ${aiSeeded.preferences} préférences, ${aiSeeded.nutrition} reco nutrition, ${aiSeeded.workout} reco sport`,
+  );
   console.log(`  🏋️  Coaches : ${SPECIAL_COACH_COUNT}`);
   console.log(`  👑  Admins : ${SPECIAL_ADMIN_COUNT}`);
   console.log(`  👤  Clients : ${SPECIAL_CLIENT_COUNT}`);

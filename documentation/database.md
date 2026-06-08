@@ -46,7 +46,7 @@ npm run prisma:seed       # Peupler la base avec les données initiales
 | updated_at | DateTime | @updatedAt |
 | deleted_at | DateTime? | Soft delete |
 
-**Relations** : Organization, Role, HealthProfile (1-1), Session[], Meal[], Subscription[], Post[]
+**Relations** : Organization, Role, HealthProfile (1-1), UserAiPreferences (1-1), Session[], Meal[], Subscription[], Post[], AiNutritionRecommendation[], AiWorkoutRecommendation[]
 
 ---
 
@@ -226,6 +226,69 @@ Statuts actifs définis dans `src/utils/constants.ts` : `['ACTIVE', 'active', 't
 
 ---
 
+### UserAiPreferences
+
+Préférences IA de l'utilisateur (allergies, régime, objectifs, matériel sportif).
+
+| Champ | Type | Notes |
+|---|---|---|
+| id | Int PK | |
+| user_id | Int | Unique, FK → User (Cascade) |
+| allergies | Json | Liste de chaînes (ex. `["lactose"]`) |
+| regime | String? | ex. `vegetarien`, `vegan` |
+| budget | Float? | Budget mensuel alimentation (€) |
+| objectif_ia | String | ex. `perte_de_poids`, `prise_de_masse` |
+| contraintes_materielles | Json | Équipement disponible |
+| updated_at | DateTime | @updatedAt |
+
+**API** : `PUT /users/me/ai-preferences` (JWT requis)
+
+**Relations** : User (1-1)
+
+---
+
+### AiNutritionRecommendation
+
+Historique des analyses photo et plans de repas générés par l'IA nutrition.
+
+| Champ | Type | Notes |
+|---|---|---|
+| id | Int PK | |
+| user_id | Int | FK → User (Cascade) |
+| type | Enum | `ANALYSIS` \| `MEAL_PLAN` (`AiRecommendationType`) |
+| input_image_url | String? | URL de la photo analysée |
+| aliments_detectes | Json? | Résultat de détection |
+| macros | Json? | Macros estimées |
+| suggestions | Json? | Conseils IA |
+| meal_plan | Json? | Plan de repas (si type `MEAL_PLAN`) |
+| created_at | DateTime | default: now() |
+
+Index : `user_id`, `created_at`
+
+**Relations** : User
+
+---
+
+### AiWorkoutRecommendation
+
+Référence relationnelle vers un programme sportif stocké dans le micro-service MongoDB.
+
+| Champ | Type | Notes |
+|---|---|---|
+| id | Int PK | |
+| user_id | Int | FK → User (Cascade) |
+| microservice_ref_id | String | ID du document MongoDB (UUID) |
+| statut | Enum | `ACTIVE` \| `ARCHIVED` (`WorkoutRecommendationStatus`) |
+| feedback | Json? | Note / commentaire utilisateur |
+| generated_at | DateTime | default: now() |
+| updated_at | DateTime | @updatedAt |
+
+Index : `user_id`, `microservice_ref_id`
+
+**Relations** : User
+
+---
+
 ## Tables Staging (ETL)
 
 Trois tables de staging avec la même structure :
@@ -248,17 +311,57 @@ Index sur le champ `status`.
 
 ## Diagramme des relations (simplifié)
 
+```mermaid
+erDiagram
+  User ||--o| HealthProfile : has
+  User ||--o| UserAiPreferences : has
+  User ||--o{ AiNutritionRecommendation : receives
+  User ||--o{ AiWorkoutRecommendation : references
+  User }o--o| Organization : belongs_to
+  User }o--o| Role : has
+  User ||--o{ Session : performs
+  User ||--o{ Meal : logs
+  User ||--o{ Subscription : subscribes
+  User ||--o{ Post : authors
+  Session ||--o{ SessionExercise : contains
+  Exercise ||--o{ SessionExercise : used_in
+  Meal }o--|| Nutrition : references
+  Subscription }o--|| Plan : uses
+  Post }o--o| Organization : scoped_to
+```
+
+Vue texte (extrait IA + cœur métier) :
+
 ```
 Organization ──< User >── Role
                   │
-         ┌────────┼────────────┐
-         │        │            │
-    HealthProfile  Session    Meal
-                  │            │
-           SessionExercise   Nutrition
-                  │
-              Exercise
-
+    ┌─────────────┼──────────────────────────────┐
+    │             │                              │
+HealthProfile  UserAiPreferences          Session / Meal
+    │             │                              │
+    │      AiNutritionRecommendation      SessionExercise ── Exercise
+    │      AiWorkoutRecommendation ──► MongoDB (microservice_ref_id)
+    │
 User ──< Subscription >── Plan
-User ──< Post >── Organization
+User ──< Post
 ```
+
+---
+
+## Mapping relationnel ↔ NoSQL
+
+| Donnée | Stockage | Justification |
+|---|---|---|
+| Préférences IA stables (allergies, régime, objectif) | MySQL / Prisma `UserAiPreferences` | Profil utilisateur structuré, requêtes SQL, jointure directe avec `User` |
+| Historique nutrition (analyses, macros, plans) | MySQL / Prisma `AiNutritionRecommendation` | Traçabilité et filtrage par `user_id` / date ; payloads JSON flexibles pour les sorties IA |
+| Programme sportif complet (séances, exercices détaillés) | MongoDB (micro-service dédié) | Modèle documentaire adapté aux programmes variables ; pas de schéma rigide côté sport IA |
+| Lien backend ↔ MongoDB | MySQL `AiWorkoutRecommendation.microservice_ref_id` | Clé étrangère logique (UUID string) : le backend relationnel ne duplique pas le document MongoDB, il enregistre la référence, le statut (`ACTIVE` / `ARCHIVED`) et le feedback utilisateur |
+
+**Flux typique — recommandation sportive :**
+
+1. Le micro-service IA génère un programme et le persiste dans MongoDB → obtient un `_id` / UUID.
+2. Le backend crée une ligne `AiWorkoutRecommendation` avec `microservice_ref_id = <uuid>` et `statut = ACTIVE`.
+3. Pour afficher le détail du programme, l'API agrège la ligne SQL et appelle le micro-service avec `microservice_ref_id`.
+4. À l'archivage ou au feedback, seuls `statut` et `feedback` sont mis à jour côté relationnel ; le document MongoDB peut rester inchangé pour l'audit.
+
+**Choix JSON dans Prisma :** les champs `allergies`, `aliments_detectes`, `macros`, `meal_plan`, `feedback` évoluent avec les modèles IA sans migration à chaque nouveau champ métier. Les entités relationnelles (clés, dates, statuts) restent typées et indexables en SQL.

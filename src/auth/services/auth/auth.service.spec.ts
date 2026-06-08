@@ -33,6 +33,9 @@ describe('AuthService', () => {
         create: jest.fn(),
         update: jest.fn(),
       },
+      role: {
+        findFirst: jest.fn(),
+      },
     };
 
     jwtService = { signAsync: jest.fn().mockResolvedValue('jwt-access-token') };

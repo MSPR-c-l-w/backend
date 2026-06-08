@@ -1,10 +1,12 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
 import {
   IsBoolean,
   IsInt,
   IsNotEmpty,
   IsOptional,
   IsString,
+  Max,
   MaxLength,
   Min,
 } from 'class-validator';
@@ -27,6 +29,23 @@ export class CreatePostDto {
   @IsOptional()
   @MaxLength(2048, { message: 'MEDIA_URL_TOO_LONG' })
   media_url?: string;
+
+  @ApiPropertyOptional({
+    example: 'workout',
+    description: 'Catégorie du post : workout | nutrition | wellness',
+  })
+  @IsString({ message: 'CATEGORY_MUST_BE_A_STRING' })
+  @IsOptional()
+  category?: string;
+
+  @ApiPropertyOptional({
+    example: '💪',
+    description: 'Emoji humeur associé au post',
+  })
+  @IsString({ message: 'MOOD_MUST_BE_A_STRING' })
+  @IsOptional()
+  @MaxLength(8, { message: 'MOOD_TOO_LONG' })
+  mood?: string;
 
   @ApiPropertyOptional({
     example: false,
@@ -81,10 +100,73 @@ export class UpdatePostDto {
   @Min(1, { message: 'AUTHOR_ID_MUST_BE_POSITIVE' })
   author_id?: number;
 
+  @ApiPropertyOptional({
+    example: 'workout',
+    description: 'Catégorie du post : workout | nutrition | wellness',
+  })
+  @IsString({ message: 'CATEGORY_MUST_BE_A_STRING' })
+  @IsOptional()
+  category?: string | null;
+
   @ApiPropertyOptional({ example: 1 })
   @IsInt({ message: 'ORGANIZATION_ID_MUST_BE_AN_INTEGER' })
   @IsOptional()
   organization_id?: number | null;
+}
+
+export class GetPostsQueryDto {
+  @ApiPropertyOptional({
+    example: 10,
+    description:
+      'ID du dernier post reçu — tous les posts antérieurs sont retournés',
+  })
+  @IsInt({ message: 'CURSOR_MUST_BE_AN_INTEGER' })
+  @Min(1, { message: 'CURSOR_MUST_BE_POSITIVE' })
+  @IsOptional()
+  @Type(() => Number)
+  cursor?: number;
+
+  @ApiPropertyOptional({
+    example: 20,
+    description: 'Nombre de posts à retourner (défaut : 20, max : 100)',
+  })
+  @IsInt({ message: 'LIMIT_MUST_BE_AN_INTEGER' })
+  @Min(1, { message: 'LIMIT_MUST_BE_POSITIVE' })
+  @Max(100, { message: 'LIMIT_MUST_NOT_EXCEED_100' })
+  @IsOptional()
+  @Type(() => Number)
+  limit?: number;
+
+  @ApiPropertyOptional({
+    example: 'workout',
+    description: 'Filtrer par catégorie : workout | nutrition | wellness',
+  })
+  @IsString({ message: 'CATEGORY_MUST_BE_A_STRING' })
+  @IsOptional()
+  category?: string;
+}
+
+export class GetPostCommentsQueryDto {
+  @ApiPropertyOptional({
+    example: 1,
+    description: 'Numéro de page (défaut : 1)',
+  })
+  @IsInt({ message: 'PAGE_MUST_BE_AN_INTEGER' })
+  @Min(1, { message: 'PAGE_MUST_BE_POSITIVE' })
+  @IsOptional()
+  @Type(() => Number)
+  page?: number;
+
+  @ApiPropertyOptional({
+    example: 20,
+    description: 'Commentaires par page (défaut : 20, max : 100)',
+  })
+  @IsInt({ message: 'LIMIT_MUST_BE_AN_INTEGER' })
+  @Min(1, { message: 'LIMIT_MUST_BE_POSITIVE' })
+  @Max(100, { message: 'LIMIT_MUST_NOT_EXCEED_100' })
+  @IsOptional()
+  @Type(() => Number)
+  limit?: number;
 }
 
 export class CreatePostCommentDto {
