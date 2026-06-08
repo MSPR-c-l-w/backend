@@ -1,4 +1,4 @@
-import { NotFoundException } from '@nestjs/common';
+import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { Post } from '@prisma/client';
 import type { Request } from 'express';
@@ -16,6 +16,7 @@ describe('PostController', () => {
     createPost: jest.fn(),
     updatePost: jest.fn(),
     deletePost: jest.fn(),
+    deleteComment: jest.fn(),
   };
 
   const mockPost: Post = {
@@ -149,6 +150,33 @@ describe('PostController', () => {
 
       expect(result).toEqual(mockPost);
       expect(postServiceMock.deletePost).toHaveBeenCalledWith('7', 42);
+    });
+  });
+
+  describe('deleteComment', () => {
+    it('devrait appeler le service avec postId, commentId et sub JWT', async () => {
+      postServiceMock.deleteComment.mockResolvedValue(undefined);
+      const req = {
+        user: { sub: 3, email: 'a@b.c' },
+      } as unknown as Request;
+
+      const result = await controller.deleteComment('1', '5', req);
+
+      expect(result).toBeUndefined();
+      expect(postServiceMock.deleteComment).toHaveBeenCalledWith('1', '5', 3);
+    });
+
+    it('devrait propager ForbiddenException du service', async () => {
+      postServiceMock.deleteComment.mockRejectedValue(
+        new ForbiddenException('COMMENT_DELETE_FORBIDDEN_NOT_AUTHOR'),
+      );
+      const req = {
+        user: { sub: 99, email: 'x@y.z' },
+      } as unknown as Request;
+
+      await expect(controller.deleteComment('1', '5', req)).rejects.toThrow(
+        ForbiddenException,
+      );
     });
   });
 });

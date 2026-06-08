@@ -57,6 +57,14 @@ export class PostService implements IPostService {
     return postId;
   }
 
+  private parseCommentId(id: string): number {
+    const commentId = parseInt(id, 10);
+    if (!Number.isInteger(commentId)) {
+      throw new BadRequestException('COMMENT_ID_MUST_BE_A_NUMBER');
+    }
+    return commentId;
+  }
+
   async getPosts(
     currentUserId: number,
     cursor?: number,
@@ -150,6 +158,32 @@ export class PostService implements IPostService {
         user: { select: { id: true, first_name: true, last_name: true } },
       },
     });
+  }
+
+  async deleteComment(
+    postId: string,
+    commentId: string,
+    userId: number,
+  ): Promise<void> {
+    const pId = this.parsePostId(postId);
+    const cId = this.parseCommentId(commentId);
+
+    await this.ensurePostExists(pId);
+
+    const comment = await this.prisma.postComment.findFirst({
+      where: { id: cId, post_id: pId },
+      select: { id: true, user_id: true },
+    });
+
+    if (!comment) {
+      throw new NotFoundException(`POST_COMMENT_${cId}_NOT_FOUND`);
+    }
+
+    if (comment.user_id !== userId) {
+      throw new ForbiddenException('COMMENT_DELETE_FORBIDDEN_NOT_AUTHOR');
+    }
+
+    await this.prisma.postComment.delete({ where: { id: cId } });
   }
 
   async likePost(
