@@ -16,6 +16,7 @@ describe('UsersController', () => {
     deleteUser: jest.fn(),
     updateMyAiPreferences: jest.fn(),
     deleteMe: jest.fn(),
+    requestDataExport: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -203,6 +204,22 @@ describe('UsersController', () => {
       await expect(
         controller.deleteMe(req, { password: 'mauvais' }),
       ).rejects.toThrow('INVALID_CREDENTIALS');
+    });
+  });
+
+  describe('requestDataExport', () => {
+    it('passe le sub JWT au service et retourne la confirmation 202', async () => {
+      const response = {
+        message: 'Export request received',
+        estimatedDelivery: '24h',
+      };
+      usersServiceMock.requestDataExport.mockResolvedValue(response);
+
+      const req = { user: { sub: 7 } } as never;
+      const result = await controller.requestDataExport(req);
+
+      expect(result).toEqual(response);
+      expect(usersServiceMock.requestDataExport).toHaveBeenCalledWith(7);
     });
   });
 });

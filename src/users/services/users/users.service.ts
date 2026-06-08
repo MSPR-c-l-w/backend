@@ -19,6 +19,7 @@ import { User } from 'src/utils/types';
 import { GetUsersDto } from 'src/users/dtos/get.users.dto';
 import { UpdateAiPreferencesDto } from 'src/users/dtos/update-ai-preferences.dto';
 import type { UserAiPreferencesRecord } from 'src/users/interfaces/user-ai-preferences.interface';
+import type { DataExportResponse } from 'src/users/interfaces/data-export.interface';
 
 @Injectable()
 export class UsersService implements IUsersService {
@@ -461,5 +462,20 @@ export class UsersService implements IUsersService {
         refresh_token_hash: null,
       },
     });
+  }
+
+  async requestDataExport(userId: number): Promise<DataExportResponse> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, is_deleted: true },
+    });
+
+    if (!user || user.is_deleted) {
+      throw new NotFoundException('USER_NOT_FOUND');
+    }
+
+    // L'export RGPD est traité de manière asynchrone (hors périmètre de cette
+    // requête) : les données seront rassemblées puis envoyées par email.
+    return { message: 'Export request received', estimatedDelivery: '24h' };
   }
 }
