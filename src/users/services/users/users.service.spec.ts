@@ -1,7 +1,12 @@
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
+import { verifyPassword } from 'src/utils/security/password';
 import { Test, TestingModule } from '@nestjs/testing';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from 'src/prisma/services/prisma/prisma.service';
@@ -10,6 +15,7 @@ import { UsersService } from './users.service';
 
 jest.mock('src/utils/security/password', () => ({
   hashPassword: jest.fn(() => 'HASHED_PASSWORD'),
+  verifyPassword: jest.fn(),
 }));
 
 describe('UsersService', () => {
@@ -876,6 +882,108 @@ describe('UsersService', () => {
       prisma.user.findUnique.mockResolvedValue(null);
 
       await expect(service.getPublicProfile(1, 999)).rejects.toBeInstanceOf(
+        NotFoundException,
+      );
+    });
+  });
+
+  describe('deleteMe', () => {
+    const verifyPasswordMock = verifyPassword as jest.Mock;
+
+    beforeEach(() => verifyPasswordMock.mockReset());
+
+    it('supprime (soft delete) le compte quand le mot de passe est correct', async () => {
+      prisma.user.findUnique.mockResolvedValue({
+        id: 1,
+        password_hash: 'HASHED',
+        is_deleted: false,
+      });
+      verifyPasswordMock.mockResolvedValue(true);
+      prisma.user.update.mockResolvedValue({});
+
+      await service.deleteMe(1, 'bonMotDePasse');
+
+      expect(verifyPasswordMock).toHaveBeenCalledWith(
+        'bonMotDePasse',
+        'HASHED',
+      );
+      expect(prisma.user.update).toHaveBeenCalledWith({
+        where: { id: 1 },
+        data: {
+          is_deleted: true,
+          deleted_at: expect.any(Date),
+          is_active: false,
+          refresh_token_hash: null,
+        },
+      });
+    });
+
+    it('lève UnauthorizedException si le mot de passe est incorrect', async () => {
+      prisma.user.findUnique.mockResolvedValue({
+        id: 1,
+        password_hash: 'HASHED',
+        is_deleted: false,
+      });
+      verifyPasswordMock.mockResolvedValue(false);
+
+      await expect(service.deleteMe(1, 'mauvais')).rejects.toBeInstanceOf(
+        UnauthorizedException,
+      );
+      expect(prisma.user.update).not.toHaveBeenCalled();
+    });
+
+    it("lève NotFoundException si l'utilisateur n'existe pas", async () => {
+      prisma.user.findUnique.mockResolvedValue(null);
+
+      await expect(service.deleteMe(999, 'peu importe')).rejects.toBeInstanceOf(
+        NotFoundException,
+      );
+      expect(verifyPasswordMock).not.toHaveBeenCalled();
+      expect(prisma.user.update).not.toHaveBeenCalled();
+    });
+
+    it("lève NotFoundException si l'utilisateur est déjà supprimé", async () => {
+      prisma.user.findUnique.mockResolvedValue({
+        id: 1,
+        password_hash: 'HASHED',
+        is_deleted: true,
+      });
+
+      await expect(service.deleteMe(1, 'peu importe')).rejects.toBeInstanceOf(
+        NotFoundException,
+      );
+      expect(prisma.user.update).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('requestDataExport', () => {
+    it("retourne la confirmation d'export si l'utilisateur existe", async () => {
+      prisma.user.findUnique.mockResolvedValue({ id: 1, is_deleted: false });
+
+      const result = await service.requestDataExport(1);
+
+      expect(prisma.user.findUnique).toHaveBeenCalledWith({
+        where: { id: 1 },
+        select: { id: true, is_deleted: true },
+      });
+      expect(result).toEqual({
+        message: 'Export request received',
+        estimatedDelivery: '24h',
+      });
+    });
+
+    it("lève une NotFoundException si l'utilisateur n'existe pas", async () => {
+      prisma.user.findUnique.mockResolvedValue(null);
+
+      await expect(service.requestDataExport(999)).rejects.toBeInstanceOf(
+        NotFoundException,
+      );
+    });
+
+    it("lève une NotFoundException si l'utilisateur est supprimé", async () => {
+      prisma.user.findUnique.mockResolvedValue({ id: 1, is_deleted: true });
+
+      await expect(service.requestDataExport(1)).rejects.toBeInstanceOf(
         NotFoundException,
       );
     });

@@ -25,7 +25,9 @@ import { UpdateUserDto } from 'src/users/dtos/update.user.dto';
 import { UpdateUserRoleDto } from 'src/users/dtos/update-user-role.dto';
 import { UpdateAiPreferencesDto } from 'src/users/dtos/update-ai-preferences.dto';
 import { UpdateMeDto } from 'src/users/dtos/update-me.dto';
+import { DeleteMeDto } from 'src/users/dtos/delete-me.dto';
 import type { UserAiPreferencesRecord } from 'src/users/interfaces/user-ai-preferences.interface';
+import type { DataExportResponse } from 'src/users/interfaces/data-export.interface';
 import type {
   FollowResult,
   PublicProfile,
@@ -38,7 +40,9 @@ import type { PaginatedUsersResponse } from 'src/users/types';
 import { ROUTES, SERVICES } from 'src/utils/constants';
 import { User } from 'src/utils/types';
 import {
+  ApiAcceptedResponse,
   ApiBearerAuth,
+  ApiNoContentResponse,
   ApiOkResponse,
   ApiOperation,
   ApiTags,
@@ -92,6 +96,34 @@ export class UsersController implements IUsersController {
       dto.last_name,
     );
     return { user: result };
+  }
+
+  @Delete('me')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({
+    summary: 'Supprimer mon compte (soft delete, mot de passe requis)',
+  })
+  @ApiNoContentResponse({ description: 'Compte supprimé' })
+  @ApiUnauthorizedResponse({
+    description: 'Mot de passe incorrect ou JWT invalide',
+  })
+  async deleteMe(@Req() req: Request, @Body() dto: DeleteMeDto): Promise<void> {
+    const payload = req.user as JwtPayload;
+    await this.usersService.deleteMe(payload.sub, dto.password);
+  }
+
+  @Post('me/export')
+  @HttpCode(HttpStatus.ACCEPTED)
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({
+    summary: 'Demander un export RGPD de mes données personnelles',
+  })
+  @ApiAcceptedResponse({ description: "Demande d'export enregistrée" })
+  @ApiUnauthorizedResponse({ description: 'JWT invalide ou expiré' })
+  requestDataExport(@Req() req: Request): Promise<DataExportResponse> {
+    const payload = req.user as JwtPayload;
+    return this.usersService.requestDataExport(payload.sub);
   }
 
   @Put('me/ai-preferences')

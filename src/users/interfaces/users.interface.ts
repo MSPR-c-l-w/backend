@@ -7,6 +7,7 @@ import type { GetUsersDto } from '../dtos/get.users.dto';
 import type { UpdateAiPreferencesDto } from '../dtos/update-ai-preferences.dto';
 import type { UserAiPreferencesRecord } from './user-ai-preferences.interface';
 import type { FollowResult, PublicProfile } from './follow.interface';
+import type { DataExportResponse } from './data-export.interface';
 import type { PaginatedUsersResponse } from '../types';
 
 export type { PaginatedUsersResponse };
@@ -29,6 +30,8 @@ export interface IUsersController {
   followUser(req: Request, id: number): Promise<FollowResult>;
   unfollowUser(req: Request, id: number): Promise<FollowResult>;
   getPublicProfile(req: Request, id: number): Promise<PublicProfile>;
+  deleteMe(req: Request, dto: { password: string }): Promise<void>;
+  requestDataExport(req: Request): Promise<DataExportResponse>;
 }
 
 export interface IUsersService {
@@ -59,4 +62,6 @@ export interface IUsersService {
     requesterId: number,
     targetId: number,
   ): Promise<PublicProfile>;
+  deleteMe(userId: number, password: string): Promise<void>;
+  requestDataExport(userId: number): Promise<DataExportResponse>;
 }
