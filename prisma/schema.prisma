@@ -225,7 +225,8 @@ model Post {
   organization_id Int?
   title           String
   content         String        @db.LongText
-  media_url       String?       @db.VarChar(2048)
+  // URL d'un média unique, ou tableau JSON d'URLs pour plusieurs photos/vidéos
+  media_url       String?       @db.Text
   category        String?
   mood            String?
   is_published    Boolean       @default(false)

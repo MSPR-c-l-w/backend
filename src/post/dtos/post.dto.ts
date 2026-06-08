@@ -27,7 +27,7 @@ export class CreatePostDto {
   })
   @IsString({ message: 'MEDIA_URL_MUST_BE_A_STRING' })
   @IsOptional()
-  @MaxLength(2048, { message: 'MEDIA_URL_TOO_LONG' })
+  @MaxLength(16384, { message: 'MEDIA_URL_TOO_LONG' })
   media_url?: string;
 
   @ApiPropertyOptional({
@@ -86,7 +86,7 @@ export class UpdatePostDto {
   @ApiPropertyOptional({ example: 'https://cdn.example.com/posts/hero.jpg' })
   @IsString({ message: 'MEDIA_URL_MUST_BE_A_STRING' })
   @IsOptional()
-  @MaxLength(2048, { message: 'MEDIA_URL_TOO_LONG' })
+  @MaxLength(16384, { message: 'MEDIA_URL_TOO_LONG' })
   media_url?: string | null;
 
   @ApiPropertyOptional({ example: true })

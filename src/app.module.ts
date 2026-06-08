@@ -19,6 +19,7 @@ import { SubscriptionModule } from './subscription/subscription.module';
 import { EtlModule } from './etl/etl.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { PostModule } from './post/post.module';
+import { MediaModule } from './media/media.module';
 import { AiModule } from './ai/ai.module';
 import { ApiMetricsInterceptor } from 'src/analytics/interceptors/api-metrics.interceptor';
 import { CsrfGuard } from 'src/auth/guards/csrf.guard';
@@ -43,6 +44,7 @@ import { EtlWeeklySchedulerService } from 'src/etl/services/etl-weekly-scheduler
     EtlModule,
     DashboardModule,
     PostModule,
+    MediaModule,
     AiModule,
   ],
   controllers: [AppController],
