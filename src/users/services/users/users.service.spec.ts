@@ -760,4 +760,37 @@ describe('UsersService', () => {
       );
     });
   });
+
+  describe('requestDataExport', () => {
+    it("retourne la confirmation d'export si l'utilisateur existe", async () => {
+      prisma.user.findUnique.mockResolvedValue({ id: 1, is_deleted: false });
+
+      const result = await service.requestDataExport(1);
+
+      expect(prisma.user.findUnique).toHaveBeenCalledWith({
+        where: { id: 1 },
+        select: { id: true, is_deleted: true },
+      });
+      expect(result).toEqual({
+        message: 'Export request received',
+        estimatedDelivery: '24h',
+      });
+    });
+
+    it("lève une NotFoundException si l'utilisateur n'existe pas", async () => {
+      prisma.user.findUnique.mockResolvedValue(null);
+
+      await expect(service.requestDataExport(999)).rejects.toBeInstanceOf(
+        NotFoundException,
+      );
+    });
+
+    it("lève une NotFoundException si l'utilisateur est supprimé", async () => {
+      prisma.user.findUnique.mockResolvedValue({ id: 1, is_deleted: true });
+
+      await expect(service.requestDataExport(1)).rejects.toBeInstanceOf(
+        NotFoundException,
+      );
+    });
+  });
 });
