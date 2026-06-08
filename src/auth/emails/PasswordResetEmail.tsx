@@ -20,7 +20,7 @@ export function PasswordResetEmail({ resetUrl }: PasswordResetEmailProps) {
   return (
     <Html lang="fr">
       <Head />
-      <Preview>Réinitialisez votre mot de passe HealthAI</Preview>
+      <Preview children="Réinitialisez votre mot de passe HealthAI" />
       <Body style={bodyStyle}>
         <Container style={containerStyle}>
           <Section style={headerStyle}>

@@ -20,7 +20,7 @@ export function AccountVerificationEmail({ verifyUrl }: AccountVerificationEmail
   return (
     <Html lang="fr">
       <Head />
-      <Preview>Validez votre compte HealthAI</Preview>
+      <Preview children="Validez votre compte HealthAI" />
       <Body style={bodyStyle}>
         <Container style={containerStyle}>
           <Section style={headerStyle}>
