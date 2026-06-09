@@ -3,9 +3,10 @@ import { UsersService } from './services/users/users.service';
 import { SERVICES } from 'src/utils/constants';
 import { UsersController } from './controllers/users/users.controller';
 import { RolesModule } from 'src/roles/roles.module';
+import { PostModule } from 'src/post/post.module';
 
 @Module({
-  imports: [RolesModule],
+  imports: [RolesModule, PostModule],
   providers: [
     UsersService,
     {

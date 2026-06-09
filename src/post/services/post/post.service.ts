@@ -387,6 +387,41 @@ export class PostService implements IPostService {
     }
   }
 
+  async getUserPosts(
+    userId: number,
+    currentUserId: number,
+    cursor?: number,
+    limit = 20,
+  ): Promise<PostWithEngagement[]> {
+    const rows = await this.prisma.post.findMany({
+      take: limit,
+      ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+      where: { author_id: userId },
+      orderBy: { created_at: 'desc' },
+      include: postEngagementInclude(currentUserId),
+    });
+    return rows.map(mapPostRowToEngagement);
+  }
+
+  async getLikedPosts(
+    userId: number,
+    cursor?: number,
+    limit = 20,
+  ): Promise<PostWithEngagement[]> {
+    const likes = await this.prisma.postLike.findMany({
+      take: limit,
+      ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+      where: { user_id: userId },
+      orderBy: { id: 'desc' },
+      include: {
+        post: {
+          include: postEngagementInclude(userId),
+        },
+      },
+    });
+    return likes.map((like) => mapPostRowToEngagement(like.post));
+  }
+
   async deletePost(id: string, requesterUserId: number): Promise<Post> {
     const post = await this.prisma.post.findUnique({
       where: { id: this.parsePostId(id) },

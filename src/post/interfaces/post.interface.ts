@@ -98,4 +98,15 @@ export interface IPostService {
   createPost(dto: CreatePostDto): Promise<Post>;
   updatePost(id: string, dto: UpdatePostDto): Promise<Post>;
   deletePost(id: string, requesterUserId: number): Promise<Post>;
+  getUserPosts(
+    userId: number,
+    currentUserId: number,
+    cursor?: number,
+    limit?: number,
+  ): Promise<PostWithEngagement[]>;
+  getLikedPosts(
+    userId: number,
+    cursor?: number,
+    limit?: number,
+  ): Promise<PostWithEngagement[]>;
 }

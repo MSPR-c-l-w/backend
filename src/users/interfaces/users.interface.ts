@@ -9,6 +9,7 @@ import type { UserAiPreferencesRecord } from './user-ai-preferences.interface';
 import type { FollowResult, PublicProfile } from './follow.interface';
 import type { DataExportResponse } from './data-export.interface';
 import type { PaginatedUsersResponse } from '../types';
+import type { PostWithEngagement } from 'src/post/types/post-engagement.types';
 
 export type { PaginatedUsersResponse };
 
@@ -32,6 +33,17 @@ export interface IUsersController {
   getPublicProfile(req: Request, id: number): Promise<PublicProfile>;
   deleteMe(req: Request, dto: { password: string }): Promise<void>;
   requestDataExport(req: Request): Promise<DataExportResponse>;
+  getUserPosts(
+    userId: string,
+    req: Request,
+    cursor?: number,
+    limit?: number,
+  ): Promise<PostWithEngagement[]>;
+  getMyLikedPosts(
+    req: Request,
+    cursor?: number,
+    limit?: number,
+  ): Promise<PostWithEngagement[]>;
 }
 
 export interface IUsersService {

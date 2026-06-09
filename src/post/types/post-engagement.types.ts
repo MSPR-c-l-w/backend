@@ -38,3 +38,8 @@ export type CommentLikeSummary = {
   likes_count: number;
   liked_by_me: boolean;
 };
+
+export type PaginatedPosts = {
+  posts: PostWithEngagement[];
+  hasMore: boolean;
+};

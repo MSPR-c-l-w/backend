@@ -3,6 +3,7 @@ import { UsersController } from './users.controller';
 import { SERVICES } from 'src/utils/constants';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
+import { PostService } from 'src/post/services/post/post.service';
 
 describe('UsersController', () => {
   let controller: UsersController;
@@ -21,6 +22,10 @@ describe('UsersController', () => {
     deleteMe: jest.fn(),
     requestDataExport: jest.fn(),
   };
+  const postServiceMock = {
+    getUserPosts: jest.fn(),
+    getLikedPosts: jest.fn(),
+  };
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -29,6 +34,10 @@ describe('UsersController', () => {
         {
           provide: SERVICES.USERS,
           useValue: usersServiceMock,
+        },
+        {
+          provide: PostService,
+          useValue: postServiceMock,
         },
       ],
     })
@@ -269,6 +278,43 @@ describe('UsersController', () => {
 
       expect(result).toEqual(response);
       expect(usersServiceMock.requestDataExport).toHaveBeenCalledWith(7);
+    });
+  });
+
+  describe('getUserPosts', () => {
+    it("appelle postService.getUserPosts avec l'id utilisateur et le sub JWT", async () => {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      const posts = [{ id: 1 }] as any;
+      postServiceMock.getUserPosts.mockResolvedValue(posts);
+
+      const req = { user: { sub: 10 } } as never;
+      const result = await controller.getUserPosts('5', req);
+
+      expect(result).toEqual(posts);
+      expect(postServiceMock.getUserPosts).toHaveBeenCalledWith(
+        5,
+        10,
+        undefined,
+        undefined,
+      );
+    });
+  });
+
+  describe('getMyLikedPosts', () => {
+    it('appelle postService.getLikedPosts avec le sub JWT', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      const posts = [{ id: 2 }] as any;
+      postServiceMock.getLikedPosts.mockResolvedValue(posts);
+
+      const req = { user: { sub: 10 } } as never;
+      const result = await controller.getMyLikedPosts(req);
+
+      expect(result).toEqual(posts);
+      expect(postServiceMock.getLikedPosts).toHaveBeenCalledWith(
+        10,
+        undefined,
+        undefined,
+      );
     });
   });
 });
