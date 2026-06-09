@@ -168,7 +168,7 @@ export class AuthService {
           : undefined,
         gender: dto.gender,
         height: dto.height,
-        is_active: !process.env.RESEND_API_KEY,
+        is_active: false,
         is_deleted: false,
       },
       select: { id: true, email: true },

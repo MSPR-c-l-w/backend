@@ -3,8 +3,17 @@ services:
     build:
       context: .
     restart: unless-stopped
+    env_file: .env
     environment:
       NODE_ENV: production
-      PORT: 3001
+      PORT: 3000
+      DATABASE_URL: mysql://root:rootpassword@backend-mariadb:3306/backend_db
     ports:
-      - 3001:3001
+      - '3000:3000'
+    networks:
+      - backend-network
+
+networks:
+  backend-network:
+    external: true
+    name: backend_backend-network
