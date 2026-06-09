@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { isAxiosError } from 'axios';
+import { Prisma } from '@prisma/client';
 import { lastValueFrom } from 'rxjs';
 import { PrismaService } from 'src/prisma/services/prisma/prisma.service';
 
@@ -81,7 +82,7 @@ export class AiNutritionService {
         data: {
           user_id: userId,
           type: 'MEAL_PLAN',
-          meal_plan: response.data,
+          meal_plan: response.data as unknown as Prisma.InputJsonValue,
         },
       });
 
