@@ -189,3 +189,26 @@ export class CreatePostCommentDto {
   @IsOptional()
   parent_id?: number;
 }
+
+export class GetUserPostsQueryDto {
+  @ApiPropertyOptional({
+    example: 1,
+    description: 'Numéro de page (défaut : 1)',
+  })
+  @IsInt({ message: 'PAGE_MUST_BE_AN_INTEGER' })
+  @Min(1, { message: 'PAGE_MUST_BE_POSITIVE' })
+  @IsOptional()
+  @Type(() => Number)
+  page?: number;
+
+  @ApiPropertyOptional({
+    example: 18,
+    description: 'Posts par page (défaut : 18, max : 100)',
+  })
+  @IsInt({ message: 'LIMIT_MUST_BE_AN_INTEGER' })
+  @Min(1, { message: 'LIMIT_MUST_BE_POSITIVE' })
+  @Max(100, { message: 'LIMIT_MUST_NOT_EXCEED_100' })
+  @IsOptional()
+  @Type(() => Number)
+  limit?: number;
+}

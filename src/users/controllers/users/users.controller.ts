@@ -49,6 +49,8 @@ import {
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import { GetUsersDto } from 'src/users/dtos/get.users.dto';
+import { PostService } from 'src/post/services/post/post.service';
+import type { PostWithEngagement } from 'src/post/types/post-engagement.types';
 
 @ApiBearerAuth('access-token')
 @ApiTags(ROUTES.USERS)
@@ -56,6 +58,7 @@ import { GetUsersDto } from 'src/users/dtos/get.users.dto';
 export class UsersController implements IUsersController {
   constructor(
     @Inject(SERVICES.USERS) private readonly usersService: IUsersService,
+    private readonly postService: PostService,
   ) {}
 
   @Get()
@@ -145,6 +148,20 @@ export class UsersController implements IUsersController {
     );
   }
 
+  @Get('me/liked')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Récupérer les posts likés par moi' })
+  @ApiOkResponse({ description: 'Liste des posts likés' })
+  @ApiUnauthorizedResponse({ description: 'JWT invalide ou expiré' })
+  getMyLikedPosts(
+    @Req() req: Request,
+    @Query('cursor', new ParseIntPipe({ optional: true })) cursor?: number,
+    @Query('limit', new ParseIntPipe({ optional: true })) limit?: number,
+  ): Promise<PostWithEngagement[]> {
+    const payload = req.user as JwtPayload;
+    return this.postService.getLikedPosts(payload.sub, cursor, limit);
+  }
+
   @Get(':id/profile')
   @UseGuards(JwtAuthGuard)
   @ApiOperation({
@@ -185,6 +202,26 @@ export class UsersController implements IUsersController {
   ): Promise<FollowResult> {
     const payload = req.user as JwtPayload;
     return this.usersService.unfollowUser(payload.sub, id);
+  }
+
+  @Get(':userId/posts')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: "Récupérer les posts d'un utilisateur" })
+  @ApiOkResponse({ description: "Liste des posts de l'utilisateur" })
+  @ApiUnauthorizedResponse({ description: 'JWT invalide ou expiré' })
+  getUserPosts(
+    @Param('userId') userId: string,
+    @Req() req: Request,
+    @Query('cursor', new ParseIntPipe({ optional: true })) cursor?: number,
+    @Query('limit', new ParseIntPipe({ optional: true })) limit?: number,
+  ): Promise<PostWithEngagement[]> {
+    const payload = req.user as JwtPayload;
+    return this.postService.getUserPosts(
+      parseInt(userId, 10),
+      payload.sub,
+      cursor,
+      limit,
+    );
   }
 
   @Get(':id')
