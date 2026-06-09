@@ -293,14 +293,6 @@ export class PostService implements IPostService {
     return this.getCommentLikeSummary(parsedCommentId, userId);
   }
 
-  private parseCommentId(id: string): number {
-    const commentId = parseInt(id, 10);
-    if (!Number.isInteger(commentId)) {
-      throw new BadRequestException('COMMENT_ID_MUST_BE_A_NUMBER');
-    }
-    return commentId;
-  }
-
   private async ensureCommentExists(
     postId: number,
     commentId: number,
