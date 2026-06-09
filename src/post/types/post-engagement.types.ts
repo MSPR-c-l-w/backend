@@ -33,3 +33,8 @@ export type PaginatedPostComments = {
   total: number;
   hasMore: boolean;
 };
+
+export type CommentLikeSummary = {
+  likes_count: number;
+  liked_by_me: boolean;
+};
