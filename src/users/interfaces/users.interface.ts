@@ -5,7 +5,9 @@ import type { UpdateUserDto } from '../dtos/update.user.dto';
 import type { UpdateUserRoleDto } from '../dtos/update-user-role.dto';
 import type { GetUsersDto } from '../dtos/get.users.dto';
 import type { UpdateAiPreferencesDto } from '../dtos/update-ai-preferences.dto';
+import type { PatchPreferencesDto } from '../dtos/patch-preferences.dto';
 import type { UserAiPreferencesRecord } from './user-ai-preferences.interface';
+import type { UserPreferencesRecord } from './user-preferences.interface';
 import type { FollowResult, PublicProfile } from './follow.interface';
 import type { DataExportResponse } from './data-export.interface';
 import type { PaginatedUsersResponse } from '../types';
@@ -23,6 +25,11 @@ export interface IUsersController {
     req: Request,
     preferences: UpdateAiPreferencesDto,
   ): Promise<UserAiPreferencesRecord>;
+  getMyPreferences(req: Request): Promise<UserPreferencesRecord>;
+  patchMyPreferences(
+    req: Request,
+    dto: PatchPreferencesDto,
+  ): Promise<UserPreferencesRecord>;
   updateMe(
     req: Request,
     dto: { first_name: string; last_name: string },
@@ -51,6 +58,11 @@ export interface IUsersService {
     userId: string,
     preferences: UpdateAiPreferencesDto,
   ): Promise<UserAiPreferencesRecord>;
+  getMyPreferences(userId: number): Promise<UserPreferencesRecord>;
+  patchMyPreferences(
+    userId: number,
+    dto: PatchPreferencesDto,
+  ): Promise<UserPreferencesRecord>;
   updateMe(
     userId: number,
     first_name: string,

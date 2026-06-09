@@ -18,7 +18,9 @@ import { hashPassword, verifyPassword } from 'src/utils/security/password';
 import { User } from 'src/utils/types';
 import { GetUsersDto } from 'src/users/dtos/get.users.dto';
 import { UpdateAiPreferencesDto } from 'src/users/dtos/update-ai-preferences.dto';
+import { PatchPreferencesDto } from 'src/users/dtos/patch-preferences.dto';
 import type { UserAiPreferencesRecord } from 'src/users/interfaces/user-ai-preferences.interface';
+import type { UserPreferencesRecord } from 'src/users/interfaces/user-preferences.interface';
 import type {
   FollowResult,
   PublicProfile,
@@ -571,5 +573,60 @@ export class UsersService implements IUsersService {
     // L'export RGPD est traité de manière asynchrone (hors périmètre de cette
     // requête) : les données seront rassemblées puis envoyées par email.
     return { message: 'Export request received', estimatedDelivery: '24h' };
+  }
+
+  async getMyPreferences(userId: number): Promise<UserPreferencesRecord> {
+    const prefs = await this.prisma.userAiPreferences.findUnique({
+      where: { user_id: userId },
+    });
+
+    return {
+      language: prefs?.language ?? 'fr',
+      units: prefs?.units ?? 'metric',
+      privacy: {
+        privateAccount: prefs?.private_account ?? false,
+        allowDirectMessages: prefs?.allow_direct_messages ?? true,
+      },
+    };
+  }
+
+  async patchMyPreferences(
+    userId: number,
+    dto: PatchPreferencesDto,
+  ): Promise<UserPreferencesRecord> {
+    await this.assertUserExists(userId);
+
+    const prefs = await this.prisma.userAiPreferences.upsert({
+      where: { user_id: userId },
+      create: {
+        user_id: userId,
+        allergies: [],
+        objectif_ia: '',
+        contraintes_materielles: [],
+        language: dto.language ?? 'fr',
+        units: dto.units ?? 'metric',
+        private_account: dto.privacy?.privateAccount ?? false,
+        allow_direct_messages: dto.privacy?.allowDirectMessages ?? true,
+      },
+      update: {
+        ...(dto.language !== undefined && { language: dto.language }),
+        ...(dto.units !== undefined && { units: dto.units }),
+        ...(dto.privacy?.privateAccount !== undefined && {
+          private_account: dto.privacy.privateAccount,
+        }),
+        ...(dto.privacy?.allowDirectMessages !== undefined && {
+          allow_direct_messages: dto.privacy.allowDirectMessages,
+        }),
+      },
+    });
+
+    return {
+      language: prefs.language,
+      units: prefs.units,
+      privacy: {
+        privateAccount: prefs.private_account,
+        allowDirectMessages: prefs.allow_direct_messages,
+      },
+    };
   }
 }

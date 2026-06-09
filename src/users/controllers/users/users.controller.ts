@@ -24,9 +24,11 @@ import { CreateUserDto } from 'src/users/dtos/create.user.dto';
 import { UpdateUserDto } from 'src/users/dtos/update.user.dto';
 import { UpdateUserRoleDto } from 'src/users/dtos/update-user-role.dto';
 import { UpdateAiPreferencesDto } from 'src/users/dtos/update-ai-preferences.dto';
+import { PatchPreferencesDto } from 'src/users/dtos/patch-preferences.dto';
 import { UpdateMeDto } from 'src/users/dtos/update-me.dto';
 import { DeleteMeDto } from 'src/users/dtos/delete-me.dto';
 import type { UserAiPreferencesRecord } from 'src/users/interfaces/user-ai-preferences.interface';
+import type { UserPreferencesRecord } from 'src/users/interfaces/user-preferences.interface';
 import type { DataExportResponse } from 'src/users/interfaces/data-export.interface';
 import type {
   FollowResult,
@@ -124,6 +126,33 @@ export class UsersController implements IUsersController {
   requestDataExport(@Req() req: Request): Promise<DataExportResponse> {
     const payload = req.user as JwtPayload;
     return this.usersService.requestDataExport(payload.sub);
+  }
+
+  @Get('me/preferences')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({
+    summary: 'Récupérer mes préférences (langue, unités, confidentialité)',
+  })
+  @ApiOkResponse({ description: 'Préférences récupérées' })
+  @ApiUnauthorizedResponse({ description: 'JWT invalide ou expiré' })
+  getMyPreferences(@Req() req: Request): Promise<UserPreferencesRecord> {
+    const payload = req.user as JwtPayload;
+    return this.usersService.getMyPreferences(payload.sub);
+  }
+
+  @Patch('me/preferences')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({
+    summary: 'Mettre à jour mes préférences (langue, unités, confidentialité)',
+  })
+  @ApiOkResponse({ description: 'Préférences mises à jour' })
+  @ApiUnauthorizedResponse({ description: 'JWT invalide ou expiré' })
+  patchMyPreferences(
+    @Req() req: Request,
+    @Body() dto: PatchPreferencesDto,
+  ): Promise<UserPreferencesRecord> {
+    const payload = req.user as JwtPayload;
+    return this.usersService.patchMyPreferences(payload.sub, dto);
   }
 
   @Put('me/ai-preferences')
