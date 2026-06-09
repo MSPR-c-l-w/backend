@@ -8,6 +8,7 @@ import type {
   UpdatePostDto,
 } from 'src/post/dtos/post.dto';
 import type {
+  CommentLikeSummary,
   PaginatedPostComments,
   PostCommentWithAuthor,
   PostWithEngagement,
@@ -37,6 +38,16 @@ export interface IPostController {
     id: string,
     req: Request,
   ): Promise<{ likes_count: number; liked_by_me: boolean }>;
+  likeComment(
+    id: string,
+    commentId: string,
+    req: Request,
+  ): Promise<CommentLikeSummary>;
+  unlikeComment(
+    id: string,
+    commentId: string,
+    req: Request,
+  ): Promise<CommentLikeSummary>;
   createPost(dto: CreatePostDto): Promise<Post>;
   updatePost(id: string, dto: UpdatePostDto): Promise<Post>;
   deletePost(id: string, req: Request): Promise<Post>;
@@ -74,6 +85,16 @@ export interface IPostService {
     id: string,
     userId: number,
   ): Promise<{ likes_count: number; liked_by_me: boolean }>;
+  likeComment(
+    postId: string,
+    commentId: string,
+    userId: number,
+  ): Promise<CommentLikeSummary>;
+  unlikeComment(
+    postId: string,
+    commentId: string,
+    userId: number,
+  ): Promise<CommentLikeSummary>;
   createPost(dto: CreatePostDto): Promise<Post>;
   updatePost(id: string, dto: UpdatePostDto): Promise<Post>;
   deletePost(id: string, requesterUserId: number): Promise<Post>;

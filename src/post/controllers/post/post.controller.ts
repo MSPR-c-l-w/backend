@@ -42,6 +42,7 @@ import type {
   IPostController,
   IPostService,
 } from 'src/post/interfaces/post.interface';
+import type { CommentLikeSummary } from 'src/post/types/post-engagement.types';
 import { DEFAULT_ROLE_NAMES } from 'src/roles/interfaces/role.interface';
 import { ROUTES, SERVICES } from 'src/utils/constants';
 
@@ -165,6 +166,39 @@ export class PostController implements IPostController {
   unlikePost(@Param('id') id: string, @Req() req: Request) {
     const payload = req.user as JwtPayload;
     return this.postService.unlikePost(id, payload.sub);
+  }
+
+  @PostMethod(':id/comments/:commentId/like')
+  @ApiOperation({
+    summary: 'Liker un commentaire',
+    description: "Idempotent : un second like ne change pas l'état.",
+  })
+  @ApiParam({ name: 'id', description: 'ID du post' })
+  @ApiParam({ name: 'commentId', description: 'ID du commentaire' })
+  @ApiOkResponse({ description: 'Résumé des likes du commentaire' })
+  @ApiNotFoundResponse({ description: 'Post ou commentaire introuvable' })
+  likeComment(
+    @Param('id') id: string,
+    @Param('commentId') commentId: string,
+    @Req() req: Request,
+  ): Promise<CommentLikeSummary> {
+    const payload = req.user as JwtPayload;
+    return this.postService.likeComment(id, commentId, payload.sub);
+  }
+
+  @Delete(':id/comments/:commentId/like')
+  @ApiOperation({ summary: "Retirer son like d'un commentaire" })
+  @ApiParam({ name: 'id', description: 'ID du post' })
+  @ApiParam({ name: 'commentId', description: 'ID du commentaire' })
+  @ApiOkResponse({ description: 'Résumé des likes du commentaire' })
+  @ApiNotFoundResponse({ description: 'Post ou commentaire introuvable' })
+  unlikeComment(
+    @Param('id') id: string,
+    @Param('commentId') commentId: string,
+    @Req() req: Request,
+  ): Promise<CommentLikeSummary> {
+    const payload = req.user as JwtPayload;
+    return this.postService.unlikeComment(id, commentId, payload.sub);
   }
 
   @Get(':id')
