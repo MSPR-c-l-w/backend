@@ -25,26 +25,26 @@ npm run prisma:seed       # Peupler la base avec les données initiales
 
 ### User
 
-| Champ | Type | Notes |
-|---|---|---|
-| id | Int PK | Auto-increment |
-| email | String | Unique |
-| password_hash | String | bcrypt (12 rounds) |
-| refresh_token_hash | String? | Unique, SHA256 |
-| email_verification_token_hash | String? | Unique, SHA256 |
-| reset_password_token_hash | String? | Unique, SHA256 |
-| first_name | String | |
-| last_name | String | |
-| date_of_birth | DateTime? | |
-| gender | String? | |
-| height | Float? | En cm |
-| organization_id | Int? | FK → Organization |
-| role_id | Int? | FK → Role |
-| is_active | Boolean | default: true |
-| is_deleted | Boolean | default: false |
-| created_at | DateTime | default: now() |
-| updated_at | DateTime | @updatedAt |
-| deleted_at | DateTime? | Soft delete |
+| Champ                         | Type      | Notes              |
+| ----------------------------- | --------- | ------------------ |
+| id                            | Int PK    | Auto-increment     |
+| email                         | String    | Unique             |
+| password_hash                 | String    | bcrypt (12 rounds) |
+| refresh_token_hash            | String?   | Unique, SHA256     |
+| email_verification_token_hash | String?   | Unique, SHA256     |
+| reset_password_token_hash     | String?   | Unique, SHA256     |
+| first_name                    | String    |                    |
+| last_name                     | String    |                    |
+| date_of_birth                 | DateTime? |                    |
+| gender                        | String?   |                    |
+| height                        | Float?    | En cm              |
+| organization_id               | Int?      | FK → Organization  |
+| role_id                       | Int?      | FK → Role          |
+| is_active                     | Boolean   | default: true      |
+| is_deleted                    | Boolean   | default: false     |
+| created_at                    | DateTime  | default: now()     |
+| updated_at                    | DateTime  | @updatedAt         |
+| deleted_at                    | DateTime? | Soft delete        |
 
 **Relations** : Organization, Role, HealthProfile (1-1), UserAiPreferences (1-1), Session[], Meal[], Subscription[], Post[], AiNutritionRecommendation[], AiWorkoutRecommendation[]
 
@@ -52,15 +52,15 @@ npm run prisma:seed       # Peupler la base avec les données initiales
 
 ### Organization
 
-| Champ | Type | Notes |
-|---|---|---|
-| id | Int PK | |
-| name | String | Unique |
-| type | String | |
-| branding_config | Json | `{ primaryColor?, logoUrl? }` |
-| is_active | Boolean | default: true |
-| is_deleted | Boolean | default: false |
-| created_at / updated_at / deleted_at | DateTime | Audit |
+| Champ                                | Type     | Notes                         |
+| ------------------------------------ | -------- | ----------------------------- |
+| id                                   | Int PK   |                               |
+| name                                 | String   | Unique                        |
+| type                                 | String   |                               |
+| branding_config                      | Json     | `{ primaryColor?, logoUrl? }` |
+| is_active                            | Boolean  | default: true                 |
+| is_deleted                           | Boolean  | default: false                |
+| created_at / updated_at / deleted_at | DateTime | Audit                         |
 
 **Relations** : User[], Post[]
 
@@ -68,10 +68,10 @@ npm run prisma:seed       # Peupler la base avec les données initiales
 
 ### Role
 
-| Champ | Type | Notes |
-|---|---|---|
-| id | Int PK | |
-| name | String | Unique |
+| Champ | Type   | Notes  |
+| ----- | ------ | ------ |
+| id    | Int PK |        |
+| name  | String | Unique |
 
 Rôles seedés automatiquement : `ADMIN`, `COACH`, `CLIENT`
 
@@ -81,15 +81,15 @@ Rôles seedés automatiquement : `ADMIN`, `COACH`, `CLIENT`
 
 ### HealthProfile
 
-| Champ | Type | Notes |
-|---|---|---|
-| id | Int PK | |
-| user_id | Int | Unique, FK → User (Cascade) |
-| weight | Float | |
-| bmi | Float | |
-| physical_activity_level | String | |
-| daily_calories_target | Int | |
-| updated_at | DateTime | @updatedAt |
+| Champ                   | Type     | Notes                       |
+| ----------------------- | -------- | --------------------------- |
+| id                      | Int PK   |                             |
+| user_id                 | Int      | Unique, FK → User (Cascade) |
+| weight                  | Float    |                             |
+| bmi                     | Float    |                             |
+| physical_activity_level | String   |                             |
+| daily_calories_target   | Int      |                             |
+| updated_at              | DateTime | @updatedAt                  |
 
 **Relations** : User (1-1)
 
@@ -97,16 +97,16 @@ Rôles seedés automatiquement : `ADMIN`, `COACH`, `CLIENT`
 
 ### Session
 
-| Champ | Type | Notes |
-|---|---|---|
-| id | Int PK | |
-| user_id | Int | FK → User (Cascade) |
-| duration_h | Float | |
-| calories_total | Float | |
-| avg_bpm | Float | |
-| max_bpm | Float | |
-| resting_bpm | Float? | |
-| created_at | DateTime | default: now() |
+| Champ          | Type     | Notes               |
+| -------------- | -------- | ------------------- |
+| id             | Int PK   |                     |
+| user_id        | Int      | FK → User (Cascade) |
+| duration_h     | Float    |                     |
+| calories_total | Float    |                     |
+| avg_bpm        | Float    |                     |
+| max_bpm        | Float    |                     |
+| resting_bpm    | Float?   |                     |
+| created_at     | DateTime | default: now()      |
 
 **Relations** : User, SessionExercise[]
 
@@ -116,28 +116,28 @@ Rôles seedés automatiquement : `ADMIN`, `COACH`, `CLIENT`
 
 Clé primaire composite : `(session_id, exercise_id)`
 
-| Champ | Type | Notes |
-|---|---|---|
-| session_id | Int | FK → Session (Cascade) |
-| exercise_id | Int | FK → Exercise (Cascade) |
+| Champ       | Type | Notes                   |
+| ----------- | ---- | ----------------------- |
+| session_id  | Int  | FK → Session (Cascade)  |
+| exercise_id | Int  | FK → Exercise (Cascade) |
 
 ---
 
 ### Exercise
 
-| Champ | Type | Notes |
-|---|---|---|
-| id | Int PK | |
-| name | String | Unique |
-| primary_muscles | Json? | |
-| secondary_muscles | Json? | |
-| level | String? | |
-| mechanic | String? | |
-| equipment | String? | |
-| category | String? | |
-| exercise_type | String? | |
-| instructions | Json? | |
-| image_urls | Json? | |
+| Champ             | Type    | Notes  |
+| ----------------- | ------- | ------ |
+| id                | Int PK  |        |
+| name              | String  | Unique |
+| primary_muscles   | Json?   |        |
+| secondary_muscles | Json?   |        |
+| level             | String? |        |
+| mechanic          | String? |        |
+| equipment         | String? |        |
+| category          | String? |        |
+| exercise_type     | String? |        |
+| instructions      | Json?   |        |
+| image_urls        | Json?   |        |
 
 **Relations** : SessionExercise[]
 
@@ -145,22 +145,22 @@ Clé primaire composite : `(session_id, exercise_id)`
 
 ### Nutrition
 
-| Champ | Type | Notes |
-|---|---|---|
-| id | Int PK | |
-| name | String | Unique composite (name + category) |
-| category | String | |
-| calories_kcal | Float | |
-| protein_g | Float | |
-| carbohydrates_g | Float | |
-| fat_g | Float | |
-| fiber_g | Float | |
-| sugar_g | Float | |
-| sodium_mg | Float | |
-| cholesterol_mg | Float | |
-| water_intake_ml | Float | |
-| meal_type_name | String? | |
-| picture_url | String? | |
+| Champ           | Type    | Notes                              |
+| --------------- | ------- | ---------------------------------- |
+| id              | Int PK  |                                    |
+| name            | String  | Unique composite (name + category) |
+| category        | String  |                                    |
+| calories_kcal   | Float   |                                    |
+| protein_g       | Float   |                                    |
+| carbohydrates_g | Float   |                                    |
+| fat_g           | Float   |                                    |
+| fiber_g         | Float   |                                    |
+| sugar_g         | Float   |                                    |
+| sodium_mg       | Float   |                                    |
+| cholesterol_mg  | Float   |                                    |
+| water_intake_ml | Float   |                                    |
+| meal_type_name  | String? |                                    |
+| picture_url     | String? |                                    |
 
 **Relations** : Meal[]
 
@@ -168,12 +168,12 @@ Clé primaire composite : `(session_id, exercise_id)`
 
 ### Meal
 
-| Champ | Type | Notes |
-|---|---|---|
-| id | Int PK | |
-| user_id | Int | FK → User (Cascade) |
-| nutrition_id | Int | FK → Nutrition (Cascade) |
-| created_at | DateTime | |
+| Champ        | Type     | Notes                    |
+| ------------ | -------- | ------------------------ |
+| id           | Int PK   |                          |
+| user_id      | Int      | FK → User (Cascade)      |
+| nutrition_id | Int      | FK → Nutrition (Cascade) |
+| created_at   | DateTime |                          |
 
 **Relations** : User, Nutrition
 
@@ -181,12 +181,12 @@ Clé primaire composite : `(session_id, exercise_id)`
 
 ### Plan
 
-| Champ | Type | Notes |
-|---|---|---|
-| id | Int PK | |
-| name | String | ex: "Freemium", "Premium", "Premium+", "B2B" |
-| price | Float | |
-| features | Json | |
+| Champ    | Type   | Notes                                        |
+| -------- | ------ | -------------------------------------------- |
+| id       | Int PK |                                              |
+| name     | String | ex: "Freemium", "Premium", "Premium+", "B2B" |
+| price    | Float  |                                              |
+| features | Json   |                                              |
 
 **Relations** : Subscription[]
 
@@ -194,14 +194,14 @@ Clé primaire composite : `(session_id, exercise_id)`
 
 ### Subscription
 
-| Champ | Type | Notes |
-|---|---|---|
-| id | Int PK | |
-| user_id | Int | FK → User (Cascade) |
-| plan_id | Int | FK → Plan (Cascade) |
-| start_date | DateTime | |
-| end_date | DateTime | |
-| status | String | ex: "ACTIVE", "active", "true" |
+| Champ      | Type     | Notes                          |
+| ---------- | -------- | ------------------------------ |
+| id         | Int PK   |                                |
+| user_id    | Int      | FK → User (Cascade)            |
+| plan_id    | Int      | FK → Plan (Cascade)            |
+| start_date | DateTime |                                |
+| end_date   | DateTime |                                |
+| status     | String   | ex: "ACTIVE", "active", "true" |
 
 **Relations** : User, Plan
 
@@ -211,16 +211,16 @@ Statuts actifs définis dans `src/utils/constants.ts` : `['ACTIVE', 'active', 't
 
 ### Post
 
-| Champ | Type | Notes |
-|---|---|---|
-| id | Int PK | |
-| author_id | Int | FK → User (Cascade) |
-| organization_id | Int? | FK → Organization (SetNull) |
-| title | String | |
-| content | LongText | |
-| media_url | VarChar(2048)? | |
-| is_published | Boolean | default: false |
-| created_at / updated_at | DateTime | Audit |
+| Champ                   | Type     | Notes                                                                                        |
+| ----------------------- | -------- | -------------------------------------------------------------------------------------------- |
+| id                      | Int PK   |                                                                                              |
+| author_id               | Int      | FK → User (Cascade)                                                                          |
+| organization_id         | Int?     | FK → Organization (SetNull)                                                                  |
+| title                   | String   |                                                                                              |
+| content                 | LongText |                                                                                              |
+| media_url               | Text?    | URL d'un média unique, ou tableau JSON d'URLs (plusieurs photos/vidéos) stockés sur S3/MinIO |
+| is_published            | Boolean  | default: false                                                                               |
+| created_at / updated_at | DateTime | Audit                                                                                        |
 
 **Relations** : User (author), Organization
 
@@ -230,16 +230,16 @@ Statuts actifs définis dans `src/utils/constants.ts` : `['ACTIVE', 'active', 't
 
 Préférences IA de l'utilisateur (allergies, régime, objectifs, matériel sportif).
 
-| Champ | Type | Notes |
-|---|---|---|
-| id | Int PK | |
-| user_id | Int | Unique, FK → User (Cascade) |
-| allergies | Json | Liste de chaînes (ex. `["lactose"]`) |
-| regime | String? | ex. `vegetarien`, `vegan` |
-| budget | Float? | Budget mensuel alimentation (€) |
-| objectif_ia | String | ex. `perte_de_poids`, `prise_de_masse` |
-| contraintes_materielles | Json | Équipement disponible |
-| updated_at | DateTime | @updatedAt |
+| Champ                   | Type     | Notes                                  |
+| ----------------------- | -------- | -------------------------------------- |
+| id                      | Int PK   |                                        |
+| user_id                 | Int      | Unique, FK → User (Cascade)            |
+| allergies               | Json     | Liste de chaînes (ex. `["lactose"]`)   |
+| regime                  | String?  | ex. `vegetarien`, `vegan`              |
+| budget                  | Float?   | Budget mensuel alimentation (€)        |
+| objectif_ia             | String   | ex. `perte_de_poids`, `prise_de_masse` |
+| contraintes_materielles | Json     | Équipement disponible                  |
+| updated_at              | DateTime | @updatedAt                             |
 
 **API** : `PUT /users/me/ai-preferences` (JWT requis)
 
@@ -251,17 +251,17 @@ Préférences IA de l'utilisateur (allergies, régime, objectifs, matériel spor
 
 Historique des analyses photo et plans de repas générés par l'IA nutrition.
 
-| Champ | Type | Notes |
-|---|---|---|
-| id | Int PK | |
-| user_id | Int | FK → User (Cascade) |
-| type | Enum | `ANALYSIS` \| `MEAL_PLAN` (`AiRecommendationType`) |
-| input_image_url | String? | URL de la photo analysée |
-| aliments_detectes | Json? | Résultat de détection |
-| macros | Json? | Macros estimées |
-| suggestions | Json? | Conseils IA |
-| meal_plan | Json? | Plan de repas (si type `MEAL_PLAN`) |
-| created_at | DateTime | default: now() |
+| Champ             | Type     | Notes                                              |
+| ----------------- | -------- | -------------------------------------------------- |
+| id                | Int PK   |                                                    |
+| user_id           | Int      | FK → User (Cascade)                                |
+| type              | Enum     | `ANALYSIS` \| `MEAL_PLAN` (`AiRecommendationType`) |
+| input_image_url   | String?  | URL de la photo analysée                           |
+| aliments_detectes | Json?    | Résultat de détection                              |
+| macros            | Json?    | Macros estimées                                    |
+| suggestions       | Json?    | Conseils IA                                        |
+| meal_plan         | Json?    | Plan de repas (si type `MEAL_PLAN`)                |
+| created_at        | DateTime | default: now()                                     |
 
 Index : `user_id`, `created_at`
 
@@ -273,15 +273,15 @@ Index : `user_id`, `created_at`
 
 Référence relationnelle vers un programme sportif stocké dans le micro-service MongoDB.
 
-| Champ | Type | Notes |
-|---|---|---|
-| id | Int PK | |
-| user_id | Int | FK → User (Cascade) |
-| microservice_ref_id | String | ID du document MongoDB (UUID) |
-| statut | Enum | `ACTIVE` \| `ARCHIVED` (`WorkoutRecommendationStatus`) |
-| feedback | Json? | Note / commentaire utilisateur |
-| generated_at | DateTime | default: now() |
-| updated_at | DateTime | @updatedAt |
+| Champ               | Type     | Notes                                                  |
+| ------------------- | -------- | ------------------------------------------------------ |
+| id                  | Int PK   |                                                        |
+| user_id             | Int      | FK → User (Cascade)                                    |
+| microservice_ref_id | String   | ID du document MongoDB (UUID)                          |
+| statut              | Enum     | `ACTIVE` \| `ARCHIVED` (`WorkoutRecommendationStatus`) |
+| feedback            | Json?    | Note / commentaire utilisateur                         |
+| generated_at        | DateTime | default: now()                                         |
+| updated_at          | DateTime | @updatedAt                                             |
 
 Index : `user_id`, `microservice_ref_id`
 
@@ -295,13 +295,13 @@ Trois tables de staging avec la même structure :
 
 `NutritionStaging` · `ExerciseStaging` · `HealthProfileStaging`
 
-| Champ | Type | Notes |
-|---|---|---|
-| id | String PK | UUID |
-| cleaned_data | Json | Données nettoyées par le pipeline |
-| anomalies | Json | Anomalies détectées (`[]` si aucune) |
-| status | Enum | `PENDING` \| `APPROVED` \| `REJECTED` |
-| created_at / updated_at | DateTime | Audit |
+| Champ                   | Type      | Notes                                 |
+| ----------------------- | --------- | ------------------------------------- |
+| id                      | String PK | UUID                                  |
+| cleaned_data            | Json      | Données nettoyées par le pipeline     |
+| anomalies               | Json      | Anomalies détectées (`[]` si aucune)  |
+| status                  | Enum      | `PENDING` \| `APPROVED` \| `REJECTED` |
+| created_at / updated_at | DateTime  | Audit                                 |
 
 Index sur le champ `status`.
 
@@ -350,12 +350,12 @@ User ──< Post
 
 ## Mapping relationnel ↔ NoSQL
 
-| Donnée | Stockage | Justification |
-|---|---|---|
-| Préférences IA stables (allergies, régime, objectif) | MySQL / Prisma `UserAiPreferences` | Profil utilisateur structuré, requêtes SQL, jointure directe avec `User` |
-| Historique nutrition (analyses, macros, plans) | MySQL / Prisma `AiNutritionRecommendation` | Traçabilité et filtrage par `user_id` / date ; payloads JSON flexibles pour les sorties IA |
-| Programme sportif complet (séances, exercices détaillés) | MongoDB (micro-service dédié) | Modèle documentaire adapté aux programmes variables ; pas de schéma rigide côté sport IA |
-| Lien backend ↔ MongoDB | MySQL `AiWorkoutRecommendation.microservice_ref_id` | Clé étrangère logique (UUID string) : le backend relationnel ne duplique pas le document MongoDB, il enregistre la référence, le statut (`ACTIVE` / `ARCHIVED`) et le feedback utilisateur |
+| Donnée                                                   | Stockage                                            | Justification                                                                                                                                                                              |
+| -------------------------------------------------------- | --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Préférences IA stables (allergies, régime, objectif)     | MySQL / Prisma `UserAiPreferences`                  | Profil utilisateur structuré, requêtes SQL, jointure directe avec `User`                                                                                                                   |
+| Historique nutrition (analyses, macros, plans)           | MySQL / Prisma `AiNutritionRecommendation`          | Traçabilité et filtrage par `user_id` / date ; payloads JSON flexibles pour les sorties IA                                                                                                 |
+| Programme sportif complet (séances, exercices détaillés) | MongoDB (micro-service dédié)                       | Modèle documentaire adapté aux programmes variables ; pas de schéma rigide côté sport IA                                                                                                   |
+| Lien backend ↔ MongoDB                                   | MySQL `AiWorkoutRecommendation.microservice_ref_id` | Clé étrangère logique (UUID string) : le backend relationnel ne duplique pas le document MongoDB, il enregistre la référence, le statut (`ACTIVE` / `ARCHIVED`) et le feedback utilisateur |
 
 **Flux typique — recommandation sportive :**
 

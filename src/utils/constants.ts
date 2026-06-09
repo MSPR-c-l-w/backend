@@ -15,6 +15,7 @@ export enum ROUTES {
   DASHBOARD = 'dashboard',
   POST = 'posts',
   AI = 'ai',
+  MEDIA = 'media',
 }
 
 export enum SERVICES {
@@ -36,6 +37,7 @@ export enum SERVICES {
   POST = 'POST_SERVICE',
   WORKOUT_MICROSERVICE_CLIENT = 'WORKOUT_MICROSERVICE_CLIENT',
   AI_WORKOUT = 'AI_WORKOUT_SERVICE',
+  STORAGE = 'STORAGE_SERVICE',
 }
 
 export const ACTIVE_SUBSCRIPTION_STATUSES: string[] = [
