@@ -333,3 +333,4 @@ model HealthProfileStaging {
 
   @@index([status])
 }
+
