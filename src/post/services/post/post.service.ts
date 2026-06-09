@@ -75,7 +75,7 @@ export class PostService implements IPostService {
     const rows = await this.prisma.post.findMany({
       take: limit,
       ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
-      where: category ? { category } : undefined,
+      where: { is_published: true, ...(category ? { category } : {}) },
       orderBy: { created_at: 'desc' },
       include: postEngagementInclude(currentUserId),
     });
