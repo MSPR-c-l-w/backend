@@ -164,6 +164,10 @@ model UserAiPreferences {
   budget                  Float?
   objectif_ia             String
   contraintes_materielles Json
+  language                String   @default("fr")
+  units                   String   @default("metric")
+  private_account         Boolean  @default(false)
+  allow_direct_messages   Boolean  @default(true)
   updated_at              DateTime @updatedAt
   user                    User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
 }
