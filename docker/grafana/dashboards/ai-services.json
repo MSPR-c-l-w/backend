@@ -1,56 +1,141 @@
 {
   "uid": "ai-services",
-  "title": "AI Services",
-  "tags": [
-    "healthai",
-    "ai"
-  ],
+  "title": "API IA — Surveillance",
+  "tags": ["healthai", "ai"],
   "timezone": "browser",
   "schemaVersion": 38,
-  "version": 2,
+  "version": 4,
   "refresh": "30s",
   "panels": [
     {
       "id": 1,
-      "title": "Total appels IA (cumulé)",
+      "title": "Backend NestJS",
       "type": "stat",
-      "gridPos": {
-        "h": 4,
-        "w": 6,
-        "x": 0,
-        "y": 0
-      },
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
       "targets": [
         {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "sum(ai_api_calls_total) or vector(0)",
-          "legendFormat": "appels"
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "max(up{job=\"backend-nestjs\"}) or vector(0)",
+          "legendFormat": ""
         }
       ],
       "options": {
         "colorMode": "background",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ]
+        "graphMode": "none",
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "mappings": [
+          {
+            "type": "value",
+            "options": {
+              "0": { "text": "DOWN", "color": "red" },
+              "1": { "text": "UP", "color": "green" }
+            }
+          }
+        ]
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "green", "value": 1 }
+            ]
+          }
         }
+      }
+    },
+    {
+      "id": 2,
+      "title": "Appels /ai/* réussis (total)",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 0 },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "sum(http_requests_total{route=~\".*/ai.*\", status_code=~\"2..\"}) or vector(0)",
+          "legendFormat": ""
+        }
+      ],
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "reduceOptions": { "calcs": ["lastNotNull"] }
       },
       "fieldConfig": {
         "defaults": {
           "unit": "short",
-          "color": {
-            "mode": "thresholds"
-          },
+          "decimals": 0,
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [{ "color": "blue", "value": null }]
+          }
+        }
+      }
+    },
+    {
+      "id": 3,
+      "title": "Taux d'erreur /ai/*",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 0 },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "sum(rate(http_requests_total{route=~\".*/ai.*\", status_code=~\"[45]..\"}[5m])) / sum(rate(http_requests_total{route=~\".*/ai.*\"}[5m])) * 100 or vector(0)",
+          "legendFormat": ""
+        }
+      ],
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "reduceOptions": { "calcs": ["lastNotNull"] }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 1,
+          "color": { "mode": "thresholds" },
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              {
-                "color": "blue",
-                "value": null
-              }
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 1 },
+              { "color": "red", "value": 5 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 4,
+      "title": "Latence p95 /ai/*",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 0 },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{route=~\".*/ai.*\"}[5m])) by (le)) or vector(0)",
+          "legendFormat": ""
+        }
+      ],
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "reduceOptions": { "calcs": ["lastNotNull"] }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "decimals": 2,
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 2 },
+              { "color": "red", "value": 10 }
             ]
           }
         }
@@ -58,167 +143,162 @@
     },
     {
       "id": 5,
-      "title": "API IA disponible",
-      "type": "stat",
-      "gridPos": {
-        "h": 4,
-        "w": 6,
-        "x": 6,
-        "y": 0
-      },
+      "title": "Appels /ai/* par route — req/min",
+      "type": "timeseries",
+      "gridPos": { "h": 9, "w": 14, "x": 0, "y": 4 },
       "targets": [
         {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "up{job=\"api-ia-fastapi\"} or vector(0)",
-          "legendFormat": "status"
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "sum(rate(http_requests_total{route=~\".*/ai.*\", status_code=~\"2..\"}[1m])) by (route) * 60",
+          "legendFormat": "✓ {{ route }}"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "sum(rate(http_requests_total{route=~\".*/ai.*\", status_code=~\"[45]..\"}[1m])) by (route, status_code) * 60",
+          "legendFormat": "✗ {{ route }} {{ status_code }}"
         }
       ],
       "options": {
-        "colorMode": "background",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ]
+        "legend": { "displayMode": "list", "placement": "bottom" },
+        "tooltip": { "mode": "multi" }
+      },
+      "fieldConfig": {
+        "defaults": { "unit": "reqps", "custom": { "lineWidth": 2 } }
+      }
+    },
+    {
+      "id": 6,
+      "title": "Répartition appels /ai/* (total)",
+      "type": "piechart",
+      "gridPos": { "h": 9, "w": 10, "x": 14, "y": 4 },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "sum(http_requests_total{route=~\".*/ai.*\"}) by (route)",
+          "legendFormat": "{{ route }}",
+          "instant": true
+        }
+      ],
+      "options": {
+        "legend": { "displayMode": "table", "placement": "right" },
+        "pieType": "donut"
+      }
+    },
+    {
+      "id": 7,
+      "title": "Latence routes IA — p50 / p95",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 13 },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "histogram_quantile(0.50, sum(rate(http_request_duration_seconds_bucket{route=~\".*/ai.*\"}[5m])) by (le, route))",
+          "legendFormat": "p50 {{ route }}"
         },
-        "mappings": [
-          {
-            "type": "value",
-            "options": {
-              "0": {
-                "text": "DOWN",
-                "color": "red"
-              },
-              "1": {
-                "text": "UP",
-                "color": "green"
-              }
-            }
-          }
-        ]
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{route=~\".*/ai.*\"}[5m])) by (le, route))",
+          "legendFormat": "p95 {{ route }}"
+        }
+      ],
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom" },
+        "tooltip": { "mode": "multi" }
+      },
+      "fieldConfig": {
+        "defaults": { "unit": "s", "custom": { "lineWidth": 2 } }
+      }
+    },
+    {
+      "id": 8,
+      "title": "CPU NestJS",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 13 },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "rate(process_cpu_seconds_total{job=\"backend-nestjs\"}[1m]) * 100",
+          "legendFormat": "CPU %"
+        }
+      ],
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom" },
+        "tooltip": { "mode": "single" }
       },
       "fieldConfig": {
         "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
+          "unit": "percent",
+          "min": 0,
+          "custom": { "lineWidth": 2 }
+        }
+      }
+    },
+    {
+      "id": 9,
+      "title": "Heap Node.js",
+      "type": "timeseries",
+      "gridPos": { "h": 7, "w": 12, "x": 0, "y": 21 },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "nodejs_heap_size_used_bytes{job=\"backend-nestjs\"}",
+          "legendFormat": "Utilisé"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "nodejs_heap_size_total_bytes{job=\"backend-nestjs\"}",
+          "legendFormat": "Total"
+        }
+      ],
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom" },
+        "tooltip": { "mode": "multi" }
+      },
+      "fieldConfig": {
+        "defaults": { "unit": "bytes", "custom": { "lineWidth": 2 } }
+      }
+    },
+    {
+      "id": 10,
+      "title": "Event loop lag p99",
+      "type": "timeseries",
+      "gridPos": { "h": 7, "w": 12, "x": 12, "y": 21 },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "nodejs_eventloop_lag_p99_seconds{job=\"backend-nestjs\"}",
+          "legendFormat": "lag p99"
+        }
+      ],
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom" },
+        "tooltip": { "mode": "single" }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": { "lineWidth": 2 },
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              {
-                "color": "red",
-                "value": null
-              },
-              {
-                "color": "green",
-                "value": 1
-              }
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 0.1 },
+              { "color": "red", "value": 0.5 }
             ]
           }
         }
       }
     },
     {
-      "id": 6,
-      "title": "Appels IA / min (dernière heure)",
-      "type": "stat",
-      "gridPos": {
-        "h": 4,
-        "w": 6,
-        "x": 12,
-        "y": 0
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "sum(rate(ai_api_calls_total[5m])) * 60 or vector(0)",
-          "legendFormat": "appels/min"
-        }
-      ],
-      "options": {
-        "colorMode": "background",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ]
-        }
-      },
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short"
-        }
-      }
-    },
-    {
-      "id": 2,
-      "title": "Appels IA / minute (par provider & type)",
-      "type": "timeseries",
-      "gridPos": {
-        "h": 8,
-        "w": 14,
-        "x": 0,
-        "y": 4
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "sum(rate(ai_api_calls_total[1m])) by (provider, type) * 60",
-          "legendFormat": "{{ provider }} — {{ type }}"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short"
-        }
-      }
-    },
-    {
-      "id": 3,
-      "title": "Répartition appels par provider",
-      "type": "piechart",
-      "gridPos": {
-        "h": 8,
-        "w": 10,
-        "x": 14,
-        "y": 4
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "sum(ai_api_calls_total) by (provider)",
-          "legendFormat": "{{ provider }}",
-          "instant": true
-        }
-      ]
-    },
-    {
-      "id": 7,
+      "id": 11,
       "title": "Logs IA (Loki)",
       "type": "logs",
-      "gridPos": {
-        "h": 8,
-        "w": 24,
-        "x": 0,
-        "y": 12
-      },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 28 },
+      "datasource": { "type": "loki", "uid": "loki" },
       "targets": [
         {
-          "datasource": {
-            "type": "loki",
-            "uid": "loki"
-          },
-          "expr": "{container=~\"backend-nestjs\"} |~ \"workout|AiWorkout|generateProgram\"",
+          "datasource": { "type": "loki", "uid": "loki" },
+          "expr": "{component=\"backend\"} |~ \"workout|nutrition.*meal|AiWorkout|AiNutrition|ai\"",
           "legendFormat": ""
         }
       ],
@@ -226,15 +306,8 @@
         "showLabels": false,
         "showTime": true,
         "sortOrder": "Descending"
-      },
-      "datasource": {
-        "type": "loki",
-        "uid": "loki"
       }
     }
   ],
-  "time": {
-    "from": "now-3h",
-    "to": "now"
-  }
+  "time": { "from": "now-3h", "to": "now" }
 }

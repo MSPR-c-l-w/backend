@@ -4,6 +4,7 @@ import { isAxiosError } from 'axios';
 import { Prisma } from '@prisma/client';
 import { lastValueFrom } from 'rxjs';
 import { PrismaService } from 'src/prisma/services/prisma/prisma.service';
+import { MetricsService } from 'src/metrics/metrics.service';
 
 export interface MealPlanDay {
   day: number;
@@ -31,6 +32,7 @@ export class AiNutritionService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly httpService: HttpService,
+    private readonly metricsService: MetricsService,
   ) {
     this.baseUrl = (process.env.WORKOUT_SERVICE_URL ?? '').replace(/\/$/, '');
     this.apiKey = process.env.WORKOUT_SERVICE_API_KEY ?? '';
@@ -85,6 +87,11 @@ export class AiNutritionService {
           meal_plan: response.data as unknown as Prisma.InputJsonValue,
         },
       });
+
+      this.metricsService.enregistrerAppelIA(
+        'nutrition-microservice',
+        'generate-meal-plan',
+      );
 
       return response.data;
     } catch (error: unknown) {
