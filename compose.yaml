@@ -1,10 +1,34 @@
+# Variables d'environnement communes aux deux services.
+# Dans Dokploy, définis ces clés dans l'onglet "Environment" du projet : elles
+# sont interpolées ici via ${...}.
+x-app-env: &app-env
+  NODE_ENV: production
+  DATABASE_URL: ${DATABASE_URL}
+
 services:
+  # Service one-shot À LA DEMANDE : applique les migrations puis exécute le seed.
+  # Gardé derrière le profil "seed" → ne tourne PAS au démarrage normal de la
+  # stack. Construit depuis l'étape `build` (sources TS + ts-node + faker).
+  #
+  # ⚠️  Le seed est destructif : il vide la table `user` à chaque exécution.
+  #     Lance-le manuellement quand tu veux (re)générer les données de démo :
+  #         docker compose --profile seed run --rm seed
+  seed:
+    build:
+      context: .
+      target: build
+    command: sh -c "node_modules/.bin/prisma migrate deploy && pnpm run prisma:seed"
+    restart: 'no'
+    profiles: ['seed']
+    environment: *app-env
+
   server:
     build:
       context: .
+      target: final
     restart: unless-stopped
     environment:
-      NODE_ENV: production
+      <<: *app-env
       PORT: 3001
     ports:
       - 3001:3001

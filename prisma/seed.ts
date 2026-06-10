@@ -68,7 +68,7 @@ const PAID_PLANS: Array<{ name: string; price: number; features: string[] }> = [
     price: 0,
     features: [
       'Offre destinée aux salles de sport, mutuelles et entreprises',
-      "Intégration de la plateforme sous leur propre marque",
+      'Intégration de la plateforme sous leur propre marque',
       "Enrichissement de l'offre de services auprès des adhérents, collaborateurs ou clients",
     ],
   },
@@ -610,7 +610,7 @@ async function seedPlans(): Promise<{
       data: {
         name: plan.name,
         price: plan.price,
-        features: plan.features as object,
+        features: plan.features,
       },
       select: { id: true },
     });
@@ -639,13 +639,13 @@ async function seedOrganizations(): Promise<number[]> {
       create: {
         name: org.name,
         type: org.type,
-        branding_config: org.branding_config as object,
+        branding_config: org.branding_config,
         is_active: true,
         is_deleted: false,
       },
       update: {
         type: org.type,
-        branding_config: org.branding_config as object,
+        branding_config: org.branding_config,
         is_active: true,
       },
       select: { id: true },
@@ -854,7 +854,7 @@ async function seedExercises(): Promise<number[]> {
     const created = await prisma.exercise.create({
       data: {
         name: ex.name,
-        primary_muscles: ex.primary_muscles as object | undefined,
+        primary_muscles: ex.primary_muscles,
         level: ex.level,
         equipment: ex.equipment,
         category: ex.category,
@@ -962,7 +962,11 @@ async function seedSessions(userIds: number[]): Promise<number[]> {
     const created = await prisma.session.create({
       data: {
         user_id: userId,
-        duration_h: faker.number.float({ min: 0.75, max: 2.5, fractionDigits: 2 }),
+        duration_h: faker.number.float({
+          min: 0.75,
+          max: 2.5,
+          fractionDigits: 2,
+        }),
         calories_total: faker.number.int({ min: 300, max: 900 }),
         avg_bpm: faker.number.int({ min: 120, max: 160 }),
         max_bpm: faker.number.int({ min: 150, max: 185 }),
@@ -1042,7 +1046,12 @@ async function seedAiModels(userIds: number[]): Promise<{
   let workout = 0;
 
   const regimes = ['omnivore', 'vegetarien', 'vegan', 'sans_gluten'];
-  const objectifs = ['perte_de_poids', 'prise_de_masse', 'maintien', 'performance'];
+  const objectifs = [
+    'perte_de_poids',
+    'prise_de_masse',
+    'maintien',
+    'performance',
+  ];
 
   for (const userId of sampleUserIds) {
     await prisma.userAiPreferences.upsert({
@@ -1090,16 +1099,15 @@ async function seedAiModels(userIds: number[]): Promise<{
         suggestions: {
           tips: ['Augmenter les légumes verts', 'Réduire les sauces'],
         },
-        meal_plan:
-          faker.helpers.maybe(
-            () => ({
-              days: [
-                { day: 'lundi', meals: ['porridge', 'salade composée'] },
-                { day: 'mardi', meals: ['omelette', 'saumon légumes'] },
-              ],
-            }),
-            { probability: 0.4 },
-          ) ?? null,
+        meal_plan: faker.helpers.maybe(
+          () => ({
+            days: [
+              { day: 'lundi', meals: ['porridge', 'salade composée'] },
+              { day: 'mardi', meals: ['omelette', 'saumon légumes'] },
+            ],
+          }),
+          { probability: 0.4 },
+        ),
       },
     });
     nutrition++;
@@ -1135,7 +1143,9 @@ async function main() {
 
   console.log('');
   console.log('  📌  Étapes :');
-  console.log('      1. S’assurer que les rôles ADMIN, COACH et CLIENT existent');
+  console.log(
+    '      1. S’assurer que les rôles ADMIN, COACH et CLIENT existent',
+  );
   console.log('      2. Créer les plans payants (si aucun plan existant)');
   console.log(
     '      3. Créer les organisations (salles de sport, mutuelles, entreprises)',
