@@ -6,6 +6,13 @@ import { IoAdapter } from '@nestjs/platform-socket.io';
 import { AppModule } from './app.module.js';
 import { InsufficientRoleExceptionFilter } from 'src/auth/filters/insufficient-role-exception.filter';
 
+// GC périodique toutes les 30s si --expose-gc est actif
+if (typeof global.gc === 'function') {
+  setInterval(() => {
+    global.gc!();
+  }, 30_000);
+}
+
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
   const app = await NestFactory.create(AppModule);

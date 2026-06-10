@@ -1,0 +1,47 @@
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  filename: /tmp/positions.yaml
+
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+
+scrape_configs:
+  - job_name: docker-containers
+    docker_sd_configs:
+      - host: unix:///var/run/docker.sock
+        refresh_interval: 5s
+    relabel_configs:
+      - source_labels: ['__meta_docker_container_name']
+        regex: '/(.*)'
+        target_label: container
+      - source_labels: ['__meta_docker_container_label_com_docker_compose_service']
+        target_label: service
+      - source_labels: ['__meta_docker_container_id']
+        target_label: container_id
+      # Composant applicatif (backend, ai, monitoring)
+      - source_labels: ['__meta_docker_container_name']
+        regex: '.*(nestjs|backend-nestjs).*'
+        replacement: 'backend'
+        target_label: component
+      - source_labels: ['__meta_docker_container_name']
+        regex: '.*(fastapi|api-ia).*'
+        replacement: 'ai'
+        target_label: component
+    pipeline_stages:
+      # Extraction niveau de log NestJS
+      - regex:
+          expression: '^\[Nest\]\s+\d+\s+-\s+[\d/,\s:]+(?P<level>LOG|ERROR|WARN|DEBUG|VERBOSE)\s'
+      - labels:
+          level:
+      # Extraction niveau FastAPI
+      - regex:
+          expression: '^(?P<timestamp>[\d\-T:\.Z]+)\s+(?P<level>INFO|WARNING|ERROR|CRITICAL)\s'
+      - labels:
+          level:
+      # Filtrer les health checks pour réduire le bruit
+      - drop:
+          expression: '.*(GET /health|GET /metrics).*'
+          drop_counter_reason: health_check_noise

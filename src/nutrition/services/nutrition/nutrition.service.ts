@@ -15,6 +15,7 @@ import * as Papa from 'papaparse';
 import { translate } from 'google-translate-api-x';
 import { EtlAnomalyDetectorService } from 'src/etl/services/etl-anomaly-detector/etl-anomaly-detector.service';
 import { UpdateNutritionDto } from 'src/nutrition/dtos/update-nutrition.dto';
+import { MetricsService } from 'src/metrics/metrics.service';
 const AdmZipModule = require('adm-zip');
 const AdmZip = AdmZipModule.default ?? AdmZipModule;
 
@@ -49,6 +50,7 @@ export class NutritionService implements INutritionService {
     private readonly httpService: HttpService,
     private readonly etl: EtlService,
     private readonly anomalyDetector: EtlAnomalyDetectorService,
+    private readonly metricsService: MetricsService,
   ) {}
 
   async getNutritions(
@@ -243,7 +245,8 @@ export class NutritionService implements INutritionService {
   }
 
   async runImportPipeline(): Promise<number> {
-    return this.etl.runWithPipelineLock('nutrition', async () => {
+    const start = process.hrtime.bigint();
+    const result = await this.etl.runWithPipelineLock('nutrition', async () => {
       if (!this.kaggleUser || !this.kaggleKey) {
         const msg =
           "KAGGLE_USER et KAGGLE_KEY doivent être définis pour l'import.";
@@ -417,5 +420,10 @@ export class NutritionService implements INutritionService {
       this.etl.emit('nutrition', 'SUCCESS', endMsg);
       return successCount;
     });
+    this.metricsService.observerDureeETL(
+      'nutrition',
+      Number(process.hrtime.bigint() - start) / 1e9,
+    );
+    return result;
   }
 }

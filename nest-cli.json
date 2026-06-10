@@ -4,5 +4,9 @@
   "sourceRoot": "src",
   "compilerOptions": {
     "deleteOutDir": false
-  }
+  },
+  "generateOptions": {
+    "spec": true
+  },
+  "exec": "node --max-old-space-size=512 --expose-gc"
 }
