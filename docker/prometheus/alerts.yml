@@ -8,7 +8,7 @@ groups:
           severity: critical
         annotations:
           summary: 'Service {{ $labels.job }} indisponible'
-          description: 'Le service {{ $labels.job }} ({{ $labels.instance }}) est hors ligne depuis plus d''1 minute.'
+          description: "Le service {{ $labels.job }} ({{ $labels.instance }}) est hors ligne depuis plus d'1 minute."
 
       - alert: HighErrorRate5xx
         expr: >
@@ -19,7 +19,7 @@ groups:
         labels:
           severity: critical
         annotations:
-          summary: 'Taux d''erreurs 5xx élevé'
+          summary: "Taux d'erreurs 5xx élevé"
           description: 'Le taux d''erreurs 5xx est de {{ printf "%.1f" $value }}% sur la dernière minute.'
 
       - alert: HighLatency
@@ -77,7 +77,7 @@ groups:
 
       - alert: DiskSpaceLow
         expr: >
-          (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) * 100 < 15
+          (node_filesystem_avail_bytes{fstype!~"tmpfs|overlay|devtmpfs|aufs",mountpoint=~"^/$|^/rootfs$"} / node_filesystem_size_bytes{fstype!~"tmpfs|overlay|devtmpfs|aufs",mountpoint=~"^/$|^/rootfs$"}) * 100 < 15
         for: 0m
         labels:
           severity: critical
@@ -95,4 +95,4 @@ groups:
           severity: info
         annotations:
           summary: 'Pipeline ETL {{ $labels.pipeline }} non exécuté depuis 24h'
-          description: 'Le pipeline {{ $labels.pipeline }} n''a pas été exécuté depuis plus de 24 heures.'
+          description: "Le pipeline {{ $labels.pipeline }} n'a pas été exécuté depuis plus de 24 heures."
