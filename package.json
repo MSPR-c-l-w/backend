@@ -60,7 +60,7 @@
     "jsonwebtoken": "^9.0.3",
     "mariadb": "^3.4.5",
     "minio": "^8.0.7",
-    "nodemailer": "^8.0.5",
+    "nodemailer": "^9.0.1",
     "papaparse": "^5.5.3",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
