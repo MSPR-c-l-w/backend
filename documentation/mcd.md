@@ -160,32 +160,214 @@ correspondante.
 > image/PDF spécifique est requis pour la soutenance, le bloc Mermaid ci-dessous se
 > rend tel quel sur GitHub ou via n'importe quel éditeur Markdown supportant Mermaid.
 
-### 2.3 Diagramme (rendu visuel simplifié)
+### 2.3 Diagramme (rendu visuel complet — attributs + cardinalités)
+
+Chaque relation porte sa cardinalité Merise explicite `EntiteA(min,max) – EntiteB(min,max)`
+en plus du symbole patte-de-corbeau Mermaid (qui encode la même information visuellement).
 
 ```mermaid
 erDiagram
-  User ||--o| HealthProfile : Has
-  User ||--o| UserAiPreferences : Define
-  User ||--o{ AiNutritionRecommendation : Receive
-  User ||--o{ AiWorkoutRecommendation : Receive
-  User }o--o| Organization : Belong
-  User }o--o| Role : Be
-  User ||--o{ Session : Practice
-  Session }o--o{ Exercise : Has
-  User ||--o{ Meal : Register
-  Meal }o--|| Nutrition : Has
-  User ||--o{ Subscription : Subscribe
-  Subscription }o--|| Plan : Define
-  User ||--o{ Post : Publish
-  Organization |o--o{ Post : Belong
-  Post ||--o{ PostComment : Has
-  User ||--o{ PostComment : Comment
-  Post ||--o{ PostLike : Has
-  User ||--o{ PostLike : Like
-  PostComment ||--o{ PostCommentLike : Has
-  User ||--o{ PostCommentLike : Like
-  User ||--o{ Follow : Follow
-  User ||--o{ Follow : FollowedBy
+  USER {
+    int id PK
+    int organization_id FK
+    int role_id FK
+    string email
+    string password_hash
+    string refresh_token_hash
+    datetime refresh_token_expires_at
+    string email_verification_token_hash
+    datetime email_verification_token_expires_at
+    datetime email_verified_at
+    string reset_password_token_hash
+    datetime reset_password_token_expires_at
+    string first_name
+    string last_name
+    datetime date_of_birth
+    string gender
+    float height
+    datetime created_at
+    datetime updated_at
+    datetime deleted_at
+    boolean is_active
+    boolean is_deleted
+  }
+  ORGANIZATION {
+    int id PK
+    string name
+    string type
+    json branding_config
+    datetime created_at
+    datetime updated_at
+    datetime deleted_at
+    boolean is_active
+    boolean is_deleted
+  }
+  ROLE {
+    int id PK
+    string name
+  }
+  HEALTHPROFILE {
+    int id PK
+    int user_id FK
+    float weight
+    float bmi
+    string physical_activity_level
+    int daily_calories_target
+    datetime updated_at
+  }
+  USERAIPREFERENCES {
+    int id PK
+    int user_id FK
+    json allergies
+    string regime
+    float budget
+    string objectif_ia
+    json contraintes_materielles
+    json limitations_physiques
+    json preferences_sportives
+    datetime updated_at
+  }
+  AINUTRITIONRECOMMENDATION {
+    int id PK
+    int user_id FK
+    string type
+    string input_image_url
+    json aliments_detectes
+    json macros
+    json suggestions
+    json meal_plan
+    datetime created_at
+  }
+  AIWORKOUTRECOMMENDATION {
+    int id PK
+    int user_id FK
+    string microservice_ref_id
+    string statut
+    json feedback
+    datetime generated_at
+    datetime updated_at
+  }
+  SESSION {
+    int id PK
+    int user_id FK
+    float duration_h
+    int calories_total
+    int avg_bpm
+    int max_bpm
+    int resting_bpm
+    datetime created_at
+  }
+  EXERCISE {
+    int id PK
+    string name
+    json primary_muscles
+    json secondary_muscles
+    string level
+    string mechanic
+    string equipment
+    string category
+    json instructions
+    json image_urls
+  }
+  NUTRITION {
+    int id PK
+    string name
+    string category
+    float calories_kcal
+    float protein_g
+    float carbohydrates_g
+    float fat_g
+    float fiber_g
+    float sugar_g
+    float sodium_mg
+    float cholesterol_mg
+    string meal_type_name
+    float water_intake_ml
+  }
+  MEAL {
+    int id PK
+    int user_id FK
+    int nutrition_id FK
+    datetime created_at
+  }
+  PLAN {
+    int id PK
+    string name
+    float price
+    json features
+  }
+  SUBSCRIPTION {
+    int id PK
+    int user_id FK
+    int plan_id FK
+    datetime start_date
+    datetime end_date
+    string status
+  }
+  POST {
+    int id PK
+    int author_id FK
+    int organization_id FK
+    string title
+    string content
+    string media_url
+    string category
+    string mood
+    boolean is_published
+    datetime created_at
+    datetime updated_at
+  }
+  POSTCOMMENT {
+    int id PK
+    int post_id FK
+    int user_id FK
+    int parent_id FK
+    string content
+    datetime created_at
+    datetime updated_at
+  }
+  POSTLIKE {
+    int id PK
+    int post_id FK
+    int user_id FK
+    datetime created_at
+  }
+  POSTCOMMENTLIKE {
+    int id PK
+    int comment_id FK
+    int user_id FK
+    datetime created_at
+  }
+  FOLLOW {
+    int id PK
+    int follower_id FK
+    int following_id FK
+    datetime created_at
+  }
+
+  USER ||--o| HEALTHPROFILE : "Has : User(0,1)-HealthProfile(1,1)"
+  USER ||--o| USERAIPREFERENCES : "Define : User(0,1)-UserAiPreferences(1,1)"
+  USER ||--o{ AINUTRITIONRECOMMENDATION : "Receive : User(0,n)-AiNutritionRecommendation(1,1)"
+  USER ||--o{ AIWORKOUTRECOMMENDATION : "Receive : User(0,n)-AiWorkoutRecommendation(1,1)"
+  USER }o--o| ORGANIZATION : "Belong : User(0,n)-Organization(0,1)"
+  USER }o--o| ROLE : "Be : User(0,n)-Role(0,1)"
+  USER ||--o{ SESSION : "Practice : User(0,n)-Session(1,1)"
+  SESSION }o--o{ EXERCISE : "Has (via SessionExercise) : Session(0,n)-Exercise(0,n)"
+  USER ||--o{ MEAL : "Register : User(0,n)-Meal(1,1)"
+  MEAL }o--|| NUTRITION : "Has : Meal(1,1)-Nutrition(0,n)"
+  USER ||--o{ SUBSCRIPTION : "Subscribe : User(0,n)-Subscription(1,1)"
+  SUBSCRIPTION }o--|| PLAN : "Define : Subscription(1,1)-Plan(0,n)"
+  USER ||--o{ POST : "Publish : User(1,1)-Post(0,n)"
+  ORGANIZATION |o--o{ POST : "Belong : Organization(0,1)-Post(0,n)"
+  POST ||--o{ POSTCOMMENT : "Has : Post(1,1)-PostComment(0,n)"
+  USER ||--o{ POSTCOMMENT : "Comment : User(1,1)-PostComment(0,n)"
+  POSTCOMMENT ||--o{ POSTCOMMENT : "Answer (reflexive) : PostComment(0,1)-PostComment(0,n)"
+  POST ||--o{ POSTLIKE : "Has : Post(1,1)-PostLike(0,n)"
+  USER ||--o{ POSTLIKE : "Like : User(1,1)-PostLike(0,n)"
+  POSTCOMMENT ||--o{ POSTCOMMENTLIKE : "Has : PostComment(1,1)-PostCommentLike(0,n)"
+  USER ||--o{ POSTCOMMENTLIKE : "Like : User(1,1)-PostCommentLike(0,n)"
+  USER ||--o{ FOLLOW : "Follow (reflexive, role follower) : User(1,1)-Follow(0,n)"
+  USER ||--o{ FOLLOW : "FollowedBy (reflexive, role following) : User(1,1)-Follow(0,n)"
 ```
 
 ### 2.4 Synthèse des adaptations
