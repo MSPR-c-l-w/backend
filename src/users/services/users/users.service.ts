@@ -416,6 +416,8 @@ export class UsersService implements IUsersService {
       budget: preferences.budget ?? null,
       objectif_ia: preferences.objectif_ia,
       contraintes_materielles: preferences.contraintes_materielles,
+      limitations_physiques: preferences.limitations_physiques ?? [],
+      preferences_sportives: preferences.preferences_sportives ?? [],
     };
 
     return this.prisma.userAiPreferences.upsert({

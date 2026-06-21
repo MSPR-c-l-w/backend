@@ -43,10 +43,15 @@ export class AiNutritionService {
     this.apiKey = process.env.WORKOUT_SERVICE_API_KEY ?? '';
   }
 
+  private jsonStringArray(value: Prisma.JsonValue): string[] {
+    if (!Array.isArray(value)) return [];
+    return value.filter((item): item is string => typeof item === 'string');
+  }
+
   async generateMealPlanForUser(userId: number): Promise<MealPlanResult> {
     const user = await this.prisma.user.findUnique({
       where: { id: userId, is_deleted: false },
-      include: { healthProfile: true },
+      include: { healthProfile: true, aiPreferences: true },
     });
 
     if (!user) throw new NotFoundException('USER_NOT_FOUND');
@@ -60,7 +65,12 @@ export class AiNutritionService {
 
     const body = {
       userId,
-      userGoal: 'equilibre',
+      userGoal: user.aiPreferences?.objectif_ia ?? 'equilibre',
+      allergies: this.jsonStringArray(user.aiPreferences?.allergies ?? []),
+      dietaryConstraints: user.aiPreferences?.regime
+        ? [user.aiPreferences.regime]
+        : [],
+      budget: user.aiPreferences?.budget ?? null,
       weightKg: user.healthProfile?.weight ?? null,
       heightCm: user.height ?? null,
       ageYears: age,

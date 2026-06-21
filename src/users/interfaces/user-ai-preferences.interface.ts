@@ -8,5 +8,7 @@ export type UserAiPreferencesRecord = {
   budget: number | null;
   objectif_ia: string;
   contraintes_materielles: Prisma.JsonValue;
+  limitations_physiques: Prisma.JsonValue;
+  preferences_sportives: Prisma.JsonValue;
   updated_at: Date;
 };
