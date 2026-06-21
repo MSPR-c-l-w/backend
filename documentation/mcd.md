@@ -160,10 +160,141 @@ correspondante.
 > image/PDF spécifique est requis pour la soutenance, le bloc Mermaid ci-dessous se
 > rend tel quel sur GitHub ou via n'importe quel éditeur Markdown supportant Mermaid.
 
-### 2.3 Diagramme (rendu visuel complet — attributs + cardinalités)
+### 2.3 Diagramme (rendu visuel complet — notation Merise classique)
 
-Chaque relation porte sa cardinalité Merise explicite `EntiteA(min,max) – EntiteB(min,max)`
-en plus du symbole patte-de-corbeau Mermaid (qui encode la même information visuellement).
+Rendu en notation Merise traditionnelle (entités en rectangles, associations en
+ellipses portant le verbe, cardinalité `(min,max)` en texte sur chaque trait reliant
+une entité à une association) — équivalent du diagramme entités/ellipses/cardinalités
+habituel, construit ici avec un `graph` Mermaid plutôt qu'un `erDiagram` (qui ne
+supporte pas les associations comme nœuds séparés).
+
+```mermaid
+graph LR
+  User["<b>User</b><br/>id<br/>#organization_id<br/>#role_id<br/>email<br/>password_hash<br/>refresh_token_hash<br/>refresh_token_expires_at<br/>email_verification_token_hash<br/>email_verification_token_expires_at<br/>email_verified_at<br/>reset_password_token_hash<br/>reset_password_token_expires_at<br/>first_name<br/>last_name<br/>date_of_birth<br/>gender<br/>height<br/>created_at<br/>updated_at<br/>deleted_at<br/>is_active<br/>is_deleted"]
+  Organization["<b>Organization</b><br/>id<br/>name<br/>type<br/>branding_config<br/>created_at<br/>updated_at<br/>deleted_at<br/>is_active<br/>is_deleted"]
+  Role["<b>Role</b><br/>id<br/>name"]
+  HealthProfile["<b>HealthProfile</b><br/>id<br/>#user_id<br/>weight<br/>bmi<br/>physical_activity_level<br/>daily_calories_target<br/>updated_at"]
+  UserAiPreferences["<b>UserAiPreferences</b><br/>id<br/>#user_id<br/>allergies<br/>regime<br/>budget<br/>objectif_ia<br/>contraintes_materielles<br/>limitations_physiques<br/>preferences_sportives<br/>updated_at"]
+  AiNutritionRecommendation["<b>AiNutritionRecommendation</b><br/>id<br/>#user_id<br/>type<br/>input_image_url<br/>aliments_detectes<br/>macros<br/>suggestions<br/>meal_plan<br/>created_at"]
+  AiWorkoutRecommendation["<b>AiWorkoutRecommendation</b><br/>id<br/>#user_id<br/>microservice_ref_id<br/>statut<br/>feedback<br/>generated_at<br/>updated_at"]
+  Session["<b>Session</b><br/>id<br/>#user_id<br/>duration_h<br/>calories_total<br/>avg_bpm<br/>max_bpm<br/>resting_bpm<br/>created_at"]
+  Exercise["<b>Exercise</b><br/>id<br/>name<br/>primary_muscles<br/>secondary_muscles<br/>level<br/>mechanic<br/>equipment<br/>category<br/>instructions<br/>image_urls"]
+  SessionExercise["<b>SessionExercise</b><br/>#session_id<br/>#exercise_id"]
+  Nutrition["<b>Nutrition</b><br/>id<br/>name<br/>category<br/>calories_kcal<br/>protein_g<br/>carbohydrates_g<br/>fat_g<br/>fiber_g<br/>sugar_g<br/>sodium_mg<br/>cholesterol_mg<br/>meal_type_name<br/>water_intake_ml"]
+  Meal["<b>Meal</b><br/>id<br/>#user_id<br/>#nutrition_id<br/>created_at"]
+  Plan["<b>Plan</b><br/>id<br/>name<br/>price<br/>features"]
+  Subscription["<b>Subscription</b><br/>id<br/>#user_id<br/>#plan_id<br/>start_date<br/>end_date<br/>status"]
+  Post["<b>Post</b><br/>id<br/>#author_id<br/>#organization_id<br/>title<br/>content<br/>media_url<br/>category<br/>mood<br/>is_published<br/>created_at<br/>updated_at"]
+  PostComment["<b>PostComment</b><br/>id<br/>#post_id<br/>#user_id<br/>#parent_id<br/>content<br/>created_at<br/>updated_at"]
+  PostLike["<b>PostLike</b><br/>id<br/>#post_id<br/>#user_id<br/>created_at"]
+  PostCommentLike["<b>PostCommentLike</b><br/>id<br/>#comment_id<br/>#user_id<br/>created_at"]
+  Follow["<b>Follow</b><br/>id<br/>#follower_id<br/>#following_id<br/>created_at"]
+  NutritionStaging["<b>NutritionStaging</b><br/>id<br/>cleaned_data<br/>anomalies<br/>status<br/>created_at<br/>updated_at"]
+  ExerciseStaging["<b>ExerciseStaging</b><br/>id<br/>cleaned_data<br/>anomalies<br/>status<br/>created_at<br/>updated_at"]
+  HealthProfileStaging["<b>HealthProfileStaging</b><br/>id<br/>cleaned_data<br/>anomalies<br/>status<br/>created_at<br/>updated_at"]
+
+  Has1(["Has"])
+  Define1(["Define"])
+  Receive1(["Receive"])
+  Receive2(["Receive"])
+  Belong1(["Belong"])
+  Be(["Be"])
+  Practice(["Practice"])
+  Has2(["Has"])
+  Register(["Register"])
+  Has3(["Has"])
+  Subscribe(["Subscribe"])
+  Define2(["Define"])
+  Publish(["Publish"])
+  Belong2(["Belong"])
+  Has4(["Has"])
+  Comment(["Comment"])
+  Answer(["Answer"])
+  Has5(["Has"])
+  Like1(["Like"])
+  Has6(["Has"])
+  Like2(["Like"])
+  Follow1(["Follow"])
+  FollowedBy(["FollowedBy"])
+
+  User ---|"0,1"| Has1
+  Has1 ---|"1,1"| HealthProfile
+
+  User ---|"0,1"| Define1
+  Define1 ---|"1,1"| UserAiPreferences
+
+  User ---|"0,n"| Receive1
+  Receive1 ---|"1,1"| AiNutritionRecommendation
+
+  User ---|"0,n"| Receive2
+  Receive2 ---|"1,1"| AiWorkoutRecommendation
+
+  User ---|"0,n"| Belong1
+  Belong1 ---|"0,1"| Organization
+
+  User ---|"0,n"| Be
+  Be ---|"0,1"| Role
+
+  User ---|"0,n"| Practice
+  Practice ---|"1,1"| Session
+
+  Session ---|"0,n"| Has2
+  Has2 ---|"0,n"| Exercise
+  Has2 -.->|"via"| SessionExercise
+
+  User ---|"0,n"| Register
+  Register ---|"1,1"| Meal
+
+  Meal ---|"1,1"| Has3
+  Has3 ---|"0,n"| Nutrition
+
+  User ---|"0,n"| Subscribe
+  Subscribe ---|"1,1"| Subscription
+
+  Subscription ---|"1,1"| Define2
+  Define2 ---|"0,n"| Plan
+
+  User ---|"1,1"| Publish
+  Publish ---|"0,n"| Post
+
+  Organization ---|"0,1"| Belong2
+  Belong2 ---|"0,n"| Post
+
+  Post ---|"1,1"| Has4
+  Has4 ---|"0,n"| PostComment
+
+  User ---|"1,1"| Comment
+  Comment ---|"0,n"| PostComment
+
+  PostComment ---|"0,1"| Answer
+  Answer ---|"0,n"| PostComment
+
+  Post ---|"1,1"| Has5
+  Has5 ---|"0,n"| PostLike
+
+  User ---|"1,1"| Like1
+  Like1 ---|"0,n"| PostLike
+
+  PostComment ---|"1,1"| Has6
+  Has6 ---|"0,n"| PostCommentLike
+
+  User ---|"1,1"| Like2
+  Like2 ---|"0,n"| PostCommentLike
+
+  User ---|"1,1"| Follow1
+  Follow1 ---|"0,n"| Follow
+
+  User ---|"1,1"| FollowedBy
+  FollowedBy ---|"0,n"| Follow
+```
+
+`SessionExercise` matérialise l'association many-to-many `Has` entre `Session` et
+`Exercise` (clé composite `#session_id`/`#exercise_id`) ; `NutritionStaging`,
+`ExerciseStaging` et `HealthProfileStaging` n'ont aucune association (cf. §2.2),
+ils sont affichés ici sans connexion.
+
+<details>
+<summary>Ancienne version (notation crow's-foot Mermaid <code>erDiagram</code>)</summary>
 
 ```mermaid
 erDiagram
@@ -369,6 +500,8 @@ erDiagram
   USER ||--o{ FOLLOW : "Follow (reflexive, role follower) : User(1,1)-Follow(0,n)"
   USER ||--o{ FOLLOW : "FollowedBy (reflexive, role following) : User(1,1)-Follow(0,n)"
 ```
+
+</details>
 
 ### 2.4 Synthèse des adaptations
 
