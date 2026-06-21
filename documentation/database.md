@@ -230,43 +230,33 @@ Statuts actifs définis dans `src/utils/constants.ts` : `['ACTIVE', 'active', 't
 
 Préférences IA de l'utilisateur (allergies, régime, objectifs, matériel sportif).
 
-| Champ                   | Type     | Notes                                  |
-| ----------------------- | -------- | -------------------------------------- |
-| id                      | Int PK   |                                        |
-| user_id                 | Int      | Unique, FK → User (Cascade)            |
-| allergies               | Json     | Liste de chaînes (ex. `["lactose"]`)   |
-| regime                  | String?  | ex. `vegetarien`, `vegan`              |
-| budget                  | Float?   | Budget mensuel alimentation (€)        |
-| objectif_ia             | String   | ex. `perte_de_poids`, `prise_de_masse` |
-| contraintes_materielles | Json     | Équipement disponible                  |
-| updated_at              | DateTime | @updatedAt                             |
+| Champ                   | Type     | Notes                                                               |
+| ----------------------- | -------- | ------------------------------------------------------------------- |
+| id                      | Int PK   |                                                                     |
+| user_id                 | Int      | Unique, FK → User (Cascade)                                         |
+| allergies               | Json     | Liste de chaînes (ex. `["lactose"]`)                                |
+| regime                  | String?  | ex. `vegetarien`, `vegan`                                           |
+| budget                  | Float?   | Budget mensuel alimentation (€)                                     |
+| objectif_ia             | String   | ex. `perte_de_poids`, `prise_de_masse`                              |
+| contraintes_materielles | Json     | Équipement disponible                                               |
+| limitations_physiques   | Json     | `@default("[]")` — ex. `["genou"]`, dédié au moteur sport           |
+| preferences_sportives   | Json     | `@default("[]")` — ex. `["cardio", "matin"]`, dédié au moteur sport |
+| allow_direct_messages   | Boolean  | `@default(true)`                                                    |
+| language                | String   | `@default("fr")`                                                    |
+| private_account         | Boolean  | `@default(false)`                                                   |
+| units                   | String   | `@default("metric")`                                                |
+| updated_at              | DateTime | @updatedAt                                                          |
 
 **API** : `PUT /users/me/ai-preferences` (JWT requis)
 
 **Relations** : User (1-1)
 
-> **Champs en cours d'intégration (branche `feat/ai-photo-food-detection`, pas encore mergée dans `main`)** :
-> migration `20260610000000_add_limitations_preferences_sportives`.
->
-> | Champ                 | Type    | Notes                                                               |
-> | --------------------- | ------- | ------------------------------------------------------------------- |
-> | limitations_physiques | Json    | `@default("[]")` — ex. `["genou"]`, dédié au moteur sport           |
-> | preferences_sportives | Json    | `@default("[]")` — ex. `["cardio", "matin"]`, dédié au moteur sport |
-> | allow_direct_messages | Boolean | `@default(true)` — sans lien avec l'IA                              |
-> | language              | String  | `@default("fr")` — sans lien avec l'IA                              |
-> | private_account       | Boolean | `@default(false)` — sans lien avec l'IA                             |
-> | units                 | String  | `@default("metric")` — sans lien avec l'IA                          |
->
-> **Adaptation et correction de bug associées** : avant cette migration,
-> `AiWorkoutService` envoyait au micro-service IA `regime` (un concept
-> nutrition, ex. `"vegetarien"`) comme `preferences` du profil sportif, et
-> `allergies` (idem, nutrition) comme `limitations` physiques — un
-> mélange sémantique entre les domaines nutrition et sport. Les nouveaux
-> champs dédiés (`limitations_physiques`, `preferences_sportives`)
-> corrigent ce mapping (`src/ai/services/ai-workout/ai-workout.service.ts`) :
-> le profil envoyé au moteur de recommandation sportif (`UserProfileForScoring`
-> côté micro-service api-ia) reflète maintenant les vraies contraintes/
-> préférences sportives de l'utilisateur, pas ses contraintes alimentaires.
+**Séparation sport / nutrition** : `limitations_physiques` et `preferences_sportives`
+alimentent le profil envoyé au moteur de recommandation sportif
+(`UserProfileForScoring` côté micro-service api-ia), distinctement de
+`regime`/`allergies` qui restent propres au moteur nutrition — chaque champ
+nourrit le moteur IA qui lui correspond, sans mélange entre les deux domaines
+(`src/ai/services/ai-workout/ai-workout.service.ts`).
 
 ---
 
