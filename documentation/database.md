@@ -245,6 +245,29 @@ Préférences IA de l'utilisateur (allergies, régime, objectifs, matériel spor
 
 **Relations** : User (1-1)
 
+> **Champs en cours d'intégration (branche `feat/ai-photo-food-detection`, pas encore mergée dans `main`)** :
+> migration `20260610000000_add_limitations_preferences_sportives`.
+>
+> | Champ                 | Type    | Notes                                                               |
+> | --------------------- | ------- | ------------------------------------------------------------------- |
+> | limitations_physiques | Json    | `@default("[]")` — ex. `["genou"]`, dédié au moteur sport           |
+> | preferences_sportives | Json    | `@default("[]")` — ex. `["cardio", "matin"]`, dédié au moteur sport |
+> | allow_direct_messages | Boolean | `@default(true)` — sans lien avec l'IA                              |
+> | language              | String  | `@default("fr")` — sans lien avec l'IA                              |
+> | private_account       | Boolean | `@default(false)` — sans lien avec l'IA                             |
+> | units                 | String  | `@default("metric")` — sans lien avec l'IA                          |
+>
+> **Adaptation et correction de bug associées** : avant cette migration,
+> `AiWorkoutService` envoyait au micro-service IA `regime` (un concept
+> nutrition, ex. `"vegetarien"`) comme `preferences` du profil sportif, et
+> `allergies` (idem, nutrition) comme `limitations` physiques — un
+> mélange sémantique entre les domaines nutrition et sport. Les nouveaux
+> champs dédiés (`limitations_physiques`, `preferences_sportives`)
+> corrigent ce mapping (`src/ai/services/ai-workout/ai-workout.service.ts`) :
+> le profil envoyé au moteur de recommandation sportif (`UserProfileForScoring`
+> côté micro-service api-ia) reflète maintenant les vraies contraintes/
+> préférences sportives de l'utilisateur, pas ses contraintes alimentaires.
+
 ---
 
 ### AiNutritionRecommendation
