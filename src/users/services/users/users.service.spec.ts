@@ -718,6 +718,8 @@ describe('UsersService', () => {
         budget: dto.budget,
         objectif_ia: dto.objectif_ia,
         contraintes_materielles: dto.contraintes_materielles,
+        limitations_physiques: [],
+        preferences_sportives: [],
         updated_at: new Date(),
       };
       prisma.user.findUnique.mockResolvedValue(createUserEntity());
@@ -729,13 +731,24 @@ describe('UsersService', () => {
 
       expect(prisma.userAiPreferences.upsert).toHaveBeenCalledWith({
         where: { user_id: 1 },
-        create: { user_id: 1, ...dto, regime: dto.regime, budget: dto.budget },
+        create: {
+          user_id: 1,
+          allergies: dto.allergies,
+          regime: dto.regime,
+          budget: dto.budget,
+          objectif_ia: dto.objectif_ia,
+          contraintes_materielles: dto.contraintes_materielles,
+          limitations_physiques: [],
+          preferences_sportives: [],
+        },
         update: {
           allergies: dto.allergies,
           regime: dto.regime,
           budget: dto.budget,
           objectif_ia: dto.objectif_ia,
           contraintes_materielles: dto.contraintes_materielles,
+          limitations_physiques: [],
+          preferences_sportives: [],
         },
       });
     });

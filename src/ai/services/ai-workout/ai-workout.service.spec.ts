@@ -70,6 +70,8 @@ describe('AiWorkoutService', () => {
       aiPreferences: {
         objectif_ia: 'renforcement',
         contraintes_materielles: ['tapis'],
+        limitations_physiques: ['genou'],
+        preferences_sportives: ['cardio', 'matin'],
         regime: 'vegetarien',
         allergies: ['lactose'],
       },
@@ -84,7 +86,8 @@ describe('AiWorkoutService', () => {
         objectif: 'renforcement',
         niveau: 'intermediaire',
         materiel: ['tapis'],
-        limitations: ['lactose'],
+        limitations: ['genou'],
+        preferences: ['cardio', 'matin'],
       }),
     );
     expect(prisma.aiWorkoutRecommendation.updateMany).toHaveBeenCalled();
