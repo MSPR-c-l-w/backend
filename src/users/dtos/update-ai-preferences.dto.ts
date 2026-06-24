@@ -36,4 +36,20 @@ export class UpdateAiPreferencesDto {
   })
   @IsArray({ message: 'CONTRAINTES_MATERIELLES_MUST_BE_AN_ARRAY' })
   contraintes_materielles: string[];
+
+  @ApiPropertyOptional({
+    example: ['genou', 'dos'],
+    description: 'Limitations physiques (blessures, contre-indications)',
+  })
+  @IsOptional()
+  @IsArray({ message: 'LIMITATIONS_PHYSIQUES_MUST_BE_AN_ARRAY' })
+  limitations_physiques?: string[];
+
+  @ApiPropertyOptional({
+    example: ['faible impact', '30 min', 'soir'],
+    description: "Préférences sportives (durée, horaires, types d'activité)",
+  })
+  @IsOptional()
+  @IsArray({ message: 'PREFERENCES_SPORTIVES_MUST_BE_AN_ARRAY' })
+  preferences_sportives?: string[];
 }

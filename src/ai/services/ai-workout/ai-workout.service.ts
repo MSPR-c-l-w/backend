@@ -96,21 +96,17 @@ export class AiWorkoutService {
     preferences: {
       objectif_ia: string;
       contraintes_materielles: Prisma.JsonValue;
-      regime: string | null;
-      allergies: Prisma.JsonValue;
+      limitations_physiques: Prisma.JsonValue;
+      preferences_sportives: Prisma.JsonValue;
     },
     healthProfile: { physical_activity_level: string | null } | null,
   ): WorkoutUserProfile {
-    const materiel = this.jsonStringArray(preferences.contraintes_materielles);
-    const allergies = this.jsonStringArray(preferences.allergies);
-    const preferencesList = preferences.regime ? [preferences.regime] : [];
-
     return {
       objectif: preferences.objectif_ia,
       niveau: this.resolveNiveau(healthProfile?.physical_activity_level),
-      materiel,
-      preferences: preferencesList,
-      limitations: allergies,
+      materiel: this.jsonStringArray(preferences.contraintes_materielles),
+      preferences: this.jsonStringArray(preferences.preferences_sportives),
+      limitations: this.jsonStringArray(preferences.limitations_physiques),
     };
   }
 

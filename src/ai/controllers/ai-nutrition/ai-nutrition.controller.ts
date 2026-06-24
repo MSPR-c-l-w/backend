@@ -1,8 +1,21 @@
-import { Controller, Inject, Post, Req, UseGuards } from '@nestjs/common';
+import {
+  BadRequestException,
+  Controller,
+  Inject,
+  Post,
+  Req,
+  UploadedFile,
+  UseGuards,
+  UseInterceptors,
+} from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import type { Request } from 'express';
 import {
   ApiBearerAuth,
+  ApiBody,
+  ApiConsumes,
   ApiOperation,
+  ApiServiceUnavailableResponse,
   ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
@@ -12,7 +25,11 @@ import {
   AiNutritionService,
   MealPlanResult,
 } from 'src/ai/services/ai-nutrition/ai-nutrition.service';
+import type { FoodAnalysisResult } from 'src/ai/interfaces/food-analysis.interface';
 import { SERVICES } from 'src/utils/constants';
+
+const ONE_MB = 1024 * 1024;
+const ALLOWED_PHOTO_MIMES = new Set(['image/jpeg', 'image/png']);
 
 @ApiBearerAuth('access-token')
 @ApiTags('ai')
@@ -34,5 +51,46 @@ export class AiNutritionController {
   generate(@Req() req: Request): Promise<MealPlanResult> {
     const payload = req.user as JwtPayload;
     return this.aiNutritionService.generateMealPlanForUser(payload.sub);
+  }
+
+  @Post('analyze-photo')
+  @UseGuards(JwtAuthGuard)
+  @UseInterceptors(
+    FileInterceptor('photo', {
+      limits: { fileSize: 10 * ONE_MB },
+    }),
+  )
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        photo: { type: 'string', format: 'binary' },
+      },
+      required: ['photo'],
+    },
+  })
+  @ApiOperation({
+    summary: "Analyser une photo d'aliment via le micro-service IA",
+    description:
+      "Upload une photo JPEG/PNG d'un repas. La photo est stockée sur S3, puis transmise au micro-service IA pour détection des aliments, estimation des macros et génération de recommandations nutrition/sport. Le résultat est persisté dans AiNutritionRecommendation avec type=ANALYSIS.",
+  })
+  @ApiUnauthorizedResponse({ description: 'JWT invalide ou expiré' })
+  @ApiServiceUnavailableResponse({
+    description: "Micro-service d'analyse photo indisponible",
+  })
+  analyzePhoto(
+    @Req() req: Request,
+    @UploadedFile() file: Express.Multer.File,
+  ): Promise<FoodAnalysisResult> {
+    if (!file) {
+      throw new BadRequestException('PHOTO_REQUIRED');
+    }
+
+    if (!ALLOWED_PHOTO_MIMES.has(file.mimetype)) {
+      throw new BadRequestException('UNSUPPORTED_PHOTO_TYPE_JPEG_OR_PNG_ONLY');
+    }
+    const payload = req.user as JwtPayload;
+    return this.aiNutritionService.analyzePhotoForUser(payload.sub, file);
   }
 }
