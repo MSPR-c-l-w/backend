@@ -59,6 +59,7 @@ export interface IUsersService {
   updateUser(id: string, user: UpdateUserDto): Promise<User>;
   updateUserRole(id: string, userRole: UpdateUserRoleDto): Promise<User>;
   deleteUser(id: string): Promise<User>;
+  getMyAiPreferences(userId: string): Promise<UserAiPreferencesRecord | null>;
   updateMyAiPreferences(
     userId: string,
     preferences: UpdateAiPreferencesDto,
