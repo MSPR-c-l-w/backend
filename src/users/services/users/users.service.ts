@@ -399,6 +399,16 @@ export class UsersService implements IUsersService {
     });
   }
 
+  async getMyAiPreferences(
+    userId: string,
+  ): Promise<UserAiPreferencesRecord | null> {
+    const id = parseInt(userId, 10);
+    if (Number.isNaN(id)) {
+      throw new BadRequestException('INVALID_USER_ID');
+    }
+    return this.prisma.userAiPreferences.findUnique({ where: { user_id: id } });
+  }
+
   async updateMyAiPreferences(
     userId: string,
     preferences: UpdateAiPreferencesDto,
