@@ -399,6 +399,36 @@ export class UsersService implements IUsersService {
     });
   }
 
+  async getMyAiPreferences(userId: string): Promise<UserAiPreferencesRecord> {
+    const id = parseInt(userId, 10);
+    if (Number.isNaN(id)) {
+      throw new BadRequestException('INVALID_USER_ID');
+    }
+
+    await this.getUserById(userId);
+
+    const existing = await this.prisma.userAiPreferences.findUnique({
+      where: { user_id: id },
+    });
+    if (existing) {
+      return existing;
+    }
+
+    // Aucune préférence enregistrée — on renvoie des valeurs par défaut.
+    return {
+      id: 0,
+      user_id: id,
+      allergies: [],
+      regime: null,
+      budget: null,
+      objectif_ia: 'equilibre',
+      contraintes_materielles: [],
+      limitations_physiques: [],
+      preferences_sportives: [],
+      updated_at: new Date(),
+    };
+  }
+
   async updateMyAiPreferences(
     userId: string,
     preferences: UpdateAiPreferencesDto,

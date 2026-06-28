@@ -129,6 +129,19 @@ export class UsersController implements IUsersController {
     return this.usersService.requestDataExport(payload.sub);
   }
 
+  @Get('me/ai-preferences')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({
+    summary: 'Récupérer mes préférences IA (utilisateur connecté)',
+  })
+  @ApiOkResponse({ description: 'Préférences IA de l’utilisateur' })
+  @ApiUnauthorizedResponse({ description: 'JWT invalide ou expiré' })
+  getMyAiPreferences(@Req() req: Request): Promise<UserAiPreferencesRecord> {
+    const payload = req.user as JwtPayload;
+
+    return this.usersService.getMyAiPreferences(payload.sub.toString());
+  }
+
   @Put('me/ai-preferences')
   @UseGuards(JwtAuthGuard)
   @ApiOperation({
