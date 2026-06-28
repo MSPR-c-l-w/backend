@@ -26,7 +26,7 @@ export interface MealPlanResult {
 }
 
 const REQUEST_TIMEOUT_MS = 15_000;
-const ANALYSIS_TIMEOUT_MS = 30_000;
+const ANALYSIS_TIMEOUT_MS = 60_000;
 
 @Injectable()
 export class AiNutritionService {
