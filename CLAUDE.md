@@ -48,6 +48,7 @@ After any code modification, run in order: `lint` → `format` → `build` → `
 **Module pattern:** Each domain lives in `src/<domain>/` with a controller, service, DTOs, and interfaces subfolder. The data flow is always: Controller → Service → PrismaService.
 
 **Feature modules:**
+
 - `auth/` — JWT login/register, refresh tokens, email verification, password reset
 - `users/`, `roles/`, `organization/` — User management and RBAC
 - `health-profile/`, `nutrition/`, `exercice/`, `session/`, `session-exercise/` — Core health/fitness domain
@@ -77,6 +78,7 @@ Full project documentation is in the `documentation/` folder. Key files:
 
 @documentation/architecture.md
 @documentation/database.md
+@documentation/mcd.md
 @documentation/security.md
 @documentation/testing.md
 @documentation/api-reference.md

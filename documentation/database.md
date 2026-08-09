@@ -230,20 +230,33 @@ Statuts actifs définis dans `src/utils/constants.ts` : `['ACTIVE', 'active', 't
 
 Préférences IA de l'utilisateur (allergies, régime, objectifs, matériel sportif).
 
-| Champ                   | Type     | Notes                                  |
-| ----------------------- | -------- | -------------------------------------- |
-| id                      | Int PK   |                                        |
-| user_id                 | Int      | Unique, FK → User (Cascade)            |
-| allergies               | Json     | Liste de chaînes (ex. `["lactose"]`)   |
-| regime                  | String?  | ex. `vegetarien`, `vegan`              |
-| budget                  | Float?   | Budget mensuel alimentation (€)        |
-| objectif_ia             | String   | ex. `perte_de_poids`, `prise_de_masse` |
-| contraintes_materielles | Json     | Équipement disponible                  |
-| updated_at              | DateTime | @updatedAt                             |
+| Champ                   | Type     | Notes                                                               |
+| ----------------------- | -------- | ------------------------------------------------------------------- |
+| id                      | Int PK   |                                                                     |
+| user_id                 | Int      | Unique, FK → User (Cascade)                                         |
+| allergies               | Json     | Liste de chaînes (ex. `["lactose"]`)                                |
+| regime                  | String?  | ex. `vegetarien`, `vegan`                                           |
+| budget                  | Float?   | Budget mensuel alimentation (€)                                     |
+| objectif_ia             | String   | ex. `perte_de_poids`, `prise_de_masse`                              |
+| contraintes_materielles | Json     | Équipement disponible                                               |
+| limitations_physiques   | Json     | `@default("[]")` — ex. `["genou"]`, dédié au moteur sport           |
+| preferences_sportives   | Json     | `@default("[]")` — ex. `["cardio", "matin"]`, dédié au moteur sport |
+| allow_direct_messages   | Boolean  | `@default(true)`                                                    |
+| language                | String   | `@default("fr")`                                                    |
+| private_account         | Boolean  | `@default(false)`                                                   |
+| units                   | String   | `@default("metric")`                                                |
+| updated_at              | DateTime | @updatedAt                                                          |
 
 **API** : `PUT /users/me/ai-preferences` (JWT requis)
 
 **Relations** : User (1-1)
+
+**Séparation sport / nutrition** : `limitations_physiques` et `preferences_sportives`
+alimentent le profil envoyé au moteur de recommandation sportif
+(`UserProfileForScoring` côté micro-service api-ia), distinctement de
+`regime`/`allergies` qui restent propres au moteur nutrition — chaque champ
+nourrit le moteur IA qui lui correspond, sans mélange entre les deux domaines
+(`src/ai/services/ai-workout/ai-workout.service.ts`).
 
 ---
 
@@ -356,6 +369,7 @@ User ──< Post
 | Historique nutrition (analyses, macros, plans)           | MySQL / Prisma `AiNutritionRecommendation`          | Traçabilité et filtrage par `user_id` / date ; payloads JSON flexibles pour les sorties IA                                                                                                 |
 | Programme sportif complet (séances, exercices détaillés) | MongoDB (micro-service dédié)                       | Modèle documentaire adapté aux programmes variables ; pas de schéma rigide côté sport IA                                                                                                   |
 | Lien backend ↔ MongoDB                                   | MySQL `AiWorkoutRecommendation.microservice_ref_id` | Clé étrangère logique (UUID string) : le backend relationnel ne duplique pas le document MongoDB, il enregistre la référence, le statut (`ACTIVE` / `ARCHIVED`) et le feedback utilisateur |
+| Catalogue d'aliments pour la détection photo             | MongoDB `nutrition_foods` (micro-service `api-ia`)  | Alimenté en lecture depuis `GET /nutrition` (notre table `Nutrition`, via un compte de service) : normalisation noms/alias pour matcher les labels renvoyés par le modèle de vision        |
 
 **Flux typique — recommandation sportive :**
 
@@ -363,5 +377,12 @@ User ──< Post
 2. Le backend crée une ligne `AiWorkoutRecommendation` avec `microservice_ref_id = <uuid>` et `statut = ACTIVE`.
 3. Pour afficher le détail du programme, l'API agrège la ligne SQL et appelle le micro-service avec `microservice_ref_id`.
 4. À l'archivage ou au feedback, seuls `statut` et `feedback` sont mis à jour côté relationnel ; le document MongoDB peut rester inchangé pour l'audit.
+
+**Flux confirmé — analyse photo nutrition (`POST /ai/nutrition/analyze-photo`) :**
+
+1. Le backend reçoit la photo (JWT requis), l'upload sur S3/MinIO via `StorageService`.
+2. Il appelle le micro-service `api-ia` (`X-API-Key`) avec `{ imageUrl, userId }`.
+3. `api-ia` détecte les aliments par vision, puis résout chaque label via son catalogue MongoDB `nutrition_foods` (lui-même synchronisé depuis notre table `Nutrition`).
+4. Le backend persiste la réponse (`FoodAnalysisResult`) dans `AiNutritionRecommendation` avec `type = ANALYSIS` — aucune nouvelle colonne, le contrat correspond 1:1 aux champs JSON existants (`aliments_detectes`, `macros`, `suggestions`).
 
 **Choix JSON dans Prisma :** les champs `allergies`, `aliments_detectes`, `macros`, `meal_plan`, `feedback` évoluent avec les modèles IA sans migration à chaque nouveau champ métier. Les entités relationnelles (clés, dates, statuts) restent typées et indexables en SQL.
